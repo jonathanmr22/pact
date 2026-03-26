@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/pact-handshake.png" alt="PACT — Human and AI shaking hands" width="640"/>
+</p>
+
 # PACT — Programmatic Agent Constraint Toolkit
 
 **A framework for governing AI coding agents through infrastructure instead of instructions.**
