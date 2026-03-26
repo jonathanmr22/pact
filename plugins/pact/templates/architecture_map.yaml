@@ -1,0 +1,96 @@
+# =============================================================================
+# SYSTEM_MAP.yaml — Architecture Wiring Map
+#
+# PACT Context Replacement: The agent reads this BEFORE touching any feature.
+# Describes the full data flow for every feature: database → service → state → UI.
+#
+# PURPOSE: Replace the mental model a human developer builds over months
+# (and an AI agent loses every session) with a deterministic file read.
+#
+# RULES:
+#   - One entry per feature/domain
+#   - Include: tables, services, providers/state, screens, caches, cascades
+#   - If you added a table, service, or screen → update this file
+#   - Do NOT put behavior/lifecycle info here (use feature_flows/ instead)
+#
+# VERSION: Update this comment when making structural changes
+# Last updated: YYYY-MM-DD
+# =============================================================================
+
+# Example wiring entries — replace with your actual architecture:
+
+wiring:
+
+  # ---- Example: User/Profile system ----
+  users:
+    tables:
+      - users            # PK: id (uuid), email, created_at
+      - profiles         # FK: user_id → users.id, display_name, avatar_path
+      - preferences      # FK: user_id → users.id, key-value settings
+    services:
+      - UserService      # CRUD, auth integration
+      - ProfileService   # Avatar upload, display name validation
+    state:
+      - UserProvider     # caches: _currentUser, _profilesById (Map<String, Profile>)
+    screens:
+      - profile_screen          # View/edit own profile
+      - profile_view_screen     # View someone else's profile
+      - settings_screen         # User preferences
+    cascade_on_delete: "profiles CASCADE, preferences CASCADE"
+    feature_flow: "docs/feature_flows/auth_flow.yaml"
+
+  # ---- Example: Content/Posts system ----
+  # posts:
+  #   tables:
+  #     - posts          # PK: id, FK: author_id → users.id
+  #     - comments       # FK: post_id → posts.id, author_id → users.id
+  #     - media          # FK: post_id → posts.id, storage path
+  #   services:
+  #     - PostService    # Create, update, delete, fetch
+  #     - MediaService   # Image compression, upload
+  #   state:
+  #     - PostProvider   # caches: _posts (List), _postsById (Map)
+  #   screens:
+  #     - feed_screen    # List of posts
+  #     - post_detail    # Single post + comments
+  #     - create_post    # Compose new post
+  #   cascade_on_delete: "comments CASCADE, media CASCADE"
+
+  # ---- Example: Messaging system ----
+  # messaging:
+  #   tables:
+  #     - conversations  # PK: id, participants (array)
+  #     - messages       # FK: conversation_id, sender_id
+  #   services:
+  #     - MessagingService  # Send, receive, sync
+  #     - PushService       # Notification delivery
+  #   state:
+  #     - ChatProvider      # caches: _conversations, _messagesById
+  #   screens:
+  #     - conversations_screen  # List
+  #     - chat_screen           # Single conversation
+  #   cascade_on_delete: "messages CASCADE"
+  #   feature_flow: "docs/feature_flows/messaging_flow.yaml"
+
+# =============================================================================
+# CROSS-CUTTING CONCERNS
+# Systems that span multiple features.
+# =============================================================================
+
+cross_cutting:
+
+  # authentication:
+  #   service: AuthService
+  #   state: AuthProvider
+  #   screens: [login_screen, register_screen, forgot_password_screen]
+  #   notes: "JWT stored in secure storage, refresh token rotation"
+
+  # encryption:
+  #   service: CryptoService
+  #   key_storage: "Keychain (iOS) / Keystore (Android)"
+  #   notes: "Keys NEVER leave the device. NEVER sent to server."
+
+  # error_handling:
+  #   service: ErrorReportingService
+  #   logger: AppLogger
+  #   notes: "Structured logging with breadcrumbs. Never use print()."

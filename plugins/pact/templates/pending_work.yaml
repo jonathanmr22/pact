@@ -1,0 +1,37 @@
+# =============================================================================
+# Pending Work Tracker
+#
+# PACT cross-session continuity: Every session reads this file on start.
+# Update status as work progresses — not in batches at the end.
+#
+# Rules:
+#   - Every session MUST read this file at start
+#   - When a task is done AND verified, move it to completed
+#   - If a task was started but not finished, document exactly where it stopped
+#   - Do NOT delete completed items until the user confirms satisfaction
+# =============================================================================
+
+in_progress: {}
+  # example_task:
+  #   files: [path/to/file1, path/to/file2]
+  #   what: "Description of what's being done"
+  #   status: "Where it stopped — e.g., 'service done, provider not updated yet'"
+
+todo:
+  # example_future_task:
+  #   what: "Description of what needs to be done"
+  #   priority: medium  # low | medium | high
+  #   added: YYYY-MM-DD
+  #   depends_on: other_task_id  # optional
+
+needs_verification:
+  # example_unverified:
+  #   files: [path/to/file]
+  #   verify: "How to confirm this works"
+  #   blocked: "What's preventing verification — e.g., requires device testing"
+
+completed: {}
+  # example_done:
+  #   date: YYYY-MM-DD
+  #   what: "What was done"
+  #   verified: true

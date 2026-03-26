@@ -1,0 +1,85 @@
+# =============================================================================
+# {Feature Name} — Lifecycle Flow
+#
+# PACT Context Replacement: Describes BEHAVIOR across time and app states.
+# The architecture map (SYSTEM_MAP.yaml) describes STRUCTURE (what files exist).
+# This file describes what HAPPENS (what breaks if you touch them wrong).
+#
+# MANDATORY before rewriting or significantly modifying any feature.
+# Save to: docs/feature_flows/{feature_name}_flow.yaml
+#
+# Last updated: YYYY-MM-DD
+# =============================================================================
+
+purpose: "{One sentence: what this feature does and why it exists}"
+system_map_section: "{key from SYSTEM_MAP.yaml — e.g., 'users', 'messaging'}"
+
+# Things that must ALWAYS be true. If violated, the feature breaks.
+invariants:
+  - "{Invariant 1 — e.g., 'Auth token must exist before any API call'}"
+  - "{Invariant 2 — e.g., 'Database must be open before any query'}"
+  - "{Invariant 3}"
+
+states:
+
+  fresh_install:
+    # What exists, what's empty, what's defaulted on first launch
+    database: "{e.g., 'Tables exist but empty. No user row.'}"
+    auth: "{e.g., 'No token. Must complete onboarding.'}"
+    user_flow: "{What the user sees/does on first launch}"
+
+  normal_open:
+    # The happy path — everything is already set up
+    order:
+      1. "{First thing that runs — e.g., 'Check auth token validity'}"
+      2. "{Second — e.g., 'Open database connection'}"
+      3. "{Third — e.g., 'Load cached data into providers'}"
+    assumes:
+      - "{Assumption 1 — e.g., 'Auth token exists and is not expired'}"
+      - "{Assumption 2 — e.g., 'Database file exists and is not corrupted'}"
+
+  background:
+    # App is backgrounded but process is alive
+    active: ["{timers, listeners, streams still running}"]
+    held_in_memory: ["{caches, connections, derived state}"]
+    lost: []
+
+  force_close_reopen:
+    # Process killed, everything in memory is gone
+    lost: ["{List everything that was in memory}"]
+    persisted: ["{List everything that survives — database, secure storage, prefs}"]
+    recovery: "{How it comes back — usually same as normal_open}"
+
+  background_resume:
+    # App foregrounded after being backgrounded
+    re_init: ["{What re-initializes on resume}"]
+    checks: ["{Validity checks — e.g., token still valid? DB connection alive?}"]
+
+  # ---- OPTIONAL STATES (include if relevant to your feature) ----
+
+  # backup_restore:
+  #   source: "{Where backup data comes from}"
+  #   order:
+  #     1. "{Step 1}"
+  #     2. "{Step 2}"
+  #   danger: "{What gets overwritten, point of no return}"
+
+  # auth_logout:
+  #   effect: "{What happens to this feature when user logs out}"
+  #   persists: "{What stays despite logout}"
+
+  # auth_login:
+  #   effect: "{What happens on login}"
+  #   triggers: ["{sync, data pull, session init}"]
+
+  error_paths:
+    # What happens when things go wrong
+    network_down: "{Behavior when offline}"
+    invalid_auth: "{Behavior when auth fails}"
+    db_error: "{Behavior when database query fails}"
+    # Add more as relevant to your feature
+
+gotchas:
+  - "{Non-obvious interaction or ordering dependency}"
+  - "{Race condition or timing issue discovered during development}"
+  - "{Thing a previous session got wrong}"

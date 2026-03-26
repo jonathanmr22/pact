@@ -1,0 +1,61 @@
+# =============================================================================
+# Bug Tracker — Format Specification
+#
+# PACT cross-session knowledge: Every investigation is logged in real time
+# so the next session doesn't re-investigate bugs that were already solved.
+#
+# Directory structure:
+#   .claude/bugs/
+#   ├── _INDEX.yaml          # This file — format spec
+#   ├── _SOLUTIONS.yaml      # Reusable solutions knowledge base
+#   └── {system}/            # Bugs grouped by system
+#       └── {system}-NNN.yaml
+#
+# PROTOCOL:
+#   1. Before debugging: check _SOLUTIONS.yaml for matching tags
+#   2. If no match: create the bug file NOW (not after fixing)
+#   3. Log every attempt in real time (failed attempts are valuable)
+#   4. When fixed: update status, add root_cause and fix
+#   5. If the fix is reusable: add to _SOLUTIONS.yaml
+# =============================================================================
+
+format_version: 1
+
+bug_file_format:
+  id: "{system}-NNN"           # e.g., auth-001, ble-003
+  title: "Short description"
+  status: "open | investigating | fixed | wont_fix"
+  severity: "low | medium | high | critical"
+  system: "auth | database | ui | network | ble | sync | ..."
+  tags: ["tag1", "tag2"]       # For _SOLUTIONS.yaml matching
+  reported: "YYYY-MM-DD"
+
+  symptom: "What the user/developer observes"
+  expected: "What should happen instead"
+
+  investigation:
+    - attempt: 1
+      date: "YYYY-MM-DD"
+      tried: "What was tried"
+      result: "What happened"
+    # Log every attempt — failed attempts prevent future sessions
+    # from wasting hours on dead ends
+
+  root_cause: "Why it happened (filled in when understood)"
+  fix: "What was done to fix it"
+  files_changed: ["path/to/file"]
+
+  prevention: "How to prevent this class of bug in the future"
+  # This often becomes a new hook rule or cognitive redirection
+
+tag_vocabulary:
+  # Standardize tags so _SOLUTIONS.yaml matching works
+  - stale-cache        # Provider/state cache not updated
+  - race-condition     # Timing-dependent bug
+  - null-safety        # Null/undefined where not expected
+  - lifecycle          # App state transition bug
+  - migration          # Database migration issue
+  - permission         # Platform permission not granted
+  - encoding           # Character encoding / serialization
+  - async-safety       # Missing await, disposed widget, etc.
+  - platform-specific  # Android vs iOS difference

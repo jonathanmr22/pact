@@ -1,0 +1,58 @@
+# =============================================================================
+# Package Knowledge — {package_name}
+#
+# PACT package research template. MANDATORY before writing code that uses
+# an unfamiliar package. If this file doesn't exist for a package, STOP and
+# research before coding.
+#
+# Save to: docs/reference/packages/{package_name}.yaml
+#
+# WHY THIS EXISTS:
+#   AI agents guess at package APIs from stale training data. This produces
+#   workarounds for problems that don't exist, misuse of deprecated APIs,
+#   and circular debugging sessions. Research first, code second.
+# =============================================================================
+
+package: "{package_name}"
+version_installed: "{x.y.z}"
+version_latest: "{x.y.z}"
+last_researched: "YYYY-MM-DD"
+source: "{pub.dev / npm / pypi / crates.io URL}"
+repository: "{GitHub URL}"
+
+# What this package does and why we use it
+purpose: "{One sentence}"
+
+# API surface we actually use (not everything the package offers)
+api_used:
+  - method: "{ClassName.methodName()}"
+    purpose: "{What we use it for}"
+    gotchas: "{Any non-obvious behavior}"
+  # - method: "..."
+  #   purpose: "..."
+
+# Things the agent got wrong or that are non-obvious
+known_issues:
+  - issue: "{Description}"
+    resolution: "{How to handle it}"
+    discovered: "YYYY-MM-DD"
+  # - issue: "..."
+
+# Breaking changes between versions we care about
+migration_notes:
+  # - from: "x.y.z"
+  #   to: "x.y.z"
+  #   changes: "{What changed}"
+  #   action: "{What we need to do}"
+
+# Configuration or setup requirements
+setup:
+  # install: "{command}"
+  # config: "{any config file changes needed}"
+  # permissions: "{any platform permissions needed}"
+
+# Claude-specific notes (things the agent's training data gets wrong)
+agent_mistakes:
+  # - mistake: "{What the agent assumed incorrectly}"
+  #   reality: "{What actually happens}"
+  #   evidence: "{Link to docs/issue that confirms}"
