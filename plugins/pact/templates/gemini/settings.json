@@ -1,0 +1,52 @@
+{
+  "hooks": {
+    "BeforeTool": [
+      {
+        "matcher": "replace|write_file|run_shell_command",
+        "hooks": [
+          {
+            "name": "pact-before-tool",
+            "type": "command",
+            "command": "bash .gemini/hooks/before-tool-adapter.sh",
+            "timeout": 5000
+          }
+        ]
+      }
+    ],
+    "AfterTool": [
+      {
+        "matcher": "replace|write_file|read_file|read_many_files",
+        "hooks": [
+          {
+            "name": "pact-after-tool",
+            "type": "command",
+            "command": "bash .gemini/hooks/after-tool-adapter.sh",
+            "timeout": 5000
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "name": "pact-session-register",
+            "type": "command",
+            "command": "bash .claude/hooks/session-register.sh",
+            "timeout": 5000
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "name": "pact-status-check",
+            "type": "command",
+            "command": "bash .claude/hooks/session-status-check.sh",
+            "timeout": 8000
+          }
+        ]
+      }
+    ]
+  }
+}

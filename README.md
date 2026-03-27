@@ -10,7 +10,7 @@
 
 <p align="center">
   <a href="https://buymeacoffee.com/jonathanmr22" target="_blank"><img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black" alt="Buy Me A Coffee"/></a>
-  <img src="https://img.shields.io/badge/version-0.2.1-blue?style=for-the-badge" alt="Version 0.2.1"/>
+  <img src="https://img.shields.io/badge/version-0.3.0-blue?style=for-the-badge" alt="Version 0.2.1"/>
   <img src="https://img.shields.io/badge/license-MIT-green?style=for-the-badge" alt="MIT License"/>
 </p>
 
@@ -28,6 +28,20 @@ PACT addresses this with four pillars:
 2. **Context Replacement** — Architecture maps and lifecycle flows that replace memory
 3. **Self-Evolving Reasoning** — Questions the agent asks itself at decision points
 4. **Structure/Behavior Separation** — Static wiring maps vs dynamic lifecycle flows
+5. **Multi-Agent Resilience** — When Claude is down, switch to Gemini (or vice versa) with zero context loss
+
+---
+
+## Multi-Agent Support (Claude + Gemini)
+
+PACT supports running **multiple AI agents on the same project** — Claude Code and Gemini CLI share the same hooks, rules, and task tracker. When one agent is degraded, switch to the other without losing context.
+
+- **Shared governance:** One set of rules (CLAUDE.md), one set of hooks, one task tracker
+- **Model identity:** Sessions and commits are auto-tagged with the agent name
+- **Seamless handoffs:** PENDING_WORK.yaml tracks what each agent was doing
+- **Status monitoring:** `session-status-check.sh` warns you when Claude is degraded
+
+**[Read the full Multi-Agent Setup Guide →](MULTI_AGENT.md)**
 
 ---
 
@@ -185,10 +199,20 @@ Configure hooks in `.claude/settings.local.json` (or your agent's equivalent):
 | `cutting_room/_INDEX.yaml` | Visual prototyping workspace registry |
 | `cutting_room/_TRIAL_TEMPLATE.yaml` | Trial log format for visual iteration |
 
+### Gemini Integration (templates/gemini/)
+
+| Template | Purpose |
+|----------|---------|
+| `GEMINI.md` | Project context file for Gemini CLI (points to CLAUDE.md for shared rules) |
+| `hooks/before-tool-adapter.sh` | Translates Gemini's JSON hook format → PACT env vars, delegates to `.claude/hooks/` |
+| `hooks/after-tool-adapter.sh` | Same adapter pattern for AfterTool (PostToolUse equivalent) |
+| `settings.json` | Gemini CLI hook configuration (drop into `.gemini/settings.json`) |
+
 ### Documentation
 
 | File | Purpose |
 |------|---------|
+| `MULTI_AGENT.md` | **Complete guide to running Claude + Gemini on the same project** — installation, hook architecture, task handoffs, parallel sessions |
 | `EXAMPLES.md` | 9 real-world examples from a production project |
 | `CHANGELOG.md` | Versioned change history |
 

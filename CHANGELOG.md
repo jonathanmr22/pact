@@ -7,10 +7,22 @@ PACT uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-## [0.2.1] — 2026-03-27
+## [0.3.0] — 2026-03-27
 
 ### Added
-- `session-status-check.sh` — SessionStart hook that checks `status.claude.com/api/v2/incidents/unresolved.json` for active incidents affecting Claude Code or Claude API. Only warns on major/critical impact — no false positives from minor/maintenance incidents. Fails silently on network errors (4s timeout). Tells the user what's wrong and links to the status page.
+
+**Multi-Agent Support (Claude + Gemini)**
+- `MULTI_AGENT.md` — Complete guide to running Claude Code and Gemini CLI on the same project with shared governance, seamless task handoffs, and parallel session coordination
+- `templates/gemini/GEMINI.md` — Project context template for Gemini CLI (points to CLAUDE.md for shared rules, adds model identity and tool mapping)
+- `templates/gemini/hooks/before-tool-adapter.sh` — Translates Gemini's JSON stdin hook format to PACT environment variables, delegates to `.claude/hooks/` scripts
+- `templates/gemini/hooks/after-tool-adapter.sh` — Same adapter pattern for AfterTool events
+- `templates/gemini/settings.json` — Drop-in Gemini CLI hook configuration
+- `session-status-check.sh` — SessionStart hook that checks `status.claude.com/api/v2/incidents/unresolved.json` for active incidents affecting Claude Code or API. Only warns on major/critical impact. Fails silently on network errors (4s timeout).
+
+### Changed
+- `session-register.sh` — Now auto-detects agent model (Claude vs Gemini) via environment variables and tags sessions with `model: claude` or `model: gemini`. Backward compatible with existing session files.
+- Session file header changed from "Multi-Claude" to "Multi-Agent" coordination
+- README updated with Multi-Agent section, Gemini templates table, fifth pillar (Multi-Agent Resilience)
 
 ---
 
