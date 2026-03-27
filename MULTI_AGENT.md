@@ -160,6 +160,67 @@ This is the same context a human coworker would need. PACT just makes it machine
 
 ---
 
+## Cooperative Mode — Agents Working Together
+
+Beyond failover, PACT supports **cooperative delegation** — one agent dispatching
+tasks to the other in real time. This is not a "second opinion" chat; Gemini gets
+full tool access and can edit files, run commands, and search the web.
+
+### How It Works
+
+The `delegate-to-gemini.sh` script invokes Gemini CLI in headless mode (`--prompt`).
+The calling agent (e.g., Claude) passes a task description, and Gemini executes it
+with access to the full project — governed by the same PACT hooks.
+
+### Usage (from Claude Code)
+
+```bash
+# Research mode (default) — read-only, safe to run anytime
+bash .gemini/delegate-to-gemini.sh "research the maplibre API for custom marker clustering"
+
+# Edit mode — Gemini can modify files (check git diff after)
+bash .gemini/delegate-to-gemini.sh --edit "extract the retry logic from pulse_service.dart into a reusable helper"
+
+# Explicit research mode — web search enabled
+bash .gemini/delegate-to-gemini.sh --research "what breaking changes are in supabase-flutter v2.12"
+```
+
+### When to Delegate
+
+Good delegation tasks:
+- **Research** — "what does this API look like?" (Gemini has Google Search built-in)
+- **Parallel work** — "refactor this file while I work on the provider"
+- **Package investigation** — "check the changelog for breaking changes in X"
+- **Boilerplate** — "generate the Drift table and migration for this schema"
+- **Second implementation** — "write an alternative approach so we can compare"
+
+Bad delegation tasks:
+- Anything touching security, encryption, or auth (too high risk for unsupervised edits)
+- Tasks that require deep context about the current conversation
+- UI work that needs iterative visual feedback
+
+### Safety
+
+- Default mode is **read-only** — Gemini can research but not edit files
+- `--edit` mode enables file changes, but PACT hooks still enforce all rules
+  (read-before-write, no secrets, no force push, feature flow requirements)
+- After any `--edit` delegation, the calling agent should `git diff` to review changes
+- Both agents' edits appear in `file_edit_log.yaml` for auditability
+
+### Adding to Your Instructions File
+
+Tell your primary agent when and how to delegate. Example for CLAUDE.md:
+
+```markdown
+## Cooperative Delegation
+When facing research-heavy tasks or parallelizable work, delegate to Gemini:
+- `bash .gemini/delegate-to-gemini.sh "task"` — research mode (safe)
+- `bash .gemini/delegate-to-gemini.sh --edit "task"` — edit mode (review after)
+Always review Gemini's changes with `git diff` before committing.
+```
+
+---
+
 ## When to Switch
 
 The `session-status-check.sh` hook warns you at session start when there's
