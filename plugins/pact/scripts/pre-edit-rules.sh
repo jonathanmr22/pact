@@ -4,9 +4,8 @@
 #
 # Exit 1 = blocked, exit 0 = allowed.
 #
-# This hook ships with sensible defaults (hardcoded secrets, read-before-write).
-# Customize by adding patterns to your project's .claude/hooks/pre-edit-rules.sh
-# or by editing this file after installation.
+# Ships with sensible defaults (hardcoded secrets, read-before-write, issue
+# tracker gate). Customize by adding patterns for your project.
 # =============================================================================
 
 INPUT=$(cat)
@@ -24,6 +23,36 @@ except:
     pass
 " 2>/dev/null)
 
+# ============================================================================
+# ISSUE TRACKER GATE — must document bug before fixing it
+# If an issue was fetched (post-sentry-bug-reminder.sh wrote a flag),
+# BLOCK source file edits until a .claude/bugs/ file has been created.
+# ============================================================================
+ISSUE_FLAG="${TEMP:-${TMP:-/tmp}}/pact_issue_pending.txt"
+if [ -f "$ISSUE_FLAG" ] && [ -s "$ISSUE_FLAG" ]; then
+  # Only gate source file edits — bug files, docs, tests are always allowed
+  if echo "$FILE_PATH" | grep -qiE '[/\\](lib|src|app|packages)[/\\]'; then
+    BUG_FILED=false
+    TRACK_FILE="${TEMP:-${TMP:-/tmp}}/pact_read_files.txt"
+    if [ -f "$TRACK_FILE" ] && grep -qiE '\.claude/bugs/.*\.yaml' "$TRACK_FILE" 2>/dev/null; then
+      BUG_FILED=true
+    fi
+    PROJECT_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo ".")
+    EDIT_LOG="${PROJECT_ROOT}/.claude/memory/file_edit_log.yaml"
+    TODAY=$(date -u +"%Y-%m-%d")
+    if [ -f "$EDIT_LOG" ] && grep -qE "bugs/.*${TODAY}" "$EDIT_LOG" 2>/dev/null; then
+      BUG_FILED=true
+    fi
+    if [ "$BUG_FILED" = false ]; then
+      PENDING=$(cat "$ISSUE_FLAG" | awk '{print $1}' | tr '\n' ', ' | sed 's/,$//')
+      echo "BLOCKED: You fetched issue(s) [${PENDING}] but have NOT created a bug file yet." >&2
+      echo "  Create .claude/bugs/{system}/{system}-NNN.yaml BEFORE editing source code." >&2
+      echo "  Template: .claude/bugs/_INDEX.yaml" >&2
+      exit 1
+    fi
+  fi
+fi
+
 # Skip non-source files (configs, docs, etc.)
 if [[ ! "$FILE_PATH" =~ \.(dart|ts|tsx|js|jsx|py|rs|go|java|kt|swift|rb|cs)$ ]]; then
   exit 0
@@ -40,13 +69,30 @@ fi
 
 # ============================================================================
 # READ-BEFORE-WRITE: Agent must read a file before editing it
-# Requires post-read-tracker.sh to be active.
 # ============================================================================
-TRACK_FILE="${TEMP:-/tmp}/pact_read_files.txt"
+TRACK_FILE="${TEMP:-${TMP:-/tmp}}/pact_read_files.txt"
 NORM_PATH=$(echo "$FILE_PATH" | sed 's|\\|/|g' | tr '[:upper:]' '[:lower:]')
 if [ -f "$FILE_PATH" ] && [ -f "$TRACK_FILE" ]; then
   if ! grep -qF "$NORM_PATH" "$TRACK_FILE" 2>/dev/null; then
     VIOLATIONS="${VIOLATIONS}BLOCKED: Read '$FILE_PATH' before editing. You haven't opened this file.\n"
+  fi
+elif [ -f "$FILE_PATH" ] && [ ! -f "$TRACK_FILE" ]; then
+  VIOLATIONS="${VIOLATIONS}BLOCKED: Read '$FILE_PATH' before editing. You haven't opened this file.\n"
+fi
+
+# ============================================================================
+# No empty catch blocks
+# ============================================================================
+if echo "$NEW_STRING" | grep -qE 'catch\s*\(\s*_?\s*\)\s*\{\s*\}|catch\s*\(\s*e\s*\)\s*\{\s*\}'; then
+  VIOLATIONS="${VIOLATIONS}BLOCKED: No empty catch blocks. Log the error.\n"
+fi
+
+# ============================================================================
+# No raw SQL with string interpolation
+# ============================================================================
+if echo "$NEW_STRING" | grep -qE '(execute|rawQuery|customSelect|customStatement)\('; then
+  if echo "$NEW_STRING" | grep -qE '\$[a-zA-Z_]|\$\{'; then
+    VIOLATIONS="${VIOLATIONS}BLOCKED: No raw SQL with string interpolation. Use parameterized queries.\n"
   fi
 fi
 
@@ -60,19 +106,29 @@ fi
 #   VIOLATIONS="${VIOLATIONS}BLOCKED: Hive is forbidden. Use Drift.\n"
 # fi
 
-# ---- Forbidden functions ----
-# if echo "$NEW_STRING" | grep -qE '^\s*(print|debugPrint)\('; then
-#   VIOLATIONS="${VIOLATIONS}BLOCKED: Use AppLogger, not print().\n"
+# ---- Forbidden logging ----
+# if echo "$NEW_STRING" | grep -qE '(^|[^a-zA-Z])print\(|debugPrint\(|console\.log\('; then
+#   VIOLATIONS="${VIOLATIONS}BLOCKED: Use the structured logger, not print/console.log.\n"
 # fi
 
-# ---- No raw SQL with interpolation ----
-# if echo "$NEW_STRING" | grep -qE 'execute.*\$|rawQuery.*\$'; then
-#   VIOLATIONS="${VIOLATIONS}BLOCKED: No raw SQL with string interpolation. Use parameterized queries.\n"
+# ---- No hardcoded project refs ----
+# if echo "$NEW_STRING" | grep -qE 'YOUR_PROJECT_REF_HERE'; then
+#   VIOLATIONS="${VIOLATIONS}BLOCKED: Hardcoded project ref — use environment variables.\n"
 # fi
 
-# ---- No empty catch blocks ----
-# if echo "$NEW_STRING" | grep -qE 'catch\s*\([^)]*\)\s*\{\s*\}'; then
-#   VIOLATIONS="${VIOLATIONS}BLOCKED: No empty catch blocks. Log the error.\n"
+# ---- No manual styling on themed widgets ----
+# if echo "$NEW_STRING" | grep -qE '\.styleFrom\('; then
+#   VIOLATIONS="${VIOLATIONS}BLOCKED: Manual .styleFrom() — use the theme system.\n"
+# fi
+
+# ---- No arbitrary colors outside palette ----
+# if echo "$NEW_STRING" | grep -qE 'Color\(0x[0-9A-Fa-f]'; then
+#   VIOLATIONS="${VIOLATIONS}BLOCKED: Arbitrary Color() — use the design system palette.\n"
+# fi
+
+# ---- No raw dialogs/snackbars — use wrapper ----
+# if echo "$NEW_STRING" | grep -qE 'AlertDialog\(|showDialog\(|SnackBar\('; then
+#   VIOLATIONS="${VIOLATIONS}BLOCKED: Raw dialog/snackbar — use the project wrapper.\n"
 # fi
 
 # ============================================================================

@@ -6,24 +6,45 @@
 #
 # Format: Each entry describes a class of bug and its canonical fix.
 # These are patterns, not specific instances.
+#
+# Graduation: When a bug fix applies to a class of problems, add it here.
+# Set graduated: true in the original bug file.
 # =============================================================================
 
 solutions:
 
-  # - id: SOL-001
-  #   title: "Provider cache not updated on delete"
-  #   tags: [stale-cache, provider]
-  #   symptom: "Entity deleted from database but still shows in UI"
-  #   root_cause: "Provider's delete method updated the List but not the Map cache"
-  #   fix: "Update BOTH _entityList and _entityById in every add/update/delete method"
-  #   prevention: "Cognitive redirection: always check both caches"
-  #   applies_to: ["Any provider with dual List + Map caches"]
+  - id: SOL-001
+    title: "Provider/store cache not updated on delete"
+    tags: [stale-cache, cache-sync, state-management]
+    symptom: "Entity deleted from database but still shows in UI"
+    root_cause: "State management's delete method updated the List but not the Map cache (or vice versa)"
+    fix: "Update BOTH the list cache AND the lookup map in every add/update/delete method"
+    prevention: "Cognitive redirection: always check both caches when modifying state management methods"
+    applies_to: ["Any state management with dual List + Map caches"]
 
-  # - id: SOL-002
-  #   title: "setState called on disposed widget"
-  #   tags: [async-safety, lifecycle]
-  #   symptom: "Red screen or silent failure after navigating away during async operation"
-  #   root_cause: "Await completes after widget disposal, setState hits dead context"
-  #   fix: "Add 'if (!mounted) return;' after every await before setState/Navigator"
-  #   prevention: "PostToolUse hook warns when pattern detected"
-  #   applies_to: ["Any StatefulWidget with async operations"]
+  - id: SOL-002
+    title: "setState called on disposed widget"
+    tags: [async-safety, lifecycle]
+    symptom: "Error or silent failure after navigating away during async operation"
+    root_cause: "Await completes after widget disposal, setState hits dead context"
+    fix: "Add mounted/active check after every await before updating state or navigating"
+    prevention: "PostToolUse hook warns when pattern detected"
+    applies_to: ["Any stateful widget/component with async operations"]
+
+  - id: SOL-003
+    title: "Non-idempotent database migration"
+    tags: [migration, migration-idempotent]
+    symptom: "App crashes on startup with 'duplicate column' or 'table already exists' after a failed migration"
+    root_cause: "Migration added column/table but crashed before committing the schema version bump. On next launch, migration reruns and fails."
+    fix: "Use IF NOT EXISTS guards for all CREATE TABLE and ALTER TABLE ADD COLUMN operations"
+    prevention: "All migrations MUST be idempotent. Use helper functions that check existence before modifying."
+    applies_to: ["Any project with sequential database migrations"]
+
+  - id: SOL-004
+    title: "Entity ID double-prefix bug"
+    tags: [id-mismatch, stale-cache]
+    symptom: "Map lookup returns null despite entity existing. Key looks like 'prefix_prefix_value'."
+    root_cause: "String interpolation builds composite key ('prefix_${id}') but the id already contains the prefix ('prefix_value'), resulting in 'prefix_prefix_value'."
+    fix: "Use the entity's .id directly as the map key without adding a prefix. Add a comment documenting the key format."
+    prevention: "PostToolUse hook warns on entity ID string interpolation patterns."
+    applies_to: ["Any code building map keys from entity IDs"]

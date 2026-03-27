@@ -1,9 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
-# PACT PostToolUse Hook (Read) — Tracks which files the agent has opened
-#
+# PACT PostToolUse Hook (Read) — Tracks which files the agent has opened.
 # Enables the "must read before edit" rule in pre-edit-rules.sh.
-# Without this, the read-before-write check has nothing to check against.
 # =============================================================================
 
 INPUT=$(cat)

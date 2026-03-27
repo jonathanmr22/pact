@@ -1,0 +1,19 @@
+# Trial Log Template — copy this structure into each project's trials.yaml
+#
+# Each trial is a numbered entry documenting one iteration of the visual.
+# The log is append-only — never delete entries, even failed ones.
+# Failed trials are as valuable as successes — they prevent repeating dead ends.
+
+# trial_NNN:
+#   date: "YYYY-MM-DD"
+#   what_changed: "One-line description of what was different in this trial"
+#   parameters:
+#     key: value
+#     # ... any relevant settings (radius, blur, color ramp, etc.)
+#   output_file: "trial_003.html"  # or .png, .mp4, etc.
+#   result: pass | fail | partial
+#   why: |
+#     Multi-line explanation of what worked or didn't.
+#     Be specific — "looked bad" is useless, "radius too small at zoom 12,
+#     individual circles visible instead of smooth field" is useful.
+#   next_action: "What to try in the next trial based on this result"

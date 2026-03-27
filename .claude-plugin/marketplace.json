@@ -6,14 +6,14 @@
   },
   "metadata": {
     "description": "Programmatic Agent Constraint Toolkit — governance infrastructure for AI coding agents",
-    "version": "0.1.0"
+    "version": "0.2.0"
   },
   "plugins": [
     {
       "name": "pact",
       "source": "./plugins/pact",
-      "description": "Hooks, skills, and templates for governing AI coding agents through infrastructure instead of instructions. Includes mechanical enforcement hooks, cognitive redirection skills, architecture map templates, and lifecycle flow scaffolding.",
-      "version": "0.1.0",
+      "description": "Hooks, skills, and templates for governing AI coding agents through infrastructure instead of instructions. Includes mechanical enforcement hooks, cognitive redirection skills, architecture map templates, lifecycle flow scaffolding, multi-session coordination, and visual prototyping workspace.",
+      "version": "0.2.0",
       "author": {
         "name": "jonathanmr22"
       },

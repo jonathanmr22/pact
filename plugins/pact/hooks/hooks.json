@@ -6,6 +6,19 @@
         {
           "type": "command",
           "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/pre-edit-rules.sh"
+        },
+        {
+          "type": "command",
+          "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/pre-edit-feature-flow.sh"
+        }
+      ]
+    },
+    {
+      "matcher": "Bash",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/pre-bash-guard.sh"
         }
       ]
     }
@@ -30,6 +43,25 @@
         {
           "type": "command",
           "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/post-read-tracker.sh"
+        }
+      ]
+    },
+    {
+      "matcher": "mcp__sentry",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/post-sentry-bug-reminder.sh"
+        }
+      ]
+    }
+  ],
+  "SessionStart": [
+    {
+      "hooks": [
+        {
+          "type": "command",
+          "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/session-register.sh"
         }
       ]
     }

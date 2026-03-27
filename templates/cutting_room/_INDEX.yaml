@@ -1,0 +1,21 @@
+# Cutting Room Floor — Visual Prototyping Workspace
+# ================================================
+# Prototype complex visuals OUTSIDE your app framework before committing.
+# Use adjacent tools (Python, HTML/CSS, Shadertoy, etc.) to iterate visually
+# without full rebuilds.
+#
+# Rules:
+#   1. Every visualization project gets its own subfolder
+#   2. Each subfolder has a trials.yaml log documenting every iteration
+#   3. Prototype locally first — only move to your framework after the look is nailed
+#   4. Keep the winning prototype files for future reference
+#   5. Track scripts + trial logs in git, gitignore generated outputs
+#
+# Trial log format: see _TRIAL_TEMPLATE.yaml
+
+projects: {}
+  # example_heat_map:
+  #   status: active
+  #   goal: "Smooth density gradient heat map overlay"
+  #   tools: [folium, python]
+  #   framework_target: src/components/HeatMapLayer.tsx

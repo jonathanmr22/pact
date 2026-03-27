@@ -16,17 +16,22 @@
 #   2. If no match: create the bug file NOW (not after fixing)
 #   3. Log every attempt in real time (failed attempts are valuable)
 #   4. When fixed: update status, add root_cause and fix
-#   5. If the fix is reusable: add to _SOLUTIONS.yaml
+#   5. If the fix is reusable: graduate to _SOLUTIONS.yaml
+#
+# HOOK ENFORCEMENT:
+#   - post-sentry-bug-reminder.sh gates source edits after issue fetch
+#   - pre-bash-guard.sh blocks fix commits without a staged bug file
+#   Both use exit 1 (BLOCKING). Rules alone were ignored — hooks aren't.
 # =============================================================================
 
-format_version: 1
+format_version: 2
 
 bug_file_format:
-  id: "{system}-NNN"           # e.g., auth-001, ble-003
+  id: "{system}-NNN"           # e.g., auth-001, ble-003, ui-012
   title: "Short description"
   status: "open | investigating | fixed | wont_fix"
   severity: "low | medium | high | critical"
-  system: "auth | database | ui | network | ble | sync | ..."
+  system: "auth | database | ui | network | ble | sync | state | build | ..."
   tags: ["tag1", "tag2"]       # For _SOLUTIONS.yaml matching
   reported: "YYYY-MM-DD"
 
@@ -49,13 +54,58 @@ bug_file_format:
   # This often becomes a new hook rule or cognitive redirection
 
 tag_vocabulary:
-  # Standardize tags so _SOLUTIONS.yaml matching works
+  # Standardize tags so _SOLUTIONS.yaml matching works.
+  # Tags are many-to-many: a bug can have multiple tags, and a solution
+  # can match multiple tags. More tags = better future matching.
+  #
+  # State & Cache
   - stale-cache        # Provider/state cache not updated
+  - cache-sync         # List and map caches out of sync
+  - state-management   # General state management issue
+  #
+  # Timing & Lifecycle
   - race-condition     # Timing-dependent bug
+  - lifecycle          # App state transition bug (init, resume, dispose)
+  - async-safety       # Missing await, disposed widget, unmounted setState
+  - initialization     # Service/provider init ordering
+  #
+  # Data & Types
   - null-safety        # Null/undefined where not expected
-  - lifecycle          # App state transition bug
-  - migration          # Database migration issue
-  - permission         # Platform permission not granted
+  - type-mismatch      # Wrong type, cast failure
   - encoding           # Character encoding / serialization
-  - async-safety       # Missing await, disposed widget, etc.
-  - platform-specific  # Android vs iOS difference
+  - id-mismatch        # Wrong ID type or double-prefix
+  - migration          # Database migration issue
+  - migration-idempotent  # Non-idempotent migration re-run
+  #
+  # Platform & Environment
+  - platform-specific  # Android vs iOS vs Web difference
+  - permission         # Platform permission not granted
+  - device-specific    # Bug on specific device model/brand
+  #
+  # Network & Sync
+  - network            # Network connectivity or timeout
+  - sync-conflict      # Data sync conflict between local/remote
+  - api-mismatch       # API response doesn't match expectation
+  #
+  # UI & UX
+  - overflow           # Layout overflow / responsive issue
+  - navigation         # Screen navigation bug
+  - keyboard           # Keyboard interaction issue
+  - modal              # Modal/dialog/sheet issue
+  #
+  # Build & Deploy
+  - build-failure      # Compilation or build error
+  - dependency         # Package version or compatibility issue
+  #
+  # Security
+  - auth               # Authentication issue
+  - encryption         # Encryption/decryption issue
+  - token              # Token expiry, refresh, validation
+
+graduation_process: |
+  When a fix applies to a CLASS of bugs (not just one specific instance),
+  graduate it to _SOLUTIONS.yaml:
+  1. Add entry with tags that would match future instances
+  2. Set graduated: true and graduated_to: "SOL-NNN" in the bug file
+  3. The solution's tags are the search surface — be generous with tags
+  4. Include applies_to: [...] for scope (what systems/patterns this covers)
