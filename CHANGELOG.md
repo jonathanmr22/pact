@@ -7,6 +7,13 @@ PACT uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.2.1] — 2026-03-27
+
+### Added
+- `session-status-check.sh` — SessionStart hook that checks `status.claude.com/api/v2/incidents/unresolved.json` for active incidents affecting Claude Code or Claude API. Only warns on major/critical impact — no false positives from minor/maintenance incidents. Fails silently on network errors (4s timeout). Tells the user what's wrong and links to the status page.
+
+---
+
 ## [0.2.0] — 2026-03-27
 
 ### Added

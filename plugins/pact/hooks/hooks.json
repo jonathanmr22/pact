@@ -64,6 +64,15 @@
           "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/session-register.sh"
         }
       ]
+    },
+    {
+      "hooks": [
+        {
+          "type": "command",
+          "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/session-status-check.sh",
+          "timeout": 8000
+        }
+      ]
     }
   ]
 }

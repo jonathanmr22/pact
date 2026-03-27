@@ -10,7 +10,7 @@
 
 <p align="center">
   <a href="https://buymeacoffee.com/jonathanmr22" target="_blank"><img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black" alt="Buy Me A Coffee"/></a>
-  <img src="https://img.shields.io/badge/version-0.2.0-blue?style=for-the-badge" alt="Version 0.2.0"/>
+  <img src="https://img.shields.io/badge/version-0.2.1-blue?style=for-the-badge" alt="Version 0.2.1"/>
   <img src="https://img.shields.io/badge/license-MIT-green?style=for-the-badge" alt="MIT License"/>
 </p>
 
@@ -41,7 +41,7 @@ Install PACT as a Claude Code plugin with one command:
 ```
 
 This gives you:
-- **9 hooks** — automatically active (read-before-write, secrets blocker, git safety, multi-session coordination, edit warnings, feature flow protection, issue tracker gate, session tracking, timestamps)
+- **10 hooks** — automatically active (read-before-write, secrets blocker, git safety, multi-session coordination, edit warnings, feature flow protection, issue tracker gate, session tracking, timestamps, status page health check)
 - **4 slash commands** — `/pact-init`, `/pact-check`, `/pact-flow`, `/pact-bug`
 
 Then run `/pact-init` in your project to scaffold the governance files (architecture map, flow docs, bug tracker, cognitive redirections, cutting room).
@@ -133,6 +133,11 @@ Configure hooks in `.claude/settings.local.json` (or your agent's equivalent):
         "hooks": [
           { "type": "command", "command": "bash .claude/hooks/session-register.sh" }
         ]
+      },
+      {
+        "hooks": [
+          { "type": "command", "command": "bash .claude/hooks/session-status-check.sh", "timeout": 8000 }
+        ]
       }
     ]
   }
@@ -155,6 +160,7 @@ Configure hooks in `.claude/settings.local.json` (or your agent's equivalent):
 | `post-edit-timestamp.sh` | PostToolUse (LOGS) | Records file edit timestamps for cross-session awareness |
 | `post-sentry-bug-reminder.sh` | PostToolUse (GATES) | After fetching an issue, blocks source edits until bug file is created |
 | `session-register.sh` | SessionStart (LOGS) | Registers session for multi-session awareness, prunes old sessions |
+| `session-status-check.sh` | SessionStart (WARNS) | Checks status.claude.com for major/critical incidents affecting Claude Code or API — warns user at session start, silent when healthy |
 
 ### Slash Commands
 
