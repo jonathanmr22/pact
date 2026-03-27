@@ -1,8 +1,7 @@
 {
   "name": "pact",
   "owner": {
-    "name": "jonathanmr22",
-    "email": ""
+    "name": "jonathanmr22"
   },
   "metadata": {
     "description": "Programmatic Agent Constraint Toolkit — governance infrastructure for AI coding agents",
