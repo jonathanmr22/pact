@@ -90,6 +90,9 @@ Both agents read and write to the same files:
 | `.claude/bugs/` | Bug investigations | Claude, Gemini |
 | `docs/feature_flows/` | Lifecycle flow docs | Claude, Gemini |
 | `docs/reference/packages/` | Package knowledge | Claude, Gemini |
+| `docs/reference/research/` | Cross-session research synthesis | Claude, Gemini |
+| `docs/reference/KNOWLEDGE_DIRECTORY.yaml` | Tag index across all knowledge systems | Claude, Gemini |
+| `docs/reference/PACT_BASELINE.yaml` | Agent capability baseline + deltas | Claude, Gemini |
 
 ### Model Identity in Sessions
 
