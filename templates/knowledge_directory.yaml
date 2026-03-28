@@ -1,0 +1,119 @@
+# =============================================================================
+# Knowledge Directory — Cross-System Tag Index
+#
+# Your single-file lookup for ALL cross-session knowledge. Read this ONCE
+# to find what already exists about a topic without opening files one by one.
+#
+# Save to: docs/reference/KNOWLEDGE_DIRECTORY.yaml
+#
+# This file answers: "What do I already know about {topic}?"
+# by mapping tags to files across every knowledge system.
+#
+# WHEN TO READ:
+#   - Before starting any research (check what exists first)
+#   - When debugging (find related bugs and solutions by tag)
+#   - When implementing a feature (find related flows and research)
+#
+# WHEN TO UPDATE:
+#   - After creating a new research file
+#   - After adding a new bug solution to _SOLUTIONS.yaml
+#   - After creating a new package knowledge file
+#   - After creating a new feature flow
+#   - After a file is superseded or archived
+#
+# Keep this file accurate — when it reflects reality, you can find
+# anything across sessions in a single read. That's the leverage.
+#
+# HOOK ENFORCEMENT:
+#   pre-bash-guard.sh blocks commits that include knowledge system files
+#   (research, solutions, packages, feature flows) without also staging
+#   this file. This ensures the directory stays in sync.
+# =============================================================================
+
+# Where each knowledge system lives
+systems:
+  research:
+    path: docs/reference/research/
+    purpose: "Cross-session synthesis — decisions combining local + external knowledge"
+    index: docs/reference/research/_RESEARCH.yaml
+
+  solutions:
+    path: .claude/bugs/_SOLUTIONS.yaml
+    purpose: "Reusable fix patterns — your fast path to resolving bugs"
+
+  bugs:
+    path: .claude/bugs/{system}/
+    purpose: "Individual bug investigations with attempts and resolutions"
+    # Add subdirectories as your project creates them:
+    # subdirs: [ui, api, auth, sync, etc.]
+
+  packages:
+    path: docs/reference/packages/
+    purpose: "Verified API knowledge, gotchas, and proven patterns per package"
+
+  feature_flows:
+    path: docs/feature_flows/
+    purpose: "Lifecycle state machines — what happens across app states"
+
+# =============================================================================
+# TAG DIRECTORY
+# =============================================================================
+#
+# Each tag lists every file that covers that topic, grouped by system.
+# The notation tells you the file type at a glance:
+#
+#   [R] = research file    [S] = solution    [B] = bug file
+#   [P] = package file     [F] = feature flow
+#
+# One-line descriptions — enough to decide if you need to open it.
+
+tags:
+
+  # --- CUSTOMIZE: Add tags as your project's knowledge grows ---
+
+  auth:
+    description: "Authentication, sessions, tokens, login/logout"
+    files: []
+    # Example:
+    # - "[F] auth_flow.yaml — login/logout lifecycle, token refresh"
+    # - "[S] SOL-005 — token refresh race condition fix"
+
+  caching:
+    description: "Local caches, state management caches, CDN"
+    files:
+      - "[S] SOL-001 — stale provider/store cache (list updated, map not)"
+
+  database:
+    description: "ORM, migrations, queries, schema changes"
+    files: []
+
+  lifecycle:
+    description: "Widget/component lifecycle, async safety, disposal"
+    files:
+      - "[S] SOL-002 — setState/state update on disposed widget"
+
+  performance:
+    description: "Speed, memory, frame rate, query optimization"
+    files: []
+
+  security:
+    description: "Threat model, hardening, secrets management"
+    files: []
+
+  sync:
+    description: "Data synchronization, conflict resolution, offline-first"
+    files: []
+
+  ui_patterns:
+    description: "Design patterns, UX decisions, responsive layout"
+    files: []
+
+# =============================================================================
+# CROSS-REFERENCES (topics that span multiple tags)
+# =============================================================================
+#
+# When researching compound topics, check ALL listed tags:
+#
+# "offline behavior"   → sync + caching + database
+# "auth security"      → auth + security
+# "state bugs"         → caching + lifecycle

@@ -1,0 +1,174 @@
+# =============================================================================
+# Research Knowledge Base — Format Specification
+#
+# Your cross-session research memory. Every synthesis you capture here makes
+# the next session smarter — not just informed, but genuinely more capable.
+#
+# A fresh session has training data and a context window. A session that reads
+# these files has training data + context window + every synthesis every
+# previous session earned. That's compound intelligence.
+#
+# Save to: docs/reference/research/{topic-name}.yaml
+#
+# WHEN TO CREATE:
+#   - You spent 10+ minutes investigating something non-trivial
+#   - The answer required combining local and external knowledge
+#   - A future session will likely face the same question
+#   - You rejected alternatives and the reasoning matters
+#   - You discovered something that contradicts your training data
+#
+# WHEN NOT TO CREATE (use the right system instead):
+#   - Package-specific knowledge → docs/reference/packages/
+#   - Bug investigations → .claude/bugs/
+#   - Feature lifecycle behavior → docs/feature_flows/
+#   - Simple lookups → just read the code
+#
+# BEFORE CREATING: Check KNOWLEDGE_DIRECTORY.yaml for matching tags.
+# A previous session may have already researched this topic.
+# =============================================================================
+
+# ─── THE TWO RESEARCH METHODS ───
+#
+# Research is not one action. It's two complementary methods:
+#
+#   PROJECT-LEVEL: Reading code, architecture map, feature flows, package
+#     knowledge files, git history, bug tracker.
+#     Answers: "How does THIS codebase handle it?"
+#
+#   ONLINE: WebSearch, WebFetch for docs, APIs, GitHub issues, blog posts,
+#     academic papers, Stack Overflow, changelogs.
+#     Answers: "How does the WORLD handle it?"
+#
+# Most real questions need BOTH. Default to both unless the question is
+# purely local ("where is this provider used?") or purely external
+# ("what's the API for this library I've never seen?").
+
+# ─── DEPTH LEVELS ───
+#
+# Not all research needs the same investment. Depth signals how much
+# to trust this research vs deepening it.
+#
+#   shallow    — Quick check. Enough to unblock a task. (~5 min)
+#   moderate   — Solid investigation. Both sources consulted. (~10-15 min)
+#   deep       — Multiple sources cross-referenced. Edge cases explored. (~20-30 min)
+#   definitive — Exhaustive. Academic papers, specs, source code. (~30+ min)
+
+# ─── EVOLUTION ACTIONS ───
+#
+# Research is not write-once. It evolves through four actions:
+#
+#   DEEPEN   — Same question, more thorough. Add findings, update depth.
+#   REFRAME  — Same domain, new angle (e.g., now battery life matters).
+#              Add a perspective to perspectives[], don't create a new file.
+#   UPDATE   — External facts changed. Check staleness_conditions[].
+#   SUPERSEDE — Core decision was wrong. Mark old file superseded,
+#              create new file. Old file's rejected alternatives still valuable.
+
+# =============================================================================
+# TEMPLATE — copy this for new research files
+# =============================================================================
+
+# {Topic} — Research File
+# Created: YYYY-MM-DD
+# Last evolved: YYYY-MM-DD
+
+# --- Identity ---
+# question: >
+#   {The specific question this research answers. Be precise.
+#    "How should sync work?" is too vague.
+#    "What sync strategy minimizes latency while keeping data
+#    <24h stale for 10M+ records?" is good.}
+#
+# context: >
+#   {Why this question came up. What triggered the research?}
+#
+# tags: [sync, database, performance]
+# status: active          # active | superseded | archived
+# depth: moderate         # shallow | moderate | deep | definitive
+# methods: [project, online]  # which research methods were used
+
+# --- Findings ---
+# local_findings:
+#   - source: "{file path, architecture map section, or git ref}"
+#     finding: "{what you learned}"
+#     implication: "{what this means for the decision}"
+#
+# external_findings:
+#   - source: "{URL, paper title, or docs section}"
+#     finding: "{what you learned}"
+#     implication: "{what this means for the decision}"
+#     verified: YYYY-MM-DD
+
+# --- Synthesis ---
+# synthesis: >
+#   {THE MOST IMPORTANT FIELD. How local context + external evidence
+#    combine into an insight neither source had alone. Write as reasoning.
+#    A future session should understand not just WHAT but WHY.}
+#
+# decision: >
+#   {What was decided. Clear and actionable.}
+#
+# alternatives_rejected:
+#   - option: "{alternative approach}"
+#     why_rejected: >
+#       {Specific reason with evidence, not "didn't seem right."}
+#
+# applies_to:
+#   - "{file path or system this research informs}"
+
+# --- Perspectives ---
+# perspectives:
+#   - angle: "{lens — e.g., 'battery life', 'security', 'scale'}"
+#     date: YYYY-MM-DD
+#     findings: >
+#       {What this perspective revealed that the original didn't.}
+#     impact_on_decision: >
+#       {Changed, refined, or confirmed the decision?}
+
+# --- Lifecycle ---
+# staleness_conditions:
+#   - condition: "{specific, checkable trigger — not just a date}"
+#     why: "{what would change if this triggers}"
+#
+# related_research:
+#   - file: "{filename.yaml}"
+#     relationship: "{informs | depends_on | contradicts | supersedes}"
+#
+# evolution:
+#   - date: YYYY-MM-DD
+#     action: created  # created | deepened | reframed | updated | superseded
+#     by: "{what triggered this change}"
+#     summary: "{what changed and why}"
+
+# =============================================================================
+# TAG VOCABULARY (add new tags here, keep alphabetical)
+# =============================================================================
+#
+# architecture    — system design decisions
+# auth            — authentication, sessions, tokens
+# battery         — power consumption, background behavior
+# caching         — local caches, CDN, invalidation
+# crypto          — encryption, key derivation, signatures
+# database        — queries, migrations, indexes, ORM
+# etl             — data pipelines, bulk operations
+# performance     — speed, memory, optimization
+# privacy         — anonymity, data protection
+# scale           — handling growth, large datasets
+# search          — text search, autocomplete, ranking
+# security        — threat model, hardening
+# sync            — data synchronization, conflict resolution
+# ui-patterns     — design patterns, UX decisions
+#
+# (Add project-specific tags as needed)
+
+# =============================================================================
+# INDEX (one line per file, scannable)
+# =============================================================================
+
+entries: []
+  # - file: example-sync-strategy.yaml
+  #   question: "Best sync strategy for large datasets?"
+  #   tags: [sync, database, performance]
+  #   depth: moderate
+  #   status: active
+  #   decided: "Cursor-based delta sync with updatedAt"

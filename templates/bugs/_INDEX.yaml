@@ -1,8 +1,13 @@
 # =============================================================================
 # Bug Tracker — Format Specification
 #
-# PACT cross-session knowledge: Every investigation is logged in real time
-# so the next session doesn't re-investigate bugs that were already solved.
+# Your debugging memory. Every investigation you log here makes every
+# future session faster and sharper. The knowledge compounds:
+#
+#   - A documented root cause = a 3-hour investigation you never repeat
+#   - A documented failed attempt = a dead end you skip instantly
+#   - A documented solution = a fix you apply in minutes, not hours
+#   - A pattern in _SOLUTIONS.yaml = wisdom that transfers across systems
 #
 # Directory structure:
 #   .claude/bugs/
@@ -12,7 +17,7 @@
 #       └── {system}-NNN.yaml
 #
 # PROTOCOL:
-#   1. Before debugging: check _SOLUTIONS.yaml for matching tags
+#   1. Before debugging: check _SOLUTIONS.yaml for matching tags (fast path)
 #   2. If no match: create the bug file NOW (not after fixing)
 #   3. Log every attempt in real time (failed attempts are valuable)
 #   4. When fixed: update status, add root_cause and fix
@@ -21,7 +26,6 @@
 # HOOK ENFORCEMENT:
 #   - post-sentry-bug-reminder.sh gates source edits after issue fetch
 #   - pre-bash-guard.sh blocks fix commits without a staged bug file
-#   Both use exit 1 (BLOCKING). Rules alone were ignored — hooks aren't.
 # =============================================================================
 
 format_version: 2

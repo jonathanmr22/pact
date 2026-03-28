@@ -1,0 +1,200 @@
+# =============================================================================
+# PACT Capability Baseline — Self-Awareness Layer
+#
+# This file tracks what your AI agent can do RIGHT NOW, what PACT compensates
+# for, and how those capabilities change over time. It ensures PACT evolves
+# WITH the agent instead of accumulating stale workarounds.
+#
+# Save to: docs/reference/PACT_BASELINE.yaml
+#
+# WHY THIS MATTERS:
+#   PACT was built to compensate for specific agent limitations. When the
+#   agent provider (Anthropic, Google, OpenAI, etc.) ships a native capability
+#   that PACT currently handles through rules and hooks, PACT should retire
+#   that rule gracefully and redirect energy where it still adds unique value.
+#   And when a new capability makes PACT stronger, PACT should lean into it.
+#
+# HOW TO USE (every session):
+#   1. NOTICE — Does anything feel different? New tools? Changed behavior?
+#   2. COMPARE — Read the baseline below. Does anything not match?
+#   3. UPDATE — If changed, add a capability_deltas[] entry
+#   4. ADAPT — Check compensations (redundant?) and enhancements (stronger?)
+#   5. CELEBRATE — New capabilities are good. Note them with pride.
+#
+# HOOK: Add a capability check to your session start protocol.
+# =============================================================================
+
+baseline:
+  date: "YYYY-MM-DD"           # When this baseline was established
+  model: "{model name}"         # e.g., "Claude Opus 4.6", "Gemini 2.5 Pro"
+  context_window: "{size}"      # e.g., "1M tokens", "128K tokens"
+  knowledge_cutoff: "{date}"    # e.g., "May 2025"
+
+  # ── What the agent can do natively (no PACT needed) ──
+  native_capabilities:
+    reasoning:
+      - "Multi-step planning and execution"
+      - "Code generation across languages"
+      - "Bug diagnosis from symptoms to root cause"
+      # Add capabilities specific to your agent
+
+    tools:
+      - "File read/write/edit"
+      - "Shell command execution"
+      - "Web search and fetch"
+      # Add tools available in your setup
+
+    context:
+      - "{context window size} — can hold {description} in context"
+      - "Project instructions auto-loaded at session start"
+      # Add context capabilities
+
+    collaboration:
+      # - "Multi-model support (Claude + Gemini)"
+      # - "Hook system for behavioral enforcement"
+      # - "Subagent spawning for parallel work"
+
+  # ── What the agent CANNOT do natively (PACT fills these gaps) ──
+  native_limitations:
+    persistence:
+      - "No memory across sessions — context dies when conversation ends"
+      - "No native way to accumulate knowledge over time"
+      - "Cannot detect what previous sessions learned or decided"
+
+    self_awareness:
+      - "Tendency to pattern-match from training data without verifying"
+      - "Tendency to agree with corrections before verifying independently"
+      - "Tendency to skip research when confident (often wrongly)"
+      - "No native awareness of knowledge cutoff implications"
+
+    # Add limitations specific to your agent and workflow:
+    # visual:
+    #   - "Cannot see UI output without screenshots"
+    # execution:
+    #   - "Cannot run the app directly"
+
+# =============================================================================
+# PACT COMPENSATIONS
+# =============================================================================
+#
+# Maps agent limitations to the PACT mechanisms that fill the gap.
+# When a limitation is lifted by an agent update, the compensation
+# may become redundant — or may still add value as a structured layer.
+#
+# status:
+#   active           — PACT is compensating for a real limitation
+#   enhanced         — Agent improved this but PACT still adds value
+#   candidate_retire — Agent may have fully solved this; verify
+#   retired          — PACT rule removed, native capability sufficient
+
+pact_compensations:
+
+  - limitation: "No memory across sessions"
+    pact_mechanism:
+      - "KNOWLEDGE_DIRECTORY.yaml — tag-based cross-session lookup"
+      - "docs/reference/research/ — synthesized research findings"
+      - ".claude/bugs/ — bug investigations and solutions"
+      - "docs/reference/packages/ — verified package knowledge"
+      - "docs/feature_flows/ — lifecycle state machines"
+      - "SYSTEM_MAP.yaml — structural wiring map"
+      - "PENDING_WORK.yaml — work continuity"
+    what_retirement_looks_like: >
+      If the agent gains native persistent memory that is project-scoped
+      AND structured/queryable, the file-based systems could simplify.
+      But the KNOWLEDGE_DIRECTORY pattern (tag-based cross-referencing)
+      and the research synthesis format would likely still add value as
+      the organizational layer on top of native memory.
+    status: active
+
+  - limitation: "Tendency to pattern-match without verifying"
+    pact_mechanism:
+      - "Cognitive redirections in instructions file"
+      - "Pre-edit hooks that enforce read-before-write"
+      - "Feature flow review requirement"
+      - "Architecture map check before editing"
+    what_retirement_looks_like: >
+      If the agent gains native verification (automatic "did I actually
+      read this?" checks), the hooks become redundant but the cognitive
+      redirections likely remain valuable — they're about reasoning
+      patterns, not mechanical checks.
+    status: active
+
+  - limitation: "Cannot detect what previous sessions learned"
+    pact_mechanism:
+      - "KNOWLEDGE_DIRECTORY.yaml as the first lookup"
+      - "Session start protocol (read pending work, edit log, sessions)"
+      - "Cognitive redirection: check existing research before starting new"
+    what_retirement_looks_like: >
+      If the agent gains native session history (can query past conversations
+      for a project), file-based artifacts become less critical for discovery
+      — but the structured format (YAML with tags, staleness conditions,
+      evolution logs) would still be higher-quality than searching raw
+      conversation transcripts.
+    status: active
+
+  # Add more compensations specific to your agent and project
+
+# =============================================================================
+# PACT ENHANCEMENTS
+# =============================================================================
+#
+# Agent capabilities that don't replace PACT but make it MORE powerful.
+# These are multipliers — PACT + capability > either alone.
+
+pact_enhancements:
+
+  - capability: "Large context window"
+    how_it_enhances_pact: >
+      PACT's knowledge files can be read without crowding out working code.
+      Both governance and implementation context fit simultaneously.
+    pact_patterns_that_benefit:
+      - "Reading KNOWLEDGE_DIRECTORY + research files + code simultaneously"
+      - "Full instructions file loaded without summarization"
+
+  - capability: "Hook system (PreToolUse/PostToolUse)"
+    how_it_enhances_pact: >
+      Hooks make PACT enforceable. Without them, PACT would be suggestions.
+      With them, critical rules are mechanical — the agent literally cannot
+      skip them. This is the difference between "try to remember" and
+      "the system ensures."
+    pact_patterns_that_benefit:
+      - "Every blocking rule in the hook-enforced table"
+      - "Governance pairing (schema + map, knowledge + directory)"
+      - "Read-before-edit enforcement"
+
+  # Add more enhancements as you discover them:
+  # - capability: "Subagent spawning"
+  # - capability: "MCP server integration"
+  # - capability: "Multi-model collaboration"
+
+# =============================================================================
+# CAPABILITY DELTAS (changes from baseline — append-only log)
+# =============================================================================
+#
+# When you notice a capability change, add an entry here.
+#
+# Triggers — run a check when:
+#   - A tool you don't recognize appears in your system prompt
+#   - A system message mentions a new capability
+#   - Your model ID has changed
+#   - You can do something you couldn't do before
+#   - A provider changelog or release note is mentioned
+#
+# This is not overhead — it's how PACT stays sharp. A PACT that knows
+# your current capabilities focuses energy where it genuinely adds value.
+
+capability_deltas: []
+  # Example:
+  # - date: 2026-04-15
+  #   change: "Agent now has native persistent memory across sessions"
+  #   source: "New 'Memory' tool appeared in system prompt"
+  #   pact_impact:
+  #     redundancies:
+  #       - "PENDING_WORK.yaml may be partially redundant"
+  #       - "file_edit_log.yaml may be partially redundant"
+  #     enhancements:
+  #       - "KNOWLEDGE_DIRECTORY becomes structured layer on top of native memory"
+  #       - "Research files become synthesis format for what memory stores"
+  #     new_opportunities:
+  #       - "Could auto-remember research findings without explicit file writes"
+  #   action_taken: "Flagged for user review — discuss which PACT systems to adapt"

@@ -7,6 +7,47 @@ PACT uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.4.0] — 2026-03-28
+
+### Added
+
+**Compound Intelligence (Pillar 6)**
+- `templates/research/_RESEARCH.yaml` — Cross-session research knowledge base. Format spec for saving synthesis (the reasoning that connects local code context to external knowledge). Includes depth levels (shallow → definitive), four evolution actions (deepen, reframe, update, supersede), staleness conditions, tag vocabulary, and indexed entries for fast lookup.
+- `templates/knowledge_directory.yaml` — Cross-system tag directory. Single-file lookup across ALL knowledge systems (research, bugs, solutions, packages, feature flows). Maps tags to files with one-line descriptions so the agent can find what exists about a topic without opening files individually. Hook-enforced.
+- `templates/capability_baseline.yaml` — PACT self-awareness layer. Captures the agent's native capabilities, PACT compensations for limitations (with `what_retirement_looks_like` for each), PACT enhancements (capabilities that make PACT stronger), and a capability deltas log for tracking changes over time. Includes a self-check protocol triggered when the agent notices something different about its environment.
+
+**Cognitive Redirections (2 new, total: 19)**
+- "When something about your capabilities feels different: Is this new, and does it change how PACT works?" — triggers capability baseline check
+- "When about to research something: Does this need project understanding, online research, or both?" — frames research as two complementary methods (project-level + online), with Knowledge Directory as the first lookup and research files as the output
+
+**Hook Enforcement**
+- Knowledge Directory pairing in `pre-bash-guard.sh` — blocks commits that include research files, bug solutions, package knowledge, or feature flows without also staging `KNOWLEDGE_DIRECTORY.yaml`
+- Knowledge system staleness warning — non-blocking reminder at commit time when knowledge files were edited today
+
+### Changed
+
+**Positive Tone Reframe (across all systems)**
+- All intro sections, hook messages, and cognitive redirections reframed from punitive/compliance language ("you failed, now comply") to capability/leverage language ("this is your superpower, use it")
+- `templates/bugs/_INDEX.yaml` — "WHY THIS EXISTS" rewritten from failure narrative to compound intelligence framing
+- `templates/bugs/_SOLUTIONS.yaml` — intro reframed from gatekeeping to fast-path framing
+- `templates/package_knowledge.yaml` — intro reframed from "agents guess wrong" to "verified knowledge compounds"
+- `templates/instructions.md` — cognitive redirections intro reframed from "mistake it prevents" to "pattern that accelerates thinking"; 8 individual redirections reframed (code deletion, package research, security, CLI tools, Supabase, UI walkthrough, bug tracking, workflow feedback)
+- `templates/hooks/pre-bash-guard.sh` — all blocking messages reframed: staleness → "KNOWLEDGE SYNC", multi-session → "incorporate their work alongside yours", bug tracker → "compound leverage", Knowledge Directory → "searchability superpower"
+
+**Instructions Template (v0.4.0)**
+- Session start now includes PACT capability check (step 5)
+- "Before Declaring Done" section adds research capture check
+- New "On-Demand Reference Files" section with KNOWLEDGE_DIRECTORY, PACT_BASELINE, and research system
+- Hook-enforced rules table adds Knowledge Directory pairing
+- "Hand-holding mode after sloppy work" → "Precision mode after feedback"
+
+**Plugin**
+- `pact-init` skill scaffolds 3 new files (research index, knowledge directory, capability baseline)
+- `pact-init` includes 19 cognitive redirections (was 17)
+- Plugin `pre-bash-guard.sh` synced with template
+
+---
+
 ## [0.3.0] — 2026-03-27
 
 ### Added

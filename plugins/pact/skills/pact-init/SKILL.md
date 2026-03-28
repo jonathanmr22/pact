@@ -11,17 +11,23 @@ Scaffold the PACT governance infrastructure into this project. Create the follow
 
 3. **docs/reference/packages/** directory — Create the directory for package knowledge files.
 
-4. **docs/plans/** directory — Create the directory for implementation plans.
+4. **docs/reference/research/_RESEARCH.yaml** — Research knowledge base index and format spec. Cross-session synthesis storage for decisions that combined local + external knowledge.
 
-5. **cutting_room/** directory with **_INDEX.yaml** and **_TRIAL_TEMPLATE.yaml** — Visual prototyping workspace for iterating on complex visuals outside the framework.
+5. **docs/reference/KNOWLEDGE_DIRECTORY.yaml** — Cross-system tag directory. Single-file lookup for all knowledge across research, bugs, solutions, packages, and feature flows.
 
-6. **.claude/memory/PENDING_WORK.yaml** — Cross-session task tracker (use the PACT format with in_progress, todo, needs_verification, and completed sections).
+6. **docs/reference/PACT_BASELINE.yaml** — Capability baseline. Snapshot of the agent's current capabilities, PACT compensations for native limitations, and a capability deltas log for tracking changes over time. Fill in the baseline with the agent's actual model, context window, and available tools.
 
-7. **.claude/memory/file_edit_log.yaml** — Empty edit log (auto-populated by hooks).
+7. **docs/plans/** directory — Create the directory for implementation plans.
 
-8. **.claude/bugs/_INDEX.yaml** and **.claude/bugs/_SOLUTIONS.yaml** — Bug tracker format spec and solutions knowledge base.
+8. **cutting_room/** directory with **_INDEX.yaml** and **_TRIAL_TEMPLATE.yaml** — Visual prototyping workspace for iterating on complex visuals outside the framework.
 
-9. **.claude/sessions.yaml** — Multi-session coordination file (auto-maintained by hooks).
+9. **.claude/memory/PENDING_WORK.yaml** — Cross-session task tracker (use the PACT format with in_progress, todo, needs_verification, and completed sections).
+
+10. **.claude/memory/file_edit_log.yaml** — Empty edit log (auto-populated by hooks).
+
+11. **.claude/bugs/_INDEX.yaml** and **.claude/bugs/_SOLUTIONS.yaml** — Bug tracker format spec and solutions knowledge base.
+
+12. **.claude/sessions.yaml** — Multi-session coordination file (auto-maintained by hooks).
 
 After creating the files, add the PACT cognitive redirections to the project's CLAUDE.md (or create one if it doesn't exist). Include ALL of these:
 
@@ -42,5 +48,7 @@ After creating the files, add the PACT cognitive redirections to the project's C
 - "Before declaring done: Did I do everything the user asked?"
 - "After finishing any UI build: Am I the user right now?"
 - "When something doesn't work: Is this a bug? Has it been solved before?"
+- "When something about your capabilities feels different: Is this new, and does it change how PACT works?"
+- "When about to research something: Does this need project understanding, online research, or both?"
 
 Report what was created and what was skipped (already existed).

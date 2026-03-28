@@ -10,7 +10,7 @@
 
 <p align="center">
   <a href="https://buymeacoffee.com/jonathanmr22" target="_blank"><img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black" alt="Buy Me A Coffee"/></a>
-  <img src="https://img.shields.io/badge/version-0.3.0-blue?style=for-the-badge" alt="Version 0.2.1"/>
+  <img src="https://img.shields.io/badge/version-0.4.0-blue?style=for-the-badge" alt="Version 0.4.0"/>
   <img src="https://img.shields.io/badge/license-MIT-green?style=for-the-badge" alt="MIT License"/>
 </p>
 
@@ -22,13 +22,14 @@ PACT is a governance framework for AI coding agents (Claude Code, Cursor, Copilo
 
 AI agents forget rules under cognitive load. They confidently edit files they haven't read. They make single-layer fixes that break downstream systems. They guess at package APIs instead of reading documentation. No amount of prompt engineering fixes these problems because they are architecture problems, not model problems.
 
-PACT addresses this with four pillars:
+PACT addresses this with six pillars:
 
 1. **Mechanical Enforcement** — Shell hooks that block violations before they land
 2. **Context Replacement** — Architecture maps and lifecycle flows that replace memory
 3. **Self-Evolving Reasoning** — Questions the agent asks itself at decision points
 4. **Structure/Behavior Separation** — Static wiring maps vs dynamic lifecycle flows
 5. **Multi-Agent Resilience** — When Claude is down, switch to Gemini (or vice versa) with zero context loss
+6. **Compound Intelligence** — Research synthesis, cross-system knowledge directory, and capability baseline that make each session smarter than the last
 
 ---
 
@@ -55,7 +56,7 @@ Install PACT as a Claude Code plugin with one command:
 ```
 
 This gives you:
-- **10 hooks** — automatically active (read-before-write, secrets blocker, git safety, multi-session coordination, edit warnings, feature flow protection, issue tracker gate, session tracking, timestamps, status page health check)
+- **10 hooks** — automatically active (read-before-write, secrets blocker, git safety, multi-session coordination, edit warnings, feature flow protection, issue tracker gate, knowledge directory pairing, session tracking, timestamps, status page health check)
 - **4 slash commands** — `/pact-init`, `/pact-check`, `/pact-flow`, `/pact-bug`
 
 Then run `/pact-init` in your project to scaffold the governance files (architecture map, flow docs, bug tracker, cognitive redirections, cutting room).
@@ -98,7 +99,11 @@ your-project/
 │   ├── feature_flows/           # ← lifecycle flow docs
 │   ├── plans/                   # ← implementation plans
 │   └── reference/
-│       └── packages/            # ← per-package knowledge files
+│       ├── packages/            # ← per-package knowledge files
+│       ├── research/            # ← cross-session research synthesis
+│       │   └── _RESEARCH.yaml
+│       ├── KNOWLEDGE_DIRECTORY.yaml  # ← cross-system tag index
+│       └── PACT_BASELINE.yaml   # ← agent capability baseline
 ```
 
 Configure hooks in `.claude/settings.local.json` (or your agent's equivalent):
@@ -167,7 +172,7 @@ Configure hooks in `.claude/settings.local.json` (or your agent's equivalent):
 | Hook | Type | What It Does |
 |------|------|-------------|
 | `pre-edit-rules.sh` | PreToolUse (BLOCKS) | Stops hardcoded secrets, enforces read-before-write, gates source edits after issue fetch |
-| `pre-bash-guard.sh` | PreToolUse (BLOCKS) | Git safety (no force push, no --no-verify, no reset --hard), multi-session coordination, bug tracker on fix commits |
+| `pre-bash-guard.sh` | PreToolUse (BLOCKS) | Git safety (no force push, no --no-verify, no reset --hard), multi-session coordination, bug tracker on fix commits, knowledge directory pairing |
 | `pre-edit-feature-flow.sh` | PreToolUse (BLOCKS) | Requires feature flow doc before editing critical system files (auth, encryption, backup, sync) |
 | `post-edit-warnings.sh` | PostToolUse (WARNS) | Large files, high imports, missing scroll wrappers, workaround language, comment deletion, name-based matching |
 | `post-read-tracker.sh` | PostToolUse (LOGS) | Tracks file reads to enable read-before-write |
@@ -191,8 +196,11 @@ Configure hooks in `.claude/settings.local.json` (or your agent's equivalent):
 |----------|---------|
 | `architecture_map.yaml` | SYSTEM_MAP wiring map (tables → services → state → UI) |
 | `feature_flow.yaml` | Lifecycle state machine (what happens across app states) |
-| `instructions.md` | CLAUDE.md with 17 cognitive redirections, semantic safety rules, workflow rules |
-| `package_knowledge.yaml` | Per-package research file (prevents guessing at APIs) |
+| `instructions.md` | CLAUDE.md with 19 cognitive redirections, semantic safety rules, workflow rules |
+| `package_knowledge.yaml` | Per-package research file (verified API knowledge, not guessing) |
+| `research/_RESEARCH.yaml` | Cross-session research synthesis (format spec, depth levels, evolution actions) |
+| `knowledge_directory.yaml` | Cross-system tag index (single-file lookup across all knowledge systems) |
+| `capability_baseline.yaml` | Agent capability baseline (self-awareness, PACT compensations, capability deltas) |
 | `pending_work.yaml` | Cross-session task tracker |
 | `bugs/_INDEX.yaml` | Bug tracker format specification (30+ standardized tags) |
 | `bugs/_SOLUTIONS.yaml` | Reusable solutions knowledge base (4 starter patterns) |
@@ -275,6 +283,18 @@ The agent has autonomy to add new redirections when it notices itself making ass
 If you're writing a table name in a flow doc → stop, that belongs in the map.
 If you're writing "this must happen before that" in the map → stop, that belongs in a flow.
 
+### Compound Intelligence
+
+A fresh AI session has training data and a context window. A session running PACT has training data + context window + every synthesis every previous session earned. That's compound intelligence — it grows with every session.
+
+Three systems make this work:
+
+**Research Knowledge Base** (`docs/reference/research/`) — When the agent researches something non-trivial (combining project code analysis with online docs/papers/APIs), the *synthesis* — the insight that neither source had alone — is saved as a structured YAML file. Future sessions find these via tags, build on them, and evolve them through four actions: deepen, reframe, update, supersede.
+
+**Knowledge Directory** (`docs/reference/KNOWLEDGE_DIRECTORY.yaml`) — A single-file tag index across ALL knowledge systems (research, bugs, solutions, packages, feature flows). One read shows every file that touches a topic without opening them individually. Hook-enforced: commits that include knowledge files without updating the directory are blocked.
+
+**Capability Baseline** (`docs/reference/PACT_BASELINE.yaml`) — PACT's self-awareness layer. Records what the agent can do natively, what PACT compensates for, and how capabilities change over time. When the agent provider ships a new feature that makes a PACT rule redundant, this file is how the agent notices. When a new capability makes PACT stronger, this file is how the agent leans into it.
+
 ### Cutting Room Floor
 
 Complex visuals (heat maps, animations, shaders, charts) should be prototyped *outside* the app framework before committing. The `cutting_room/` directory provides:
@@ -298,16 +318,19 @@ This prevents the most common multi-session failure: two sessions editing the sa
 
 ## Adoption Checklist
 
-- [ ] Identify your top 3 recurring agent failures
+- [ ] Identify your top 3 recurring agent patterns to improve
 - [ ] Create `pre-edit-rules.sh` with those 3 patterns
 - [ ] Create `post-read-tracker.sh` (read-before-write enforcement)
-- [ ] Create `pre-bash-guard.sh` (git safety + multi-session coordination)
+- [ ] Create `pre-bash-guard.sh` (git safety + multi-session coordination + knowledge directory pairing)
 - [ ] Create `silent-linter.sh` for your project's analyzer
 - [ ] Write `SYSTEM_MAP.yaml` for your most-changed features
-- [ ] Write cognitive redirections from your actual failure history
+- [ ] Write cognitive redirections from your actual experience
 - [ ] Create `PENDING_WORK.yaml` for cross-session continuity
-- [ ] Add session oath to instructions file
+- [ ] Add session start protocol to instructions file
 - [ ] Create `docs/reference/packages/` for package knowledge
+- [ ] Create `docs/reference/research/_RESEARCH.yaml` for cross-session research synthesis
+- [ ] Create `docs/reference/KNOWLEDGE_DIRECTORY.yaml` as the cross-system tag index
+- [ ] Create `docs/reference/PACT_BASELINE.yaml` with your agent's current capabilities
 - [ ] Create `docs/feature_flows/` for lifecycle flows of critical systems
 - [ ] Write your first feature flow for your highest-risk system
 - [ ] Create `cutting_room/` for visual prototyping

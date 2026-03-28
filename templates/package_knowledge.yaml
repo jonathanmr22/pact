@@ -1,16 +1,16 @@
 # =============================================================================
 # Package Knowledge — {package_name}
 #
-# PACT package research template. MANDATORY before writing code that uses
-# an unfamiliar package. If this file doesn't exist for a package, STOP and
-# research before coding.
+# Your verified knowledge about this package. Reading this before writing
+# code means every line is correct the first time — no guessing, no
+# workarounds, no circular debugging. Research compounds: 10 minutes
+# reading docs saves hours of iteration.
 #
 # Save to: docs/reference/packages/{package_name}.yaml
 #
-# WHY THIS EXISTS:
-#   AI agents guess at package APIs from stale training data. This produces
-#   workarounds for problems that don't exist, misuse of deprecated APIs,
-#   and circular debugging sessions. Research first, code second.
+# Check this file BEFORE writing code that uses this package.
+# If it doesn't exist yet, research the package first, then create it.
+# Every finding you save here extends the next session's capabilities.
 # =============================================================================
 
 package: "{package_name}"
