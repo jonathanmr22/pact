@@ -221,6 +221,7 @@ Configure hooks in `.claude/settings.local.json` (or your agent's equivalent):
 | File | Purpose |
 |------|---------|
 | `MULTI_AGENT.md` | **Complete guide to running Claude + Gemini on the same project** — installation, hook architecture, task handoffs, parallel sessions |
+| `COMPARISON.md` | **How PACT compares to Superpowers, claude-mem, feature-dev, Taskmaster, and other popular plugins** — what overlaps, what's unique, what works together |
 | `EXAMPLES.md` | 9 real-world examples from a production project |
 | `CHANGELOG.md` | Versioned change history |
 
