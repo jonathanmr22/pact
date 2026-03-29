@@ -9,11 +9,9 @@ Switching feels like handing work to a coworker, not starting from scratch.
 ## Why Multi-Agent?
 
 AI coding agents have outages. When your primary agent is degraded, you have three options:
-1. **Wait** — lose hours of productivity
-2. **Work without governance** — use the other agent raw, lose all your rules and context
-3. **Use PACT** — both agents share the same infrastructure, handoffs are seamless
-
-PACT chooses option 3.
+1. **Wait** — lose hours of productivity.
+2. **Work without governance** — use the other agent raw, lose all your rules and context.
+3. **Use PACT** — both agents share the same infrastructure, handoffs are seamless.
 
 ---
 
