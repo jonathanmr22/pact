@@ -148,4 +148,5 @@ The only combination that might create friction is PACT + a memory plugin (claud
 | "I want to switch between Claude and Gemini seamlessly" | **PACT** |
 | "I want task management" | Taskmaster |
 | "I want code review" | code-review |
-| "I want all of the above" | PACT + Superpowers + Taskmaster + code-review |
+| "I want up-to-date package docs in context" | Context7 (MCP server — works great alongside PACT's package knowledge files) |
+| "I want all of the above" | PACT + Superpowers + Taskmaster + code-review + Context7 |

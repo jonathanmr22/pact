@@ -7,6 +7,25 @@ PACT uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.4.1] — 2026-03-29
+
+### Added
+
+**PreFlight — Architectural Metacognitive Checks (Pillar 7: Prevention)**
+- `templates/hooks/post-edit-preflight.sh` — PostToolUse hook that runs data-driven architectural checks after every edit. Unlike syntax-level warnings, PreFlight catches architectural mistakes: wrong call sites, missing platform config, unverified API assumptions, state changes without UI notification.
+- `templates/hooks/preflight-checks.yaml` — Data-driven check definitions. Adding a new check = adding YAML, no script changes. Each check has: trigger patterns (file + content), severity (think/warn), a QUESTION (not a rule), root_pattern (class of mistake), and learned_from (the incident that created it). Starter checks: aesthetic identity, research before building, knowledge directory awareness, destroy before verify, state without notification.
+- `templates/aesthetic_skill.md` — Project design identity template. Evocative, not prescriptive — principles that shape creative reasoning rather than checklists that produce generic output. PreFlight's aesthetic_engagement check reminds the agent to read this when editing UI files.
+
+**Plugin Updates**
+- `pact-init` now scaffolds preflight-checks.yaml and prompts for a project aesthetic skill (items 13-14)
+- Plugin scripts synced with PreFlight hook and checks template
+
+### Changed
+- `COMPARISON.md` — Added Context7 as recommended companion plugin for up-to-date package docs
+- README updated: 11 hooks (was 10), PreFlight in hooks table and templates table
+
+---
+
 ## [0.4.0] — 2026-03-28
 
 ### Added

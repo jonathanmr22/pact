@@ -1,0 +1,107 @@
+# Architectural Pre-Flight Checks
+# ================================
+# Data-driven metacognitive warnings. Each check fires ONLY when its
+# trigger conditions match. The runner (post-edit-preflight.sh) evaluates
+# these after every file edit.
+#
+# To add a new check: append a new entry. No shell script changes needed.
+# This is how PreFlight learns from your project's specific mistakes —
+# every check is an incident that will never happen again.
+#
+# Fields:
+#   id:            Unique identifier
+#   trigger:       When this check fires
+#     file_match:  Regex on the file path being edited (optional)
+#     content_new: Regex on the NEW content being written (optional)
+#     require_all: If true, ALL patterns must match. If false, ANY match fires. Default: true
+#   severity:      "think" (metacognitive prompt) or "warn" (likely mistake)
+#   message:       What to show. Should be a QUESTION, not a rule.
+#   root_pattern:  The class of mistake this prevents (for learning)
+#   learned_from:  Brief description of the incident that created this check
+
+checks:
+
+  # ── Aesthetic Identity ──
+  # CUSTOMIZE: Point file_match at your UI source directories.
+  # Create a project aesthetic skill at .claude/skills/{project}-aesthetic.md
+  - id: aesthetic_engagement
+    trigger:
+      file_match: "src/components/|lib/screens/|lib/widgets/|pages/"
+      content_new: "return.*<|render\\(|Widget build|className="
+      require_all: true
+    severity: think
+    message: |
+      THINK: You're building UI. Does this project have a design identity skill?
+      Check .claude/skills/ for an aesthetic skill file. If one exists, have you
+      read it this session? If one doesn't exist, should you create one?
+      Default framework styles are homework. Intentional design is play.
+    root_pattern: "Building UI without engaging the project's design identity"
+    learned_from: "Claude defaults to generic framework patterns unless an aesthetic skill is actively engaged"
+
+  # ── Research Before Building ──
+  - id: research_check
+    trigger:
+      file_match: "services/|lib/services/"
+      content_new: "class \\w+Service|export class"
+      require_all: true
+    severity: think
+    message: |
+      THINK: You're creating a new service. Before writing code:
+      1. Check KNOWLEDGE_DIRECTORY.yaml for matching tags
+      2. Check docs/reference/packages/ for packages this service will use
+      3. Check docs/reference/research/ for prior decisions about this domain
+      Does a previous session's research inform what you're about to build?
+    root_pattern: "Building without checking accumulated knowledge"
+    learned_from: "Sessions repeatedly re-researched problems that were already synthesized"
+
+  # ── Knowledge Directory Awareness ──
+  - id: knowledge_update
+    trigger:
+      file_match: "docs/reference/research/|docs/reference/packages/"
+      require_all: false
+    severity: think
+    message: |
+      THINK: You're editing a knowledge system file.
+      Will you update KNOWLEDGE_DIRECTORY.yaml with any new tags?
+      The commit hook will block if you don't — save time by doing it now.
+    root_pattern: "Knowledge files created without updating the directory index"
+    learned_from: "Knowledge Directory pairing hook blocks commits — easier to update proactively"
+
+  # ── Destroy Before Verify ──
+  - id: destroy_before_verify
+    trigger:
+      file_match: "services/|lib/services/"
+      content_new: "\\.delete\\(|\\.remove\\(|DROP |TRUNCATE |deleteAll|removeAll"
+    severity: think
+    message: |
+      THINK: You're deleting data. Is the REPLACEMENT verified working?
+      Never destroy the old until the new is confirmed functioning correctly.
+      Can this data be regenerated if something goes wrong?
+    root_pattern: "Deleting source data before replacement is verified"
+    learned_from: "Deleted production data before replacement was confirmed rendering"
+
+  # ── State Change Without UI Notification ──
+  - id: state_without_notification
+    trigger:
+      file_match: "services/|utils/"
+      content_new: "static .* _\\w+ =|_\\w+\\.value ="
+    severity: think
+    message: |
+      THINK: You changed state in a service/utility. What WIDGET needs to know?
+      If this state affects rendering, the UI must be notified.
+      Is there a listener? A state management notification? A rebuild trigger?
+    root_pattern: "State changed in service but no widget notified to re-render"
+    learned_from: "Service state updated but UI never re-rendered — displayed stale data"
+
+  # ── API Assumption ──
+  # CUSTOMIZE: Replace with your project's third-party APIs that have known gotchas
+  # - id: unverified_api
+  #   trigger:
+  #     content_new: "SomeLibrary\\.riskyMethod"
+  #   severity: think
+  #   message: |
+  #     THINK: Have you verified this API works the way you expect?
+  #     Check docs/reference/packages/ for known gotchas.
+  #     Test on device/in production before building systems around it.
+  #   root_pattern: "Building systems around unverified third-party API behavior"
+  #   learned_from: "API silently failed in production — entire system built before testing"

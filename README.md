@@ -10,7 +10,7 @@
 
 <p align="center">
   <a href="https://buymeacoffee.com/jonathanmr22" target="_blank"><img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black" alt="Buy Me A Coffee"/></a>
-  <img src="https://img.shields.io/badge/version-0.4.0-blue?style=for-the-badge" alt="Version 0.4.0"/>
+  <img src="https://img.shields.io/badge/version-0.4.1-blue?style=for-the-badge" alt="Version 0.4.1"/>
   <img src="https://img.shields.io/badge/license-MIT-green?style=for-the-badge" alt="MIT License"/>
 </p>
 
@@ -56,7 +56,7 @@ Install PACT as a Claude Code plugin with one command:
 ```
 
 This gives you:
-- **10 hooks** — automatically active (read-before-write, secrets blocker, git safety, multi-session coordination, edit warnings, feature flow protection, issue tracker gate, knowledge directory pairing, session tracking, timestamps, status page health check)
+- **11 hooks** — automatically active (read-before-write, secrets blocker, git safety, multi-session coordination, edit warnings, PreFlight architectural checks, feature flow protection, issue tracker gate, knowledge directory pairing, session tracking, timestamps, status page health check)
 - **4 slash commands** — `/pact-init`, `/pact-check`, `/pact-flow`, `/pact-bug`
 
 Then run `/pact-init` in your project to scaffold the governance files (architecture map, flow docs, bug tracker, cognitive redirections, cutting room).
@@ -174,6 +174,7 @@ Configure hooks in `.claude/settings.local.json` (or your agent's equivalent):
 | `pre-edit-rules.sh` | PreToolUse (BLOCKS) | Stops hardcoded secrets, enforces read-before-write, gates source edits after issue fetch |
 | `pre-bash-guard.sh` | PreToolUse (BLOCKS) | Git safety (no force push, no --no-verify, no reset --hard), multi-session coordination, bug tracker on fix commits, knowledge directory pairing |
 | `pre-edit-feature-flow.sh` | PreToolUse (BLOCKS) | Requires feature flow doc before editing critical system files (auth, encryption, backup, sync) |
+| `post-edit-preflight.sh` | PostToolUse (THINKS) | Architectural metacognitive checks — data-driven from preflight-checks.yaml. Catches wrong call sites, missing platform config, unverified APIs, state changes without UI notification, UI without aesthetic skill |
 | `post-edit-warnings.sh` | PostToolUse (WARNS) | Large files, high imports, missing scroll wrappers, workaround language, comment deletion, name-based matching |
 | `post-read-tracker.sh` | PostToolUse (LOGS) | Tracks file reads to enable read-before-write |
 | `post-edit-timestamp.sh` | PostToolUse (LOGS) | Records file edit timestamps for cross-session awareness |
@@ -204,6 +205,8 @@ Configure hooks in `.claude/settings.local.json` (or your agent's equivalent):
 | `pending_work.yaml` | Cross-session task tracker |
 | `bugs/_INDEX.yaml` | Bug tracker format specification (30+ standardized tags) |
 | `bugs/_SOLUTIONS.yaml` | Reusable solutions knowledge base (4 starter patterns) |
+| `hooks/preflight-checks.yaml` | Data-driven architectural checks (add YAML, not code) |
+| `aesthetic_skill.md` | Project design identity template (evocative, not prescriptive) |
 | `cutting_room/_INDEX.yaml` | Visual prototyping workspace registry |
 | `cutting_room/_TRIAL_TEMPLATE.yaml` | Trial log format for visual iteration |
 

@@ -29,6 +29,10 @@ Scaffold the PACT governance infrastructure into this project. Create the follow
 
 12. **.claude/sessions.yaml** — Multi-session coordination file (auto-maintained by hooks).
 
+13. **.claude/hooks/preflight-checks.yaml** — Data-driven architectural metacognitive checks. Each check fires based on file path + content patterns and shows a QUESTION (not a rule) that engages reasoning. Start with the template checks (aesthetic identity, research before building, knowledge directory awareness, destroy before verify, state without notification) and add project-specific checks as incidents occur.
+
+14. **.claude/skills/{project}-aesthetic.md** — Project design identity skill with `user-invocable: false`. Ask the user about their project's design personality, emotional tone, color philosophy, and anti-patterns. Write an evocative skill (principles, not prescriptions) that auto-triggers when the agent builds UI. Use the aesthetic_skill.md template.
+
 After creating the files, add the PACT cognitive redirections to the project's CLAUDE.md (or create one if it doesn't exist). Include ALL of these:
 
 - "When the user makes a correction: Is this right?"
