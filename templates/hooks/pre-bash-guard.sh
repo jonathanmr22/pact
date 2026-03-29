@@ -246,20 +246,26 @@ if echo "$COMMAND" | grep -qE '^git commit'; then
   STAGED=$(git diff --cached --name-only 2>/dev/null)
   NEEDS_KDIR=false
 
-  # Research files staged? (exclude the index file itself)
-  if echo "$STAGED" | grep -E 'docs/reference/research/.*\.yaml' | grep -qv '_RESEARCH.yaml'; then
+  # Only require KDIR update for NEW knowledge files (not edits to existing ones).
+  # New files have status 'A' in git diff --cached --name-status.
+  STAGED_STATUS=$(git diff --cached --name-status 2>/dev/null)
+
+  # New research files? (exclude the index file itself)
+  if echo "$STAGED_STATUS" | grep -E '^A.*docs/reference/research/.*\.yaml' | grep -qv '_RESEARCH.yaml'; then
     NEEDS_KDIR=true
   fi
-  # Bug solutions staged?
+  # New bug solutions? (new entries detected by added SOL- lines)
   if echo "$STAGED" | grep -q '_SOLUTIONS.yaml'; then
+    if git diff --cached _SOLUTIONS.yaml 2>/dev/null | grep -q '^\+.*id: SOL-'; then
+      NEEDS_KDIR=true
+    fi
+  fi
+  # New package knowledge files? (exclude the format spec)
+  if echo "$STAGED_STATUS" | grep -E '^A.*docs/reference/packages/.*\.yaml' | grep -qv '_PACKAGE_KNOWLEDGE'; then
     NEEDS_KDIR=true
   fi
-  # Package knowledge files staged?
-  if echo "$STAGED" | grep -E 'docs/reference/packages/.*\.yaml' | grep -qv '_PACKAGE_KNOWLEDGE'; then
-    NEEDS_KDIR=true
-  fi
-  # Feature flow files staged?
-  if echo "$STAGED" | grep -qE 'docs/feature_flows/.*\.yaml'; then
+  # New feature flow files?
+  if echo "$STAGED_STATUS" | grep -qE '^A.*docs/feature_flows/.*\.yaml'; then
     NEEDS_KDIR=true
   fi
 

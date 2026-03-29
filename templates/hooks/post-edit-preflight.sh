@@ -10,11 +10,7 @@
 # Checks defined in preflight-checks.yaml (data-driven, expandable).
 # Adding a new check = adding YAML. No script changes needed.
 #
-# Each check:
-#   trigger  — file path + content patterns
-#   severity — "think" (metacognitive prompt) or "warn" (likely mistake)
-#   message  — a QUESTION that engages reasoning, not a rule to comply with
-#   root_pattern + learned_from — the class of mistake and the incident
+# Each check fires ONCE per session (session-scoped dedup prevents alert fatigue).
 # ============================================================================
 
 INPUT=$(cat)
@@ -45,19 +41,29 @@ import sys, json
 try:
     d = json.load(sys.stdin)
     ti = d.get('tool_input', {})
-    # Edit tool has new_string, Write tool has content
     ns = ti.get('new_string', '') or ti.get('content', '')
     print(ns)
 except:
     pass
 " <<< "$INPUT" 2>/dev/null)
 
-# Run checks
+# Session-scoped dedup: don't fire the same check twice per session
+SESSION_ID="${CLAUDE_SESSION_ID:-default}"
+STATE_FILE="${TEMP:-${TMP:-/tmp}}/preflight_fired_${SESSION_ID}.json"
+
+# Run checks (with session dedup)
 WARNINGS=$(python3 -c "
-import sys, re, yaml
+import sys, re, json, os
+
+try:
+    import yaml
+except ImportError:
+    print('Preflight: PyYAML not installed (pip install pyyaml)', file=sys.stderr)
+    sys.exit(0)
 
 checks_file = sys.argv[1]
 file_path = sys.argv[2]
+state_file = sys.argv[3]
 new_string = sys.stdin.read()
 
 with open(checks_file, 'r', encoding='utf-8') as f:
@@ -66,9 +72,24 @@ with open(checks_file, 'r', encoding='utf-8') as f:
 if not config or 'checks' not in config:
     sys.exit(0)
 
+# Load session state (which checks already fired)
+already_fired = set()
+if os.path.exists(state_file):
+    try:
+        with open(state_file, 'r') as f:
+            already_fired = set(json.load(f))
+    except:
+        pass
+
 fired = []
 
 for check in config['checks']:
+    cid = check.get('id', 'unknown')
+
+    # Skip if already fired this session
+    if cid in already_fired:
+        continue
+
     trigger = check.get('trigger', {})
     file_match = trigger.get('file_match', '')
     content_new = trigger.get('content_new', '')
@@ -76,25 +97,14 @@ for check in config['checks']:
 
     matches = []
 
-    # Test file path pattern
     if file_match:
-        if re.search(file_match, file_path):
-            matches.append(True)
-        else:
-            matches.append(False)
-
-    # Test new content pattern
+        matches.append(bool(re.search(file_match, file_path)))
     if content_new:
-        if re.search(content_new, new_string):
-            matches.append(True)
-        else:
-            matches.append(False)
+        matches.append(bool(re.search(content_new, new_string)))
 
-    # Skip if no patterns defined
     if not matches:
         continue
 
-    # Evaluate: require_all means AND, else OR
     if require_all:
         triggered = all(matches)
     else:
@@ -104,17 +114,24 @@ for check in config['checks']:
         fired.append(check)
 
 if fired:
+    # Save fired check IDs to session state
+    new_fired = already_fired | {c.get('id', '?') for c in fired}
+    try:
+        with open(state_file, 'w') as f:
+            json.dump(list(new_fired), f)
+    except:
+        pass
+
     for check in fired:
         severity = check.get('severity', 'think').upper()
         cid = check.get('id', 'unknown')
         msg = check.get('message', '').strip()
         root = check.get('root_pattern', '')
-        icon = 'THINK:' if severity == 'THINK' else 'WARN:'
         print(f'Preflight [{cid}]: {msg}')
         if root:
             print(f'   Root pattern: {root}')
         print()
-" "$CHECKS_FILE" "$FILE_PATH" <<< "$NEW_STRING" 2>/dev/null)
+" "$CHECKS_FILE" "$FILE_PATH" "$STATE_FILE" <<< "$NEW_STRING" 2>/dev/null)
 
 if [ -n "$WARNINGS" ]; then
   echo "$WARNINGS"
