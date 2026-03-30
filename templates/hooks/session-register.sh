@@ -137,4 +137,50 @@ if [ -f "$SCORECARD" ]; then
   echo "[PACT] Task scorecard available — read ~/.claude/pact-scorecard.md for user feedback on past tasks."
 fi
 
+# ── PACT Memory (vector recall) ──
+MEMORY_DB="$HOME/.claude/pact-memory.db"
+if [ -f "$MEMORY_DB" ]; then
+  DOC_COUNT=$(python -c "
+import sqlite3, os
+db = sqlite3.connect(os.path.expanduser('~/.claude/pact-memory.db'))
+print(db.execute('SELECT COUNT(*) FROM pact_docs').fetchone()[0])
+db.close()
+" 2>/dev/null || echo 0)
+  echo "[PACT] Vector memory active — $DOC_COUNT documents indexed. Use /pact-recall to search."
+fi
+
+# ── PACT Feedback milestones (Day 2, Week 2) ──
+python -c "
+import json, os, sys
+from datetime import datetime, timedelta
+
+config_path = os.path.expanduser('~/.claude/pact-config.json')
+if not os.path.exists(config_path):
+    sys.exit(0)
+
+with open(config_path, 'r') as f:
+    config = json.load(f)
+
+today = datetime.now().strftime('%Y-%m-%d')
+
+# Set first_used if not set
+if 'first_used' not in config:
+    config['first_used'] = today
+    with open(config_path, 'w') as f:
+        json.dump(config, f, indent=2)
+    sys.exit(0)
+
+first = datetime.strptime(config['first_used'], '%Y-%m-%d')
+now = datetime.now()
+days = (now - first).days
+
+# Day 2 milestone
+if days >= 2 and not config.get('feedback_day2_done'):
+    print('[PACT Feedback] You have been using PACT for 2 days. Ask the user: \"PACT has a milestone feedback feature — would you like me to generate a feedback report about your experience so far? It contains zero identifying information — no project names, no tech stack, no code. Just aggregate PACT usage and what helped or didn\\'t. It stays local unless you choose to share it.\"')
+
+# Week 2 milestone
+elif days >= 14 and not config.get('feedback_week2_done'):
+    print('[PACT Feedback] You have been using PACT for 2 weeks. Ask the user: \"It has been two weeks with PACT. Would you like me to generate a feedback report? It captures what subsystems you used, what helped, and what caused friction. No project names, no tech stack, no identifying details — fully anonymous if you choose to share.\"')
+" 2>/dev/null
+
 exit 0

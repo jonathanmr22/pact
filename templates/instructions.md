@@ -1,6 +1,6 @@
 # Project Instructions — PACT Template
 
-**Version:** 0.4.0
+**Version:** 0.7.0
 **Last Updated:** YYYY-MM-DD
 
 ---
@@ -14,7 +14,8 @@ At the start of every conversation, the agent MUST:
 3. Scan `.claude/memory/file_edit_log.yaml` — note recently-edited files, fresh-read before assuming
 4. Read `.claude/sessions.yaml` — check for other active sessions. If another session is active or recently committed (within the last hour), tell the user: *"Another session is active (started [time], last commit [hash]). I'll pull before committing to avoid conflicts."*
 5. **PACT capability check** — glance at `docs/reference/PACT_BASELINE.yaml`. Does your model, context window, or available tools differ from the baseline? If anything feels different, run the self-check protocol and add a `capability_deltas[]` entry. This is how PACT evolves with you.
-6. List the cognitive redirections below from memory
+6. **PACT scorecard** — if `~/.claude/pact-scorecard.md` exists, read it. This is direct user feedback on past task performance. Note your rolling average, weakest areas, and action items from low scores. Adjust your approach accordingly.
+7. List the cognitive redirections below from memory
 
 ---
 
@@ -66,6 +67,38 @@ At the start of every conversation, the agent MUST:
 - **When something about your capabilities feels different:** *"Is this new, and does it change how PACT works?"* — if you notice a tool you don't recognize, a system feature that wasn't there at baseline, or a capability you couldn't use before, check `docs/reference/PACT_BASELINE.yaml`. Add a `capability_deltas[]` entry. Then check: does this make any PACT compensation redundant (native capability now handles it)? Does it make any PACT pattern more powerful (new tool amplifies existing workflow)? Does it open new possibilities PACT couldn't do before? This is how PACT evolves with you instead of accumulating stale workarounds. Every capability you gain is a reason to celebrate and a reason to sharpen the system.
 
 - **When about to research something:** *"Does this need project understanding, online research, or both?"* — research is not one action, it's two distinct methods that serve different purposes. **Project-level research** (reading code, SYSTEM_MAP, feature flows, package knowledge files, git history) answers "how does THIS codebase do it?" **Online research** (WebSearch, WebFetch for docs/APIs/GitHub issues/best practices) answers "how does the WORLD do it?" Default to both. The only time single-source research is sufficient is when the question is purely local ("where is this provider used?") or purely external ("what's the API for this library I've never seen?"). For anything that bridges implementation and domain knowledge — which is most real work — skipping either source means you're building on half an understanding. **Before starting:** check `docs/reference/KNOWLEDGE_DIRECTORY.yaml` for matching tags — this shows every file across all knowledge systems that touches your topic, without opening them individually. **After finishing:** if your research produced synthesis worth keeping (combined local + external insight, rejected alternatives, non-obvious decision), save it to `docs/reference/research/`. The synthesis is the part that matters — raw facts are re-findable, but the reasoning that connected project context to external evidence dies with your context window.
+
+- **When about to declare work done or commit:** *"Have I dispatched pact-reviewer for a second opinion?"* — self-review is inherently biased. You wrote the code, so you'll see what you intended, not what you shipped. For feature work or multi-file changes (3+ files), dispatch `pact-reviewer` — it runs the governance checklist in a fresh context and catches what your loaded context window misses. Skip for trivial commits (typo fixes, version bumps). The 30 seconds a review takes saves the 30 minutes a missed staleness issue costs.
+
+---
+
+## Subagent Delegation (PACT Agents)
+
+Three PACT subagents are available. Dispatch them proactively — do NOT wait for the user to ask.
+
+- **pact-tracer** — Dispatch BEFORE editing any file that appears in SYSTEM_MAP.yaml or touches a database table, service, state class, or shared utility. It traces dependency chains and returns an impact report. Use this instead of trying to hold the full dependency graph in your own context.
+
+- **pact-researcher** — Dispatch when you're about to write code using a package, API, or pattern you haven't verified this session. It checks existing PACT knowledge first, researches if needed, and saves findings back. Use this instead of guessing from training data.
+
+- **pact-reviewer** — Dispatch BEFORE committing feature work or multi-file changes (3+ files). It runs the full governance checklist in a fresh context. Use this instead of self-reviewing your own work. Skip for trivial commits (typo fixes, version bumps, single-line changes).
+
+The goal: your context window stays focused on the user's task. Governance, research, and review happen in isolated subagent contexts and feed results back to you.
+
+---
+
+## Existing Tools & Overlap
+
+PACT is a toolbox, not an all-or-nothing system. If the user already has tools that cover part of what PACT does — a vector memory system (reseek, mem0, claude-mem), a task manager (Taskmaster), a workflow orchestrator (Superpowers), or any bespoke knowledge system — **respect what's already working.**
+
+At session start, if you detect an existing system that overlaps with a PACT subsystem:
+1. Tell the user explicitly: *"I see you already have [tool] handling [function]. PACT's [subsystem] overlaps with this — I'll defer to your existing setup unless you'd like to migrate."*
+2. Do NOT silently replace or duplicate their existing system.
+3. If the user wants to migrate, walk them through it. If not, skip that PACT subsystem entirely.
+
+Common overlaps:
+- **Vector memory / knowledge layer** — if the user already has semantic search (reseek, mem0, memsearch, claude-mem), PACT's vector memory (`pact-memory.py`) may be redundant. The user decides.
+- **Task management** — if Taskmaster or similar is installed, PACT's `PENDING_WORK.yaml` is the lighter option. Both can coexist.
+- **Session memory** — if a memory plugin captures session transcripts, PACT's structured YAML files serve a different purpose (curated knowledge vs raw capture). These are complementary, not competing.
 
 ---
 

@@ -2,7 +2,7 @@
 
 There are a lot of tools in the Claude Code ecosystem now. This document explains where PACT fits and how it compares to the most popular alternatives. The goal isn't to say "PACT is better" — these tools solve different problems, and many work well together.
 
-**Last updated:** 2026-03-29
+**Last updated:** 2026-03-30
 
 ---
 
@@ -20,7 +20,7 @@ There are a lot of tools in the Claude Code ecosystem now. This document explain
 | [memsearch](https://github.com/zilliztech/memsearch) | 1K+ | Markdown-first memory with vector search | Medium — both do memory |
 | [code-review](https://github.com/anthropics/claude-code/tree/main/plugins/code-review) | Official | 4 parallel review agents (compliance, bugs, git history) | Low |
 | [claude-code-workflows](https://github.com/shinpr/claude-code-workflows) | 254 | Dev workflow recipes (frontend, backend, fullstack) | Low |
-| **PACT** | — | Cross-session governance: knowledge accumulation, mechanical enforcement, architecture maps | — |
+| **PACT** | — | Cross-session governance: knowledge accumulation, mechanical enforcement, architecture maps, live dashboard with task rating | — |
 
 ---
 
@@ -38,9 +38,9 @@ The most common comparison. These tools look similar on the surface but operate 
 | **Memory** | None — each session starts fresh | Persistent — research, bugs, packages, architecture |
 | **Workflow** | Rigid phases: brainstorm → plan → TDD → review | Flexible — augments your existing workflow |
 | **TDD** | Core philosophy, deeply enforced | Not addressed |
-| **Subagent dispatch** | Core feature with two-stage review | Not a focus |
+| **Subagent dispatch** | Core feature with two-stage review | 3 auto-dispatched agents (tracer, researcher, reviewer) |
 | **Architecture awareness** | Not addressed | SYSTEM_MAP + feature flows |
-| **Knowledge accumulation** | Not addressed | Core philosophy (6th pillar) |
+| **Knowledge accumulation** | Not addressed | Core feature (compound intelligence) |
 | **Multi-agent** | Supports Cursor, Codex, Gemini, OpenCode | Claude + Gemini with shared governance |
 
 **Verdict:** Complementary. Superpowers makes the agent disciplined within a session. PACT makes the agent knowledgeable across sessions. You could run both.
@@ -116,7 +116,11 @@ Looking across all these tools, PACT occupies a space that none of them individu
 
 6. **Multi-agent with shared governance** — Claude and Gemini share the same hooks, rules, and knowledge base. Switching agents means zero context loss.
 
-7. **Zero dependencies** — No daemons, no databases, no cloud services. Just shell scripts and YAML files in your repo.
+7. **Live dashboard with task rating** — Real-time visualization of every agent action (edits, preflight checks, commits, hook blocks) with per-type animated icons. Users rate tasks 1-5 with category tags, and the scorecard feeds back into the next session — creating a conditioning loop where past ratings directly shape future behavior. No other plugin has a feedback system that crosses sessions.
+
+8. **Auto-dispatched subagents** — Three Sonnet subagents (tracer, researcher, reviewer) that the main session dispatches proactively. Dependency tracing, knowledge research, and pre-commit review happen in isolated contexts so the main session's context window stays focused on the user's task. Other plugins do multi-agent orchestration at the workflow level; PACT does it at the governance level.
+
+9. **Zero external dependencies** — No daemons, no databases, no cloud services for core governance. Just shell scripts and YAML files in your repo. (The dashboard server is an optional lightweight Python script on localhost.)
 
 ---
 
@@ -145,6 +149,7 @@ The only combination that might create friction is PACT + a memory plugin (claud
 | "I want the agent to accumulate *structured* knowledge that I can audit" | **PACT** |
 | "I want mechanical enforcement of rules" | **PACT** |
 | "I want architecture awareness that persists" | **PACT** |
+| "I want to see what the agent is doing in real time and rate its work" | **PACT** (dashboard) |
 | "I want to switch between Claude and Gemini seamlessly" | **PACT** |
 | "I want task management" | Taskmaster |
 | "I want code review" | code-review |

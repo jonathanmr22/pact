@@ -7,11 +7,76 @@ PACT uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.7.0] — 2026-03-30
+
+### Added
+
+**Vector Memory — Semantic Search for Compound Intelligence**
+- `templates/memory/pact-memory.py` — Vector store manager using sqlite-vec + all-MiniLM-L6-v2 (ONNX). Zero infrastructure: no server, no API keys, no GPU. Single file at `~/.claude/pact-memory.db`. Indexes bugs (symptoms + resolutions), graduated solutions, research synthesis, and task feedback. CLI: `store`, `query`, `reindex`, `stats`.
+- `templates/memory/pact-migrate.py` — One-time migration script. Reads existing YAML knowledge files, embeds them, builds the vector index. Non-destructive (YAML untouched).
+- `plugins/pact/skills/pact-recall/SKILL.md` — On-demand semantic search skill. `/pact-recall` lets the agent search PACT memory by describing what they're looking for.
+- `UPGRADE.md` — Step-by-step upgrade guide for existing users (dependency install, migration, verification).
+
+**Feedback Consolidation**
+- Task ratings (formerly `pact-ratings.jsonl`) now live at `.claude/bugs/_FEEDBACK.jsonl` — alongside bugs and solutions under one conceptual system. Server reads from both locations for backward compatibility.
+- New ratings are automatically stored in the vector index for semantic recall.
+
+**Anonymous Feedback System**
+- `templates/memory/pact-feedback-report.py` — Generates anonymous session reports at Day 2 and Week 2 milestones. Captures subsystem usage, task ratings, what helped, what caused friction, workarounds Claude invented, and hooks that blocked legitimate work. Report stays local — user decides whether to share.
+- `session-register.sh` tracks `first_used` date and triggers feedback prompts at milestones.
+- `pact-config.json` stores `first_used`, `feedback_day2_done`, `feedback_week2_done`.
+
+**Server Enhancements**
+- `GET /recall?q=text&top=5&type=bug` — Vector search endpoint for dashboard and skill use.
+- Feedback file location updated with legacy fallback.
+
+### Changed
+- `templates/hooks/session-register.sh` — Reports vector memory status and document count at session start.
+- `templates/dashboard/pact-server.py` — Feedback writes to `.claude/bugs/_FEEDBACK.jsonl`, new `/recall` endpoint, auto-indexes ratings into vector store.
+- README: 9 features (was 8), 5 slash commands (was 4), vector memory in templates table and adoption checklist.
+- `.pact-gitignore` template created (from v0.6.0 polish).
+
+---
+
+## [0.6.0] — 2026-03-30
+
+### Added
+
+**Subagent Delegation (Distributed Cognition)**
+- `templates/agents/pact-tracer.md` — Dependency impact agent. Read-only Sonnet subagent that traces upstream/downstream dependency chains from SYSTEM_MAP before edits. Returns structured impact reports so the main session edits with full awareness.
+- `templates/agents/pact-researcher.md` — Knowledge compound agent. Read/write + web Sonnet subagent that checks existing PACT knowledge files first, researches packages/APIs/patterns if needed, and saves synthesis back for future sessions.
+- `templates/agents/pact-reviewer.md` — Pre-commit governance agent. Read-only Sonnet subagent that runs staleness audit, dependency check, and cognitive redirection sweep in a fresh context before feature commits.
+- Plugin copies at `plugins/pact/agents/` (auto-installed with plugin)
+
+**Cognitive Redirection (1 new, total: 20)**
+- "When about to declare work done or commit: Have I dispatched pact-reviewer for a second opinion?"
+
+**Instructions Template**
+- New "Subagent Delegation (PACT Agents)" section with dispatch guidance for all three agents
+- Session start step 6: PACT scorecard read (from v0.5.0 dashboard)
+
+### Changed
+- `pact-reviewer` trigger refined: "before committing feature work or multi-file changes (3+ files)" instead of "before any git commit" — trivial commits (typo fixes, version bumps) skip review to avoid workflow friction
+- `pact-init` SKILL.md: items 15-19 (dashboard from v0.5.0) + item 20 (agents) + Subagent Delegation section for CLAUDE.md
+- Instructions template version bumped to 0.6.0
+- Plugin `instructions.md` synced with template (was drifted at v0.2.0)
+- README: 8 features, 3 subagents in What You Get, agents in templates table, adoption checklist updated
+- COMPARISON.md: subagents added as differentiator
+
+### Fixed
+- `templates/instructions.md` version was stuck at 0.4.0 (now 0.6.0)
+- `plugins/pact/templates/instructions.md` was drifted at v0.2.0 (now synced with template)
+- `.pact-gitignore` template added for guidance on what NOT to commit
+- README adoption checklist updated with v0.5.0 dashboard + v0.6.0 agents items
+- COMPARISON.md updated with dashboard and subagent differentiators
+
+---
+
 ## [0.5.0] — 2026-03-30
 
 ### Added
 
-**Live Dashboard — Observability & Feedback (Pillar 7)**
+**Live Dashboard — Observability & Feedback**
 - `templates/dashboard/pact-dashboard.html` — Real-time visualization of all agent activity. Session lanes with model identity, project names (renameable), task sub-rows with collapse/expand, per-type animated icons, activity timeline, sidebar metrics, diagnosis with clipboard prompt generation.
 - `templates/dashboard/pact-server.py` — Dashboard server (port 7246). Serves events, ratings, scorecard, and config. Auto-kills previous instance on startup. Regenerates scorecard after every rating.
 - `templates/dashboard/pact-event-logger.sh` — Central event logger. Dual-write to `~/.claude/pact-events.jsonl` (multi-project) and project-local. Auto-detects project folder.
@@ -29,7 +94,7 @@ PACT uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `templates/hooks/session-register.sh` — Emits session_start PACT event, checks dashboard status, reads startup preference, notifies agent about scorecard.
 - `templates/hooks/post-edit-timestamp.sh` — Emits PACT events for all file types, uses PACT session ID.
 - `templates/hooks/post-edit-preflight.sh` — Uses PACT session ID from temp file, emits preflight events.
-- README: 7 pillars (was 6), 13 hooks (was 11), dashboard section, new SVG logo.
+- README: 7 features (was 6), 13 hooks (was 11), dashboard section, new SVG logo.
 
 ---
 
@@ -37,7 +102,7 @@ PACT uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
-**PreFlight — Architectural Metacognitive Checks (Pillar 7: Prevention)**
+**PreFlight — Architectural Metacognitive Checks**
 - `templates/hooks/post-edit-preflight.sh` — PostToolUse hook that runs data-driven architectural checks after every edit. Unlike syntax-level warnings, PreFlight catches architectural mistakes: wrong call sites, missing platform config, unverified API assumptions, state changes without UI notification.
 - `templates/hooks/preflight-checks.yaml` — Data-driven check definitions. Adding a new check = adding YAML, no script changes. Each check has: trigger patterns (file + content), severity (think/warn), a QUESTION (not a rule), root_pattern (class of mistake), and learned_from (the incident that created it). Starter checks: aesthetic identity, research before building, knowledge directory awareness, destroy before verify, state without notification.
 - `templates/aesthetic_skill.md` — Project design identity template. Evocative, not prescriptive — principles that shape creative reasoning rather than checklists that produce generic output. PreFlight's aesthetic_engagement check reminds the agent to read this when editing UI files.
@@ -56,7 +121,7 @@ PACT uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
-**Compound Intelligence (Pillar 6)**
+**Compound Intelligence**
 - `templates/research/_RESEARCH.yaml` — Cross-session research knowledge base. Format spec for saving synthesis (the reasoning that connects local code context to external knowledge). Includes depth levels (shallow → definitive), four evolution actions (deepen, reframe, update, supersede), staleness conditions, tag vocabulary, and indexed entries for fast lookup.
 - `templates/knowledge_directory.yaml` — Cross-system tag directory. Single-file lookup across ALL knowledge systems (research, bugs, solutions, packages, feature flows). Maps tags to files with one-line descriptions so the agent can find what exists about a topic without opening files individually. Hook-enforced.
 - `templates/capability_baseline.yaml` — PACT self-awareness layer. Captures the agent's native capabilities, PACT compensations for limitations (with `what_retirement_looks_like` for each), PACT enhancements (capabilities that make PACT stronger), and a capability deltas log for tracking changes over time. Includes a self-check protocol triggered when the agent notices something different about its environment.
@@ -108,7 +173,7 @@ PACT uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Changed
 - `session-register.sh` — Now auto-detects agent model (Claude vs Gemini) via environment variables and tags sessions with `model: claude` or `model: gemini`. Backward compatible with existing session files.
 - Session file header changed from "Multi-Claude" to "Multi-Agent" coordination
-- README updated with Multi-Agent section, Gemini templates table, fifth pillar (Multi-Agent Resilience)
+- README updated with Multi-Agent section, Gemini templates table, Multi-Agent Resilience feature
 
 ---
 
@@ -167,7 +232,7 @@ PACT uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 - Initial public release
-- Four pillars: Mechanical Enforcement, Context Replacement, Self-Evolving Reasoning, Structure/Behavior Separation
+- Four core features: Mechanical Enforcement, Context Replacement, Self-Evolving Reasoning, Structure/Behavior Separation
 - Hook templates: PreToolUse blocker, PostToolUse warnings, read tracker, silent linter
 - Architecture map template (SYSTEM_MAP.yaml)
 - Feature flow template (lifecycle state machine)

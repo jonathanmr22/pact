@@ -30,4 +30,22 @@ TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 NORM_PATH=$(echo "$FILE_PATH" | sed 's|\\|/|g')
 echo "  - file: \"$NORM_PATH\"" >> "$LOG_FILE"
 echo "    at: \"$TIMESTAMP\"" >> "$LOG_FILE"
+
+# ── Auto-index knowledge files into vector memory (background, non-blocking) ──
+# Detects writes to bug files, solutions, and research — indexes them immediately
+# so vector search stays current without manual reindex.
+if echo "$NORM_PATH" | grep -qE '\.claude/bugs/.*\.yaml$|docs/reference/research/.*\.yaml$'; then
+  MEMORY_SCRIPT="$SCRIPT_DIR/pact-memory.py"
+  if [ ! -f "$MEMORY_SCRIPT" ]; then
+    MEMORY_SCRIPT="$SCRIPT_DIR/../memory/pact-memory.py"
+  fi
+  if [ -f "$MEMORY_SCRIPT" ]; then
+    PROJECT_DIR="$(cd "$SCRIPT_DIR/../.." 2>/dev/null && pwd)"
+    PROJECT_NAME="$(basename "$PROJECT_DIR")"
+    # index-file does proper YAML field extraction in background — zero latency
+    python "$MEMORY_SCRIPT" index-file "$PROJECT_DIR/$NORM_PATH" \
+      --project "$PROJECT_NAME" > /dev/null 2>&1 &
+  fi
+fi
+
 exit 0

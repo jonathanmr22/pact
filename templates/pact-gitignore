@@ -1,0 +1,26 @@
+# ═══════════════════════════════════════════════════════════════
+# PACT — Files to exclude from version control
+# ═══════════════════════════════════════════════════════════════
+# Copy these lines into your project's .gitignore.
+#
+# Rule of thumb:
+#   COMMIT:  hooks, templates, architecture map, flow docs, bug tracker,
+#            cognitive redirections, package knowledge, research synthesis
+#   IGNORE:  auto-generated logs, runtime state, event streams, PID files
+# ═══════════════════════════════════════════════════════════════
+
+# Runtime state (auto-maintained by hooks, changes every session)
+.claude/sessions.yaml
+.claude/pact-server.pid
+.claude/memory/file_edit_log.yaml
+
+# Event streams (can be large, contain session-specific data)
+.claude/pact-events.jsonl
+
+# Cutting room visual prototyping outputs (large images/videos)
+cutting_room/**/output/
+cutting_room/**/*.png
+cutting_room/**/*.mp4
+
+# Temporary files
+.tmp/

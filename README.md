@@ -6,23 +6,28 @@
 
 **A framework for governing AI coding agents through infrastructure instead of instructions.**
 
-> Rules are suggestions. Infrastructure is law.
-
 <p align="center">
   <a href="https://buymeacoffee.com/jonathanmr22" target="_blank"><img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black" alt="Buy Me A Coffee"/></a>
-  <img src="https://img.shields.io/badge/version-0.5.0-blue?style=for-the-badge" alt="Version 0.5.0"/>
+  <img src="https://img.shields.io/badge/version-0.7.0-blue?style=for-the-badge" alt="Version 0.7.0"/>
   <img src="https://img.shields.io/badge/license-MIT-green?style=for-the-badge" alt="MIT License"/>
 </p>
 
 ---
 
+The common assumption is that Claude's problem is memory. It forgets facts, decisions, and other nuances between sessions, so the go-to "solution" is to make it remember more by applying bandaids like session logs or plans in endless markdown files, classic databases, spawning dozens of subagents to argue it out with little context, and attempting marathon sessions to prove you've avoided compaction; that last one is actually nightmare fuel, not an accomplishment. I'll take "context rot" for $500, Alex.
+
+The uncomfortable truth is that Claude makes bad decisions even when it remembers everything. It will edit a file it hasn't read. Fix one layer and break three downstream. Guess at a package API instead of checking docs. Declare "done" while half the work is missing. Full context doesn't fix any of these. They're reasoning failures, not recall failures.
+
+Memory plugins ask: *"How do we help Claude remember?"*
+PACT asks: *"How do we help Claude think?"*
+
+---
+
 ## What Is PACT?
 
-PACT is a governance framework for AI coding agents (Claude Code, Cursor, Copilot Workspace, etc.) that replaces instruction-based rules with mechanical enforcement, context replacement, and self-evolving reasoning.
+PACT is a modular governance framework for AI coding agents (Claude Code, Cursor, Copilot Workspace, etc.). Use all of it or just the parts that fill gaps in your existing setup — if you already have a memory layer, a task manager, or a workflow orchestrator, PACT detects that and only scaffolds what's missing.
 
-AI agents forget rules under cognitive load. They confidently edit files they haven't read. They make single-layer fixes that break downstream systems. They guess at package APIs instead of reading documentation. No amount of prompt engineering fixes these problems because they are architecture problems, not model problems.
-
-PACT addresses this with seven pillars:
+PACT has nine features. Take what you need:
 
 1. **Mechanical Enforcement** — Shell hooks that block violations before they land
 2. **Context Replacement** — Architecture maps and lifecycle flows that replace memory
@@ -31,6 +36,8 @@ PACT addresses this with seven pillars:
 5. **Multi-Agent Resilience** — When Claude is down, switch to Gemini (or vice versa) with zero context loss
 6. **Compound Intelligence** — Research synthesis, cross-system knowledge directory, and capability baseline that make each session smarter than the last
 7. **Observability & Feedback** — Real-time dashboard that visualizes agent activity, captures user prompts, tracks tasks, and feeds user ratings back into future sessions
+8. **Distributed Cognition** — Auto-dispatched subagents for dependency tracing, knowledge research, and pre-commit review so the main session stays focused on the user's task
+9. **Vector Memory** — Semantic search across bugs, solutions, research, and task feedback using local embeddings (no API keys, no cloud). YAML stays authoritative; vector search finds the right file faster
 
 ---
 
@@ -86,7 +93,8 @@ Install PACT as a Claude Code plugin with one command:
 
 This gives you:
 - **13 hooks** — automatically active (read-before-write, secrets blocker, git safety, multi-session coordination, edit warnings, PreFlight architectural checks, feature flow protection, issue tracker gate, knowledge directory pairing, session tracking, timestamps, status page health check, prompt capture, PACT event logging)
-- **4 slash commands** — `/pact-init`, `/pact-check`, `/pact-flow`, `/pact-bug`
+- **3 subagents** — auto-dispatched for dependency tracing, research, and pre-commit review
+- **5 slash commands** — `/pact-init`, `/pact-check`, `/pact-flow`, `/pact-bug`, `/pact-recall`
 - **Live dashboard** — real-time visualization of agent activity, task tracking, and rating system
 
 Then run `/pact-init` in your project to scaffold the governance files (architecture map, flow docs, bug tracker, cognitive redirections, cutting room).
@@ -215,6 +223,14 @@ Configure hooks in `.claude/settings.local.json` (or your agent's equivalent):
 | `pact-prompt-logger.sh` | UserPromptSubmit (LOGS) | Captures user messages as dashboard event cards with IDE context stripped |
 | `pact-server.py` | SessionStart (SERVES) | Dashboard server on port 7246 — serves HTML, events, ratings, scorecard, and config endpoints |
 
+### Subagents (auto-dispatched)
+
+| Agent | Model | What It Does |
+|-------|-------|-------------|
+| `pact-tracer` | Sonnet | Traces dependency chains from SYSTEM_MAP before edits — returns an impact report so the main session edits with full awareness |
+| `pact-researcher` | Sonnet | Checks existing PACT knowledge, researches packages/APIs/patterns if needed, saves synthesis back for future sessions |
+| `pact-reviewer` | Sonnet | Pre-commit governance review in a fresh context — staleness audit, dependency check, cognitive redirection sweep |
+
 ### Slash Commands
 
 | Command | What It Does |
@@ -223,6 +239,7 @@ Configure hooks in `.claude/settings.local.json` (or your agent's equivalent):
 | `/pact-check` | Runs cognitive redirections against your session's changes (staleness audit, dependency trace, cache check) |
 | `/pact-flow` | Generates a lifecycle flow document for a feature |
 | `/pact-bug` | Creates/updates structured bug investigation files |
+| `/pact-recall` | Semantic search across PACT vector memory (bugs, solutions, research, feedback) |
 
 ### Templates (used by `/pact-init`)
 
@@ -246,6 +263,11 @@ Configure hooks in `.claude/settings.local.json` (or your agent's equivalent):
 | `dashboard/pact-server.py` | Dashboard server — events, ratings, scorecard generation, config management |
 | `dashboard/pact-event-logger.sh` | Event logger — central JSONL writer with project detection, called by all hooks |
 | `dashboard/pact-prompt-logger.sh` | Prompt capture — logs user messages with IDE context stripping |
+| `agents/pact-tracer.md` | Dependency impact subagent — traces upstream/downstream before edits |
+| `agents/pact-researcher.md` | Knowledge compound subagent — checks existing knowledge, researches if needed, saves synthesis |
+| `agents/pact-reviewer.md` | Pre-commit governance subagent — staleness audit, dependency check, redirection sweep |
+| `memory/pact-memory.py` | Vector store manager — embed, store, query across all PACT knowledge systems |
+| `memory/pact-migrate.py` | One-time migration script — indexes existing YAML into vector search |
 
 ### Gemini Integration (templates/gemini/)
 
@@ -357,6 +379,20 @@ This prevents the most common multi-session failure: two sessions editing the sa
 
 ---
 
+## What to .gitignore
+
+PACT generates some files that should be committed (hooks, architecture maps, knowledge files) and some that shouldn't (runtime logs, event streams, PID files). See `templates/pact-gitignore` for the recommended exclusions, or add these to your project's `.gitignore`:
+
+```gitignore
+# PACT runtime (auto-generated, session-specific)
+.claude/sessions.yaml
+.claude/pact-server.pid
+.claude/pact-events.jsonl
+.claude/memory/file_edit_log.yaml
+```
+
+---
+
 ## Adoption Checklist
 
 - [ ] Identify your top 3 recurring agent patterns to improve
@@ -377,6 +413,30 @@ This prevents the most common multi-session failure: two sessions editing the sa
 - [ ] Create `cutting_room/` for visual prototyping
 - [ ] Create `.claude/bugs/` with `_INDEX.yaml` and `_SOLUTIONS.yaml`
 - [ ] Set up `session-register.sh` for multi-session awareness
+- [ ] Set up the PACT dashboard (`pact-server.py`, `pact-dashboard.html`, `pact-event-logger.sh`)
+- [ ] Configure dashboard startup preference in `~/.claude/pact-config.json` (`ask`/`auto`/`off`)
+- [ ] Add `pact-prompt-logger.sh` to `UserPromptSubmit` hooks for prompt capture
+- [ ] Copy PACT subagents to `.claude/agents/` (pact-tracer, pact-researcher, pact-reviewer)
+- [ ] Add Subagent Delegation section to your instructions file
+- [ ] Run `pact-migrate.py` to build the vector search index from existing knowledge files
+- [ ] Add `.pact-gitignore` entries to your `.gitignore`
+
+---
+
+## Feedback
+
+PACT collects anonymous feedback at two milestones — **Day 2** and **Week 2** of use. Your Claude will ask if you'd like to generate a report. The report captures:
+
+- Which PACT subsystems you used vs ignored
+- Task rating averages and common issue categories
+- What helped (from you and Claude's perspective)
+- What caused friction
+- **Workarounds Claude had to invent** — these are the most valuable signal because they show exactly where PACT has gaps that should become hooks, checks, or templates
+- Hooks that blocked legitimate work (false positives)
+
+The report is generated locally at `~/.claude/pact-feedback-report.yaml`. It contains **no identifying information** — no project names, no file paths, no usernames, no code. Individual frameworks can be mentioned if relevant to the feedback, but your full stack combination is never included. Only aggregate PACT usage counts and generic descriptions of what helped or didn't. Nothing is sent anywhere unless you explicitly choose to share it after reviewing every line. To submit:
+
+**[Submit Anonymous Feedback →](https://tally.so/r/ODY1Qa)**
 
 ---
 

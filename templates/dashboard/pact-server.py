@@ -31,7 +31,8 @@ HOME_DIR = os.path.expanduser('~')
 PACT_DIR = os.path.join(HOME_DIR, '.claude')
 EVENTS_FILE = os.path.join(PACT_DIR, 'pact-events.jsonl')
 CONFIG_FILE = os.path.join(PACT_DIR, 'pact-config.json')
-RATINGS_FILE = os.path.join(PACT_DIR, 'pact-ratings.jsonl')
+RATINGS_FILE = os.path.join(CLAUDE_DIR, 'bugs', '_FEEDBACK.jsonl')
+LEGACY_RATINGS_FILE = os.path.join(PACT_DIR, 'pact-ratings.jsonl')  # pre-0.7.0 location
 SCORECARD_FILE = os.path.join(PACT_DIR, 'pact-scorecard.md')
 # Fallback to project-local if central doesn't exist
 LOCAL_EVENTS_FILE = os.path.join(CLAUDE_DIR, 'pact-events.jsonl')
@@ -67,12 +68,13 @@ def load_events():
 
 
 def load_ratings():
-    """Load all ratings from the JSONL file."""
-    if not os.path.exists(RATINGS_FILE):
+    """Load all ratings from the feedback file (checks new + legacy locations)."""
+    source = RATINGS_FILE if os.path.exists(RATINGS_FILE) else LEGACY_RATINGS_FILE
+    if not os.path.exists(source):
         return []
     ratings = []
     try:
-        with open(RATINGS_FILE, 'r', encoding='utf-8') as f:
+        with open(source, 'r', encoding='utf-8') as f:
             for line in f:
                 line = line.strip()
                 if line:
@@ -208,6 +210,8 @@ class PACTHandler(http.server.BaseHTTPRequestHandler):
             self._serve_events()
         elif self.path == '/ratings':
             self._serve_ratings()
+        elif self.path.startswith('/recall'):
+            self._serve_recall()
         elif self.path == '/scorecard':
             self._serve_scorecard()
         elif self.path == '/pact-config':
@@ -278,6 +282,46 @@ class PACTHandler(http.server.BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(b'No ratings yet.')
 
+    def _serve_recall(self):
+        """Vector search across PACT knowledge. GET /recall?q=text&top=5&type=bug"""
+        params = {}
+        if '?' in self.path:
+            for p in self.path.split('?')[1].split('&'):
+                if '=' in p:
+                    k, v = p.split('=', 1)
+                    params[k] = v
+
+        query_text = params.get('q', '').replace('+', ' ').replace('%20', ' ')
+        if not query_text:
+            self.send_response(400)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(b'{"error":"missing q parameter"}')
+            return
+
+        try:
+            import subprocess
+            memory_script = os.path.join(SCRIPT_DIR, '..', 'memory', 'pact-memory.py')
+            if not os.path.exists(memory_script):
+                memory_script = os.path.join(SCRIPT_DIR, 'pact-memory.py')
+
+            cmd = [sys.executable, memory_script, 'query', query_text,
+                   '--top', params.get('top', '5'), '--json']
+            if params.get('type'):
+                cmd.extend(['--type', params['type']])
+
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Cache-Control', 'no-cache')
+            self.end_headers()
+            self.wfile.write(result.stdout.encode('utf-8'))
+        except Exception as e:
+            self.send_response(500)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({'error': str(e)}).encode('utf-8'))
+
     def _serve_config(self):
         try:
             if os.path.exists(CONFIG_FILE):
@@ -327,9 +371,33 @@ class PACTHandler(http.server.BaseHTTPRequestHandler):
             # Add server timestamp
             rating['rated_at'] = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
 
-            # Append to ratings JSONL
+            # Append to feedback JSONL (ensure directory exists)
+            os.makedirs(os.path.dirname(RATINGS_FILE), exist_ok=True)
             with open(RATINGS_FILE, 'a', encoding='utf-8') as f:
                 f.write(json.dumps(rating) + '\n')
+
+            # Store in vector index (non-blocking, best-effort)
+            try:
+                memory_script = os.path.join(SCRIPT_DIR, '..', 'memory', 'pact-memory.py')
+                if not os.path.exists(memory_script):
+                    memory_script = os.path.join(SCRIPT_DIR, 'pact-memory.py')
+                if os.path.exists(memory_script):
+                    import subprocess
+                    task = rating.get('task', '')
+                    wrong = rating.get('wrong', '')
+                    right = rating.get('right', '')
+                    tags = ' '.join(rating.get('tags', []))
+                    text = f"Task: {task}. Score: {rating.get('score',0)}/5. Wrong: {wrong}. Right: {right}. Tags: {tags}"
+                    project = rating.get('project', '')
+                    doc_id = f"feedback:{project}:{rating['rated_at']}"
+                    subprocess.Popen(
+                        [sys.executable, memory_script, 'store',
+                         '--type', 'feedback', '--id', doc_id, '--text', text,
+                         '--project', project],
+                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                    )
+            except Exception:
+                pass
 
             # Also emit as a PACT event so the dashboard + current session see it
             event = {
