@@ -1,0 +1,2558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>PACT</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --bg: #09090b;
+    --surface: #0f0f12;
+    --surface2: #141418;
+    --border: rgba(255,255,255,0.06);
+    --border-hi: rgba(255,255,255,0.1);
+    --text: #fafafa;
+    --text2: #a1a1aa;
+    --text3: #52525b;
+    --blue: #3b82f6;
+    --green: #22c55e;
+    --amber: #f59e0b;
+    --red: #ef4444;
+    --purple: #a855f7;
+    --cyan: #06b6d4;
+    --claude: #d4a27f;
+    --claude-glow: rgba(212,162,127,0.15);
+    --gemini: #4285f4;
+    --gemini-glow: rgba(66,133,244,0.15);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, sans-serif;
+    font-size: 14px;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Ambient grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+    background-size: 64px 64px;
+    pointer-events: none;
+    z-index: 0;
+  }
+  body > * { position: relative; z-index: 1; }
+
+  /* ── Header ── */
+  #header {
+    height: 52px;
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    gap: 14px;
+    backdrop-filter: blur(12px);
+    background: rgba(9,9,11,0.85);
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .logo-mark {
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+    filter: drop-shadow(0 0 8px rgba(168,85,247,0.3));
+  }
+  .logo-text {
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    background: linear-gradient(135deg, #fff 0%, #a1a1aa 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .logo-sub {
+    font-size: 10px;
+    color: var(--text3);
+    font-weight: 400;
+    letter-spacing: 0.3px;
+    padding-left: 6px;
+    border-left: 1px solid var(--border);
+    margin-left: 2px;
+  }
+
+  /* Pipeline pulse dots — no counts, just activity indicators */
+  .pipeline {
+    display: flex;
+    gap: 3px;
+    margin-left: auto;
+  }
+  .pip {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--text3);
+    transition: all 0.4s cubic-bezier(0.4,0,0.2,1);
+    cursor: default;
+  }
+  .pip.active { color: var(--text2); background: var(--surface2); }
+  .pip-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--text3);
+    transition: all 0.4s;
+  }
+  .pip.active .pip-dot { background: var(--blue); box-shadow: 0 0 6px var(--blue); }
+  .pip.warn .pip-dot { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
+  .pip.block .pip-dot { background: var(--red); box-shadow: 0 0 6px var(--red); }
+
+  /* Info button */
+  .info-btn {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: none;
+    color: var(--text3);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    font-family: 'Inter', sans-serif;
+    margin-left: 4px;
+  }
+  .info-btn:hover { border-color: var(--border-hi); color: var(--text2); background: var(--surface2); }
+
+  /* ── Main layout ── */
+  #main {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 240px;
+    overflow: hidden;
+  }
+
+  /* ── Session lanes ── */
+  #lanes {
+    overflow-y: auto;
+    padding: 8px 0;
+  }
+  #lanes::-webkit-scrollbar { width: 0; }
+
+  .session {
+    margin: 4px 12px;
+    border-radius: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    overflow: hidden;
+    transition: border-color 0.3s;
+  }
+  .session:hover { border-color: var(--border-hi); }
+  .session.claude-glow { border-color: rgba(212,162,127,0.2); box-shadow: 0 0 24px var(--claude-glow); }
+  .session.gemini-glow { border-color: rgba(66,133,244,0.2); box-shadow: 0 0 24px var(--gemini-glow); }
+
+  .session-header {
+    display: flex;
+    align-items: center;
+    padding: 10px 16px;
+    gap: 12px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+  }
+
+  .avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .avatar.claude { background: linear-gradient(135deg, #d4a27f, #b8845c); box-shadow: 0 0 10px rgba(212,162,127,0.35); }
+  .avatar.gemini { background: linear-gradient(135deg, #4285f4, #34a853); box-shadow: 0 0 10px rgba(66,133,244,0.35); }
+  .avatar.unknown { background: var(--surface2); color: var(--text3); }
+  .avatar::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    right: -1px;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--green);
+    border: 2px solid var(--surface2);
+    animation: live-pulse 2s ease-in-out infinite;
+  }
+  @keyframes live-pulse { 0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,0.4)} 50%{box-shadow:0 0 0 3px rgba(34,197,94,0)} }
+
+  .session-info { flex: 1; min-width: 0; }
+  .session-top-line { display: flex; align-items: baseline; gap: 6px; }
+  .session-model { font-size: 13px; font-weight: 700; color: var(--text); text-transform: capitalize; }
+  .session-project {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text2);
+    padding: 1px 6px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 4px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.15s;
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .session-project:hover { border-color: var(--border-hi); background: var(--surface2); }
+  .session-project-input {
+    font-size: 11px;
+    font-weight: 500;
+    font-family: 'Inter', sans-serif;
+    color: var(--text);
+    background: var(--surface2);
+    border: 1px solid var(--blue);
+    border-radius: 4px;
+    padding: 1px 6px;
+    outline: none;
+    width: 120px;
+  }
+  .session-id { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text3); margin-top: 1px; }
+
+  .session-meta {
+    display: flex;
+    gap: 10px;
+    font-size: 10px;
+    color: var(--text3);
+    align-items: center;
+  }
+  .meta-chip {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 6px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 500;
+  }
+  .meta-chip .mc-n { color: var(--text2); }
+
+  .diag-btn {
+    width: 22px;
+    height: 22px;
+    border-radius: 5px;
+    border: 1px solid var(--border);
+    background: none;
+    color: var(--text3);
+    font-size: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    margin-left: 2px;
+  }
+  .diag-btn:hover { border-color: var(--amber); color: var(--amber); background: rgba(245,158,11,0.08); }
+
+  .session-actions {
+    display: flex;
+    gap: 2px;
+    margin-left: 4px;
+  }
+  .sa-btn {
+    width: 22px;
+    height: 22px;
+    border-radius: 5px;
+    border: 1px solid var(--border);
+    background: none;
+    color: var(--text3);
+    font-size: 11px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    opacity: 0;
+  }
+  .session-header:hover .sa-btn { opacity: 1; }
+  .sa-btn:hover { border-color: var(--border-hi); color: var(--text2); background: var(--surface2); }
+  .sa-btn.del:hover { border-color: var(--red); color: var(--red); background: rgba(239,68,68,0.08); }
+
+  /* Diagnosis panel */
+  .diag-panel {
+    padding: 12px 16px;
+    border-top: 1px solid var(--border);
+    background: var(--surface2);
+    animation: card-in 0.2s ease-out;
+  }
+  .diag-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--amber);
+    margin-bottom: 8px;
+  }
+  .diag-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 4px;
+  }
+  .diag-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 500;
+    background: rgba(255,255,255,0.02);
+  }
+  .diag-item.pass { color: var(--green); }
+  .diag-item.miss { color: var(--red); opacity: 0.7; }
+  .diag-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .diag-item.pass .diag-dot { background: var(--green); box-shadow: 0 0 4px rgba(34,197,94,0.4); }
+  .diag-item.miss .diag-dot { background: var(--red); opacity: 0.5; }
+  .diag-summary {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--text2);
+    line-height: 1.5;
+  }
+  .diag-copy-btn {
+    margin-top: 10px;
+    width: 100%;
+    padding: 8px 12px;
+    border-radius: 7px;
+    border: 1px solid var(--border-hi);
+    background: var(--surface);
+    color: var(--text2);
+    font-size: 12px;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .diag-copy-btn:hover { border-color: var(--amber); color: var(--amber); background: rgba(245,158,11,0.06); }
+
+  /* Track */
+  .track {
+    display: flex;
+    align-items: stretch;
+    overflow-x: auto;
+    min-height: 72px;
+    cursor: grab;
+    user-select: none;
+    scroll-behavior: smooth;
+  }
+  .track:active { cursor: grabbing; }
+  .track::-webkit-scrollbar { height: 3px; }
+  .track::-webkit-scrollbar-track { background: transparent; }
+  .track::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 2px; }
+  .track.dragging { scroll-behavior: auto; } /* kill smooth during drag */
+
+  /* Latest card highlight */
+  .card.latest-card {
+    background: rgba(255,255,255,0.015);
+    border-right: 1px solid rgba(255,255,255,0.1);
+  }
+
+  /* Animations target the icon TEXT inside the badge, not the badge box */
+  .card-badge.latest { display: inline-flex; }
+
+  /* Pencil writing */
+  .card-badge.latest.b-edit::after { content: ''; }
+  .b-edit.latest { --anim: pencil-write 0.8s ease-in-out infinite; }
+  .b-preflight.latest { --anim: lightning-strike 1.2s ease-in-out infinite; }
+  .b-hook_block.latest { --anim: block-shake 0.4s ease-in-out infinite; }
+  .b-hook_warn.latest { --anim: warn-sway 1s ease-in-out infinite; }
+  .b-flow_read.latest { --anim: flow-spin 2s linear infinite; }
+  .b-governance.latest, .b-system_map.latest { --anim: gov-glow 1.5s ease-in-out infinite; }
+  .b-commit.latest { --anim: commit-stamp 0.6s cubic-bezier(0.34,1.56,0.64,1) infinite; }
+  .b-session_start.latest { --anim: start-pulse 1s ease-in-out infinite; }
+  .b-task_rating.latest { --anim: star-twinkle 1s ease-in-out infinite; }
+
+  /* The icon span inside the badge gets the animation */
+  .card-badge.latest .badge-icon {
+    display: inline-block;
+    animation: var(--anim);
+  }
+
+  @keyframes pencil-write {
+    0%, 100% { transform: rotate(0deg) translateX(0); }
+    25% { transform: rotate(-12deg) translateX(1px); }
+    50% { transform: rotate(0deg) translateX(2px); }
+    75% { transform: rotate(6deg) translateX(0); }
+  }
+  @keyframes lightning-strike {
+    0%, 75%, 100% { opacity: 1; transform: translateY(0); }
+    80% { opacity: 0.2; transform: translateY(-3px); }
+    90% { opacity: 1; transform: translateY(1px); }
+  }
+  @keyframes block-shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-2px); }
+    75% { transform: translateX(2px); }
+  }
+  @keyframes warn-sway {
+    0%, 100% { transform: rotate(0deg); }
+    25% { transform: rotate(-12deg); }
+    75% { transform: rotate(12deg); }
+  }
+  @keyframes flow-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  @keyframes gov-glow {
+    0%, 100% { text-shadow: 0 0 0 transparent; }
+    50% { text-shadow: 0 0 6px rgba(6,182,212,0.8); }
+  }
+  @keyframes commit-stamp {
+    0%, 100% { transform: scale(1) translateY(0); }
+    40% { transform: scale(0.7) translateY(2px); }
+    60% { transform: scale(1.2) translateY(-1px); }
+  }
+  @keyframes start-pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.3); opacity: 0.5; }
+  }
+  @keyframes star-twinkle {
+    0%, 100% { transform: scale(1) rotate(0deg); }
+    50% { transform: scale(1.3) rotate(20deg); }
+  }
+
+  /* First card needs left padding so it's not clipped by parent border-radius */
+  .track .card:first-child { padding-left: 20px; }
+
+  /* ── Event cards ── */
+  .card {
+    flex-shrink: 0;
+    padding: 12px 16px;
+    min-width: 190px;
+    max-width: 300px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    border-right: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.15s;
+    animation: card-in 0.25s cubic-bezier(0.4,0,0.2,1);
+  }
+  .card:hover { background: rgba(255,255,255,0.02); }
+  .card.no-click { pointer-events: none; } /* suppress click after drag */
+  @keyframes card-in {
+    from { opacity: 0; transform: translateX(12px) scale(0.98); }
+    to { opacity: 1; transform: translateX(0) scale(1); }
+  }
+  /* Suppress animations during initial load */
+  body.loading .card { animation: none !important; }
+  body.loading .session { animation: none !important; }
+  body.loading .task-row { animation: none !important; }
+
+  .card-top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card-badge {
+    width: 20px;
+    height: 20px;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    flex-shrink: 0;
+  }
+  .card-badge.b-edit { background: rgba(59,130,246,0.12); color: var(--blue); }
+  .card-badge.b-preflight { background: rgba(245,158,11,0.12); color: var(--amber); }
+  .card-badge.b-hook_block { background: rgba(239,68,68,0.12); color: var(--red); }
+  .card-badge.b-hook_warn { background: rgba(245,158,11,0.12); color: var(--amber); }
+  .card-badge.b-flow_read { background: rgba(168,85,247,0.12); color: var(--purple); }
+  .card-badge.b-governance, .card-badge.b-system_map { background: rgba(6,182,212,0.12); color: var(--cyan); }
+  .card-badge.b-session_start { background: rgba(34,197,94,0.12); color: var(--green); }
+  .card-badge.b-commit { background: rgba(34,197,94,0.12); color: var(--green); }
+  .card-badge.b-analyze { background: rgba(6,182,212,0.12); color: var(--cyan); }
+  .card-badge.b-redirect { background: rgba(168,85,247,0.12); color: var(--purple); }
+  .card-badge.b-prompt { background: rgba(255,255,255,0.08); color: var(--text); }
+
+  /* Prompt cards — message only, no header chrome */
+  .card.card-prompt {
+    background: rgba(255,255,255,0.02);
+    border-right: 1px solid rgba(255,255,255,0.08);
+    min-width: 160px;
+    max-width: 280px;
+    padding: 10px 14px;
+    gap: 6px;
+  }
+  .card.card-prompt:hover { background: rgba(255,255,255,0.035); }
+  .card-prompt .card-body { padding-left: 28px; font-weight: 400; font-size: 12px; color: var(--text2); white-space: normal; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.5; }
+
+  .track-from-btn {
+    padding: 1px 6px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: none;
+    color: var(--text3);
+    font-size: 9px;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+    opacity: 0;
+  }
+  .card:hover .track-from-btn { opacity: 1; }
+  .track-from-btn:hover { border-color: var(--amber); color: var(--amber); background: rgba(245,158,11,0.06); }
+
+  .card-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text3);
+  }
+  .card-time {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--text3);
+    margin-left: auto;
+    opacity: 0.6;
+  }
+  .card-body {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-left: 28px;
+  }
+  .card-body strong { font-weight: 700; color: #fff; }
+  .card-sub {
+    font-size: 11px;
+    color: var(--text2);
+    padding-left: 28px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Empty state */
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: 12px;
+    color: var(--text3);
+    text-align: center;
+    padding: 40px;
+  }
+  .empty-state .glyph {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    color: var(--text3);
+  }
+  .empty-state p { font-size: 12px; line-height: 1.5; max-width: 280px; }
+
+  /* ── Sidebar ── */
+  #sidebar {
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    background: rgba(9,9,11,0.5);
+  }
+  #sidebar::-webkit-scrollbar { width: 0; }
+  .sb-section {
+    padding: 14px 16px 10px;
+  }
+  .sb-title {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text3);
+    margin-bottom: 10px;
+  }
+  .sb-sep { height: 1px; background: var(--border); }
+
+  /* Metric cards — two-column grid */
+  .metric-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+  .metric-card {
+    padding: 10px;
+    border-radius: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    transition: all 0.3s;
+    overflow: hidden;
+    min-width: 0;
+  }
+  .metric-card.hot { border-color: var(--border-hi); background: var(--surface2); }
+  .metric-card.span-2 { grid-column: span 2; }
+  .mc-label { font-size: 10px; color: var(--text3); font-weight: 500; margin-bottom: 4px; }
+  .mc-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text3);
+    transition: color 0.3s;
+  }
+  .metric-card.hot .mc-value { color: var(--text); }
+  .mc-detail {
+    font-size: 10px;
+    color: var(--text3);
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+
+  /* Session list */
+  .session-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    transition: background 0.2s;
+  }
+  .session-chip:hover { background: var(--surface2); }
+  .mini-avatar {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 8px;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+  }
+  .mini-avatar.claude { background: linear-gradient(135deg, #d4a27f, #b8845c); }
+  .mini-avatar.gemini { background: linear-gradient(135deg, #4285f4, #34a853); }
+  .chip-info { flex: 1; min-width: 0; }
+  .chip-model { font-size: 11px; font-weight: 600; color: var(--text); text-transform: capitalize; }
+  .chip-sub { font-size: 10px; color: var(--text3); }
+
+  /* Activity timeline */
+  .timeline {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 40px;
+    padding: 4px 0;
+  }
+  .tl-bar {
+    width: 4px;
+    border-radius: 2px 2px 0 0;
+    transition: all 0.3s;
+    opacity: 0.6;
+  }
+  .tl-bar:hover { opacity: 1; }
+  .tl-bar.recent { opacity: 1; }
+
+  /* ── Info modal ── */
+  #info-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 300;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  #info-modal.open { pointer-events: all; opacity: 1; }
+  .info-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(4px);
+  }
+  .info-panel {
+    position: relative;
+    width: 480px;
+    max-height: 80vh;
+    background: var(--surface);
+    border: 1px solid var(--border-hi);
+    border-radius: 16px;
+    padding: 28px;
+    overflow-y: auto;
+    transform: scale(0.95);
+    transition: transform 0.2s cubic-bezier(0.4,0,0.2,1);
+  }
+  #info-modal.open .info-panel { transform: scale(1); }
+  .info-panel h2 { font-size: 16px; font-weight: 700; margin-bottom: 16px; }
+  .info-panel h3 { font-size: 12px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; margin: 16px 0 8px; }
+  .info-panel p { font-size: 13px; color: var(--text2); line-height: 1.6; margin-bottom: 8px; }
+  .info-panel code { font-family: 'JetBrains Mono', monospace; font-size: 11px; background: var(--surface2); padding: 2px 5px; border-radius: 3px; color: var(--text); }
+  .info-panel ul { padding-left: 16px; margin-bottom: 8px; }
+  .info-panel li { font-size: 12px; color: var(--text2); line-height: 1.6; margin-bottom: 4px; }
+  .info-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: none;
+    color: var(--text3);
+    cursor: pointer;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+  }
+  .info-close:hover { color: var(--text); border-color: var(--border-hi); }
+
+  /* ── Detail overlay ── */
+  #overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  #overlay.open { pointer-events: all; opacity: 1; }
+  .ov-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(4px);
+  }
+  #ov-panel {
+    position: relative;
+    width: 100%;
+    max-width: 640px;
+    max-height: 45vh;
+    background: var(--surface);
+    border: 1px solid var(--border-hi);
+    border-bottom: none;
+    border-radius: 14px 14px 0 0;
+    display: flex;
+    flex-direction: column;
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+  }
+  #overlay.open #ov-panel { transform: translateY(0); }
+  .ov-handle { width: 32px; height: 3px; border-radius: 2px; background: var(--border-hi); margin: 8px auto 0; flex-shrink: 0; }
+  #ov-header { display: flex; align-items: center; padding: 14px 20px; gap: 10px; flex-shrink: 0; }
+  #ov-icon { width: 28px; height: 28px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; }
+  #ov-title { font-size: 15px; font-weight: 700; color: var(--text); flex: 1; }
+  #ov-type { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+  #ov-time { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text3); }
+  .ov-close {
+    width: 26px; height: 26px; border-radius: 7px; border: 1px solid var(--border);
+    background: none; color: var(--text3); cursor: pointer; font-size: 12px;
+    display: flex; align-items: center; justify-content: center; transition: all 0.15s;
+  }
+  .ov-close:hover { border-color: var(--border-hi); color: var(--text); }
+  #ov-body { padding: 0 20px 20px; overflow-y: auto; flex: 1; }
+  .d-row { display: flex; padding: 9px 0; border-bottom: 1px solid var(--border); gap: 14px; }
+  .d-label { width: 80px; flex-shrink: 0; font-size: 10px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; padding-top: 2px; }
+  .d-value { font-size: 13px; color: var(--text); font-weight: 500; word-break: break-all; }
+  .d-value.mono { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text2); }
+
+  /* ── Task sub-row ── */
+  .task-row {
+    border-top: 1px solid var(--border);
+    margin-left: 24px;
+    border-left: 2px solid rgba(245,158,11,0.15);
+    position: relative;
+  }
+  .task-row.untracked { border-left-color: rgba(255,255,255,0.06); }
+  .task-row.collapsed .track { display: none; }
+  .task-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 16px;
+    background: rgba(245,158,11,0.04);
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+    cursor: pointer;
+  }
+  .task-chevron {
+    font-size: 10px;
+    color: var(--text3);
+    transition: transform 0.2s;
+    flex-shrink: 0;
+  }
+  .task-row.collapsed .task-chevron { transform: rotate(-90deg); }
+
+  /* Collapse/expand toggle for all tasks */
+  .tasks-toggle {
+    padding: 4px 16px;
+    border-top: 1px solid var(--border);
+    margin-left: 32px;
+    border-left: 2px solid rgba(245,158,11,0.1);
+    font-size: 10px;
+    color: var(--text3);
+    cursor: pointer;
+    transition: color 0.15s;
+    user-select: none;
+  }
+  .tasks-toggle:hover { color: var(--text2); }
+  .task-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .task-dot.active { background: var(--amber); animation: live-pulse 1.5s ease-in-out infinite; }
+  .task-dot.rated { background: var(--green); }
+  .task-name { color: var(--text); font-weight: 600; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .task-score { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 12px; }
+  .task-score.s1,.task-score.s2 { color: var(--red); }
+  .task-score.s3 { color: var(--amber); }
+  .task-score.s4,.task-score.s5 { color: var(--green); }
+  .task-btn {
+    padding: 3px 8px;
+    border-radius: 5px;
+    border: 1px solid var(--border-hi);
+    background: none;
+    color: var(--text2);
+    font-size: 10px;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .task-btn:hover { border-color: var(--text3); color: var(--text); background: var(--surface2); }
+  .task-btn.rate { border-color: var(--amber); color: var(--amber); }
+  .task-btn.rate:hover { background: rgba(245,158,11,0.08); }
+
+  /* Track Next Task button (per session) */
+  .track-btn {
+    padding: 3px 8px;
+    border-radius: 5px;
+    border: 1px solid var(--border);
+    background: none;
+    color: var(--text3);
+    font-size: 10px;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .track-btn:hover { border-color: var(--amber); color: var(--amber); background: rgba(245,158,11,0.06); }
+  .track-btn.tracking { border-color: var(--amber); color: var(--amber); background: rgba(245,158,11,0.08); }
+
+  /* ── Rating overlay ── */
+  #rate-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 300;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  #rate-modal.open { pointer-events: all; opacity: 1; }
+  .rate-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(4px);
+  }
+  .rate-panel {
+    position: relative;
+    width: 520px;
+    max-height: 85vh;
+    background: var(--surface);
+    border: 1px solid var(--border-hi);
+    border-radius: 16px;
+    padding: 28px;
+    overflow-y: auto;
+    transform: scale(0.95);
+    transition: transform 0.2s cubic-bezier(0.4,0,0.2,1);
+  }
+  #rate-modal.open .rate-panel { transform: scale(1); }
+  .rate-panel h2 { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+  .rate-task-name { font-size: 13px; color: var(--text2); margin-bottom: 20px; }
+
+  .rate-section { margin-bottom: 18px; }
+  .rate-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text3); margin-bottom: 8px; }
+
+  /* Score buttons */
+  .score-row { display: flex; gap: 6px; }
+  .score-btn {
+    flex: 1;
+    padding: 10px 6px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text3);
+    font-size: 12px;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .score-btn:hover { border-color: var(--border-hi); color: var(--text2); }
+  .score-btn.selected { border-color: var(--amber); color: var(--amber); background: rgba(245,158,11,0.08); }
+  .score-num { font-size: 18px; font-weight: 700; }
+  .score-word { font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  /* Category tags */
+  .tag-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tag-chip {
+    padding: 5px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: none;
+    color: var(--text3);
+    font-size: 11px;
+    font-weight: 500;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .tag-chip:hover { border-color: var(--border-hi); color: var(--text2); }
+  .tag-chip.selected { border-color: var(--red); color: var(--red); background: rgba(239,68,68,0.08); }
+
+  /* Text inputs */
+  .rate-input {
+    width: 100%;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text);
+    font-size: 13px;
+    font-family: 'Inter', sans-serif;
+    outline: none;
+    transition: border-color 0.15s;
+    resize: vertical;
+  }
+  .rate-input:focus { border-color: var(--border-hi); }
+  .rate-input::placeholder { color: var(--text3); }
+
+  .rate-submit {
+    width: 100%;
+    padding: 10px;
+    border-radius: 8px;
+    border: none;
+    background: linear-gradient(135deg, var(--amber), #d97706);
+    color: #000;
+    font-size: 13px;
+    font-weight: 700;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-top: 8px;
+  }
+  .rate-submit:hover { opacity: 0.9; transform: translateY(-1px); }
+  .rate-submit:disabled { opacity: 0.4; cursor: default; transform: none; }
+
+  /* Scorecard in sidebar */
+  .scorecard-summary {
+    padding: 10px;
+    border-radius: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+  }
+  .sc-avg { font-family: 'JetBrains Mono', monospace; font-size: 24px; font-weight: 700; color: var(--text); }
+  .sc-avg-label { font-size: 10px; color: var(--text3); margin-top: 2px; }
+  .sc-streak { font-size: 11px; color: var(--green); font-weight: 600; margin-top: 4px; }
+  .sc-weak { font-size: 10px; color: var(--red); margin-top: 4px; opacity: 0.8; }
+
+  /* task_rating event card badge */
+  .card-badge.b-task_rating { background: rgba(245,158,11,0.12); color: var(--amber); }
+
+  /* ── Footer ── */
+  #footer {
+    height: 32px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    gap: 16px;
+    font-size: 11px;
+    color: var(--text3);
+    flex-shrink: 0;
+    background: rgba(9,9,11,0.85);
+    backdrop-filter: blur(8px);
+  }
+  .status-dot {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--green); display: inline-block; margin-right: 5px;
+    animation: st-glow 2.5s ease-in-out infinite;
+  }
+  @keyframes st-glow { 0%,100%{opacity:1} 50%{opacity:0.25} }
+  .ft-mono { font-family: 'JetBrains Mono', monospace; color: var(--text2); font-weight: 500; }
+  .ft-right { margin-left: auto; font-size: 10px; color: var(--text3); letter-spacing: 0.3px; }
+</style>
+</head>
+<body class="loading">
+
+<div id="header">
+  <div class="logo">
+    <div class="logo-mark"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="pg" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#d4a27f"/>
+          <stop offset="100%" stop-color="#a855f7"/>
+        </linearGradient>
+      </defs>
+      <!-- Outer diamond frame — constraints -->
+      <path d="M12 2 L22 12 L12 22 L2 12 Z" stroke="url(#pg)" stroke-width="1.5" fill="none" stroke-linejoin="round"/>
+      <!-- Inner cross — structure/framework -->
+      <line x1="12" y1="6" x2="12" y2="18" stroke="url(#pg)" stroke-width="1.2" stroke-linecap="round"/>
+      <line x1="6" y1="12" x2="18" y2="12" stroke="url(#pg)" stroke-width="1.2" stroke-linecap="round"/>
+      <!-- Corner nodes — agents -->
+      <circle cx="12" cy="2" r="1.5" fill="url(#pg)"/>
+      <circle cx="22" cy="12" r="1.5" fill="url(#pg)"/>
+      <circle cx="12" cy="22" r="1.5" fill="url(#pg)"/>
+      <circle cx="2" cy="12" r="1.5" fill="url(#pg)"/>
+      <!-- Center dot — core -->
+      <circle cx="12" cy="12" r="2" fill="url(#pg)"/>
+    </svg></div>
+    <span class="logo-text">PACT</span>
+    <span class="logo-sub" id="logo-sub">Programmatic Agent Constraint Toolkit</span>
+  </div>
+  <div class="pipeline">
+    <div class="pip" id="p-edit"><span class="pip-dot"></span>Edit</div>
+    <div class="pip" id="p-pre"><span class="pip-dot"></span>Preflight</div>
+    <div class="pip" id="p-flow"><span class="pip-dot"></span>Flow</div>
+    <div class="pip" id="p-gov"><span class="pip-dot"></span>Gov</div>
+    <div class="pip" id="p-com"><span class="pip-dot"></span>Commit</div>
+  </div>
+  <button class="info-btn" onclick="openInfo()" title="How PACT tracking works">i</button>
+</div>
+
+<div id="main">
+  <div id="lanes">
+    <div class="empty-state" id="empty-state">
+      <div class="glyph">P</div>
+      <p>Waiting for session activity...<br>Events appear as hooks fire during Claude and Gemini sessions.</p>
+    </div>
+  </div>
+
+  <div id="sidebar">
+    <div class="sb-section">
+      <div class="sb-title">Scorecard</div>
+      <div class="scorecard-summary" id="scorecard-box">
+        <div class="sc-avg" id="sc-avg">&mdash;</div>
+        <div class="sc-avg-label">avg score (no ratings yet)</div>
+        <div class="sc-streak" id="sc-streak"></div>
+        <div class="sc-weak" id="sc-weak"></div>
+      </div>
+    </div>
+    <div class="sb-sep"></div>
+    <div class="sb-section">
+      <div class="sb-title" style="display:flex;justify-content:space-between;align-items:center;">
+        Metrics
+        <button class="sa-btn" style="opacity:1;font-size:9px;width:auto;padding:0 6px;" title="Reset metrics" onclick="resetMetrics()">reset</button>
+      </div>
+      <div class="metric-grid">
+        <div class="metric-card" id="mc-edits">
+          <div class="mc-label">Edits</div>
+          <div class="mc-value" id="mv-edits">0</div>
+          <div class="mc-detail" id="md-edits">&mdash;</div>
+        </div>
+        <div class="metric-card" id="mc-checks">
+          <div class="mc-label">Checks</div>
+          <div class="mc-value" id="mv-checks">0</div>
+          <div class="mc-detail" id="md-checks">&mdash;</div>
+        </div>
+        <div class="metric-card" id="mc-blocks">
+          <div class="mc-label">Blocks</div>
+          <div class="mc-value" id="mv-blocks">0</div>
+          <div class="mc-detail" id="md-blocks">&mdash;</div>
+        </div>
+        <div class="metric-card" id="mc-commits">
+          <div class="mc-label">Commits</div>
+          <div class="mc-value" id="mv-commits">0</div>
+          <div class="mc-detail" id="md-commits">&mdash;</div>
+        </div>
+        <div class="metric-card span-2" id="mc-files">
+          <div class="mc-label">Unique Files</div>
+          <div class="mc-value" id="mv-files">0</div>
+          <div class="mc-detail" id="md-files">&mdash;</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sb-sep"></div>
+
+    <div class="sb-section">
+      <div class="sb-title">Activity</div>
+      <div class="timeline" id="timeline"></div>
+    </div>
+
+    <div class="sb-sep"></div>
+
+    <div class="sb-section">
+      <div class="sb-title" style="display:flex;justify-content:space-between;align-items:center;">
+        Sessions
+        <button class="sa-btn" id="show-archived-btn" style="opacity:1;font-size:9px;width:auto;padding:0 6px;" title="Show archived sessions" onclick="toggleArchived()">archived <span id="archived-count">0</span></button>
+      </div>
+      <div id="session-chips"></div>
+      <div id="archived-list" style="display:none;margin-top:8px;border-top:1px solid var(--border);padding-top:8px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Rating modal -->
+<div id="rate-modal">
+  <div class="rate-backdrop" onclick="closeRating()"></div>
+  <div class="rate-panel">
+    <button class="info-close" onclick="closeRating()">&#x2715;</button>
+    <h2>Rate Task</h2>
+    <div class="rate-task-name" id="rate-task-name"></div>
+
+    <div class="rate-section">
+      <div class="rate-label">Score</div>
+      <div class="score-row" id="score-row">
+        <button class="score-btn" data-score="1" onclick="selectScore(1)"><span class="score-num">1</span><span class="score-word">Failed</span></button>
+        <button class="score-btn" data-score="2" onclick="selectScore(2)"><span class="score-num">2</span><span class="score-word">Poor</span></button>
+        <button class="score-btn" data-score="3" onclick="selectScore(3)"><span class="score-num">3</span><span class="score-word">Adequate</span></button>
+        <button class="score-btn" data-score="4" onclick="selectScore(4)"><span class="score-num">4</span><span class="score-word">Good</span></button>
+        <button class="score-btn" data-score="5" onclick="selectScore(5)"><span class="score-num">5</span><span class="score-word">Nailed It</span></button>
+      </div>
+    </div>
+
+    <div class="rate-section">
+      <div class="rate-label">What went wrong? (select all that apply)</div>
+      <div class="tag-grid" id="tag-grid">
+        <button class="tag-chip" data-tag="UI">UI</button>
+        <button class="tag-chip" data-tag="Backend">Backend</button>
+        <button class="tag-chip" data-tag="Logic">Logic</button>
+        <button class="tag-chip" data-tag="Missed Requirements">Missed Requirements</button>
+        <button class="tag-chip" data-tag="Hallucination">Hallucination</button>
+        <button class="tag-chip" data-tag="Slow">Slow</button>
+        <button class="tag-chip" data-tag="Over-engineered">Over-engineered</button>
+        <button class="tag-chip" data-tag="Broke Something">Broke Something</button>
+        <button class="tag-chip" data-tag="Nothing">Nothing wrong</button>
+      </div>
+    </div>
+
+    <div class="rate-section">
+      <div class="rate-label">What went wrong specifically?</div>
+      <textarea class="rate-input" id="rate-wrong" rows="2" placeholder="e.g. Didn't check overflow on the new modal"></textarea>
+    </div>
+
+    <div class="rate-section">
+      <div class="rate-label">What went right?</div>
+      <textarea class="rate-input" id="rate-right" rows="2" placeholder="e.g. Great data flow tracing, caught the stale cache"></textarea>
+    </div>
+
+    <button class="rate-submit" id="rate-submit" onclick="submitRating()" disabled>Select a score to submit</button>
+  </div>
+</div>
+
+<!-- Task name prompt -->
+<div id="task-prompt" style="position:fixed;inset:0;z-index:300;display:none;align-items:center;justify-content:center;">
+  <div style="position:absolute;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);" onclick="closeTaskPrompt()"></div>
+  <div style="position:relative;width:420px;background:var(--surface);border:1px solid var(--border-hi);border-radius:16px;padding:28px;">
+    <h2 style="font-size:16px;font-weight:700;margin-bottom:12px;">Track Next Task</h2>
+    <p style="font-size:12px;color:var(--text2);margin-bottom:16px;">What are you asking Claude to do? This will be the task description attached to your rating.</p>
+    <input class="rate-input" id="task-name-input" type="text" placeholder="e.g. Fix the map tile loading crash" maxlength="100" style="margin-bottom:12px;">
+    <button class="rate-submit" onclick="startTask()">Start Tracking</button>
+  </div>
+</div>
+
+<!-- Info modal -->
+<div id="info-modal">
+  <div class="info-backdrop" onclick="closeInfo()"></div>
+  <div class="info-panel">
+    <button class="info-close" onclick="closeInfo()">&#x2715;</button>
+    <h2>How PACT Tracking Works</h2>
+    <p><strong>PACT</strong> (Programmatic Agent Constraint Toolkit) instruments Claude Code's hook system to observe governance activity in real time. No code runs inside the AI model &mdash; everything happens at the shell layer.</p>
+
+    <h3>Event Sources</h3>
+    <ul>
+      <li><strong>Edit events</strong> &mdash; <code>PostToolUse</code> hook on Edit/Write. Fires after every file change, logging path and session ID.</li>
+      <li><strong>Preflight checks</strong> &mdash; <code>PostToolUse</code> hook runs cognitive redirections (defined in <code>preflight-checks.yaml</code>) against each edit. Session-scoped dedup prevents repeat fires.</li>
+      <li><strong>Hook blocks</strong> &mdash; <code>PreToolUse</code> guards that reject edits violating rules (no print(), no Hive, no hardcoded colors, etc.).</li>
+      <li><strong>Flow reads</strong> &mdash; Logged when a feature flow doc is read before editing critical system files.</li>
+      <li><strong>Governance</strong> &mdash; Updates to SYSTEM_MAP.yaml, schema exports, provider cheatsheets.</li>
+      <li><strong>Commits</strong> &mdash; Captured by <code>PreToolUse</code> on git commit commands.</li>
+      <li><strong>Session start</strong> &mdash; <code>SessionStart</code> hook registers the agent model and unique session ID.</li>
+    </ul>
+
+    <h3>Data Flow</h3>
+    <p>Each hook calls <code>pact-event-logger.sh</code> which appends a JSON line to <code>.claude/pact-events.jsonl</code>. The PACT server (<code>pact-server.py</code>, port 7246) reads this file every second and serves new events via <code>/events?after=N</code>. This dashboard polls that endpoint.</p>
+
+    <h3>Session Identity</h3>
+    <p>Each session gets a unique ID at startup (timestamp + random hex). This ID is written to a temp file and read by all downstream hooks, ensuring every event is attributed to the correct session &mdash; even when Claude and Gemini sessions overlap.</p>
+
+    <h3>What's NOT Tracked</h3>
+    <p>Token usage and cost are not available in hook input. File reads (without edits), web searches, and internal model reasoning are not captured. Only actions that touch the governance system are instrumented.</p>
+
+    <h3>Dashboard Startup Preference</h3>
+    <p>Controls whether Claude asks to start the dashboard at the beginning of each session. Stored in <code>~/.claude/pact-config.json</code>.</p>
+    <div style="display:flex;gap:6px;margin-top:8px;">
+      <button class="tag-chip" id="pref-ask" onclick="setPactPref('ask')">Ask each time</button>
+      <button class="tag-chip" id="pref-auto" onclick="setPactPref('auto')">Auto-start</button>
+      <button class="tag-chip" id="pref-off" onclick="setPactPref('off')">Don't ask</button>
+    </div>
+    <div id="pref-status" style="font-size:11px;color:var(--text3);margin-top:6px;"></div>
+  </div>
+</div>
+
+<!-- Detail overlay -->
+<div id="overlay">
+  <div class="ov-backdrop" onclick="closeOverlay()"></div>
+  <div id="ov-panel">
+    <div class="ov-handle"></div>
+    <div id="ov-header">
+      <div id="ov-icon"></div>
+      <div style="flex:1">
+        <div id="ov-type"></div>
+        <div id="ov-title"></div>
+      </div>
+      <div id="ov-time"></div>
+      <button class="ov-close" onclick="closeOverlay()">&#x2715;</button>
+    </div>
+    <div id="ov-body"></div>
+  </div>
+</div>
+
+<div id="footer">
+  <span><span class="status-dot"></span>monitoring</span>
+  <span id="ft-sessions">0 sessions</span>
+  <span><span class="ft-mono" id="ft-events">0</span> events</span>
+  <span class="ft-right">pact v0.5.0</span>
+</div>
+
+<script>
+// ── State ──
+let pollIdx = 0;
+const sessions = {};
+const allEvents = [];
+let latestTimer = null;
+function clearLatestAnimation() {
+  document.querySelectorAll('.card.latest-card').forEach(c => {
+    c.classList.remove('latest-card');
+    const b = c.querySelector('.card-badge');
+    if (b) b.classList.remove('latest');
+  });
+}
+const uniqueFiles = new Set();
+let totalEvents = 0;
+let counts = { edits:0, checks:0, blocks:0, commits:0, flows:0, govs:0 };
+// Timeline: 5-minute buckets with timestamps
+const tlBuckets = {}; // key: bucket timestamp string, value: {types:[], count:0}
+
+const short = p => (p||'').split('/').pop().split('\\').pop() || '';
+const ts = t => { try { return new Date(t).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'}); } catch { return ''; } };
+
+const icons = {
+  edit:'\u270E', preflight:'\u26A1', hook_block:'\u2715', hook_warn:'\u26A0',
+  flow_read:'\u25C8', governance:'\u25CE', system_map:'\u25CE',
+  session_start:'\u25B6', commit:'\u2713', analyze:'\u25C7',
+  redirect:'\u21BB', bug:'\u25CF', knowledge:'\u25C6',
+  task_rating:'\u2605', prompt:'\uD83D\uDCAC'
+};
+const colorMap = {
+  edit:'var(--blue)', preflight:'var(--amber)', hook_block:'var(--red)', hook_warn:'var(--amber)',
+  flow_read:'var(--purple)', governance:'var(--cyan)', system_map:'var(--cyan)',
+  session_start:'var(--green)', commit:'var(--green)', analyze:'var(--cyan)', redirect:'var(--purple)',
+  task_rating:'var(--amber)', prompt:'var(--text2)'
+};
+
+function detectModel(sid, evt) {
+  const s = (sid + ' ' + (evt?.model||'')).toLowerCase();
+  if (s.includes('gemini')) return 'gemini';
+  return 'claude';
+}
+function modelInitial(m) { return {claude:'C', gemini:'G'}[m] || '?'; }
+function modelLabel(m) { return {claude:'Claude', gemini:'Gemini'}[m] || m; }
+
+// Project nicknames stored in localStorage
+function getProjectNick(folder) {
+  if (!folder) return '';
+  try { return localStorage.getItem('pact-nick-' + folder) || folder; } catch { return folder; }
+}
+function setProjectNick(folder, nick) {
+  try { localStorage.setItem('pact-nick-' + folder, nick); } catch {}
+}
+
+function startRename(sid, folder) {
+  const el = document.getElementById('pname-' + sid);
+  if (!el) return;
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'session-project-input';
+  input.value = getProjectNick(folder);
+  input.maxLength = 30;
+  el.replaceWith(input);
+  input.focus();
+  input.select();
+
+  const commit = () => {
+    const val = input.value.trim() || folder;
+    setProjectNick(folder, val);
+    const span = document.createElement('span');
+    span.className = 'session-project';
+    span.id = 'pname-' + sid;
+    span.textContent = val;
+    span.title = 'Click to rename \u2014 folder: ' + folder;
+    span.addEventListener('click', e => { e.stopPropagation(); startRename(sid, folder); });
+    input.replaceWith(span);
+    // Also update sidebar chip
+    const chipName = document.getElementById('cname-' + sid);
+    if (chipName) chipName.textContent = modelLabel(sessions[sid]?.model || 'claude') + ' \u00b7 ' + val;
+  };
+  input.addEventListener('blur', commit);
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); input.blur(); } if (e.key === 'Escape') { input.value = folder; input.blur(); } });
+}
+
+function getSession(sid, evt) {
+  // Skip archived/deleted sessions
+  if (isSessionHidden(sid)) return null;
+
+  if (sessions[sid]) {
+    // Retroactively set project name if a later event carries it
+    if (evt?.project && !sessions[sid].folder) {
+      sessions[sid].folder = evt.project;
+      const nick = getProjectNick(evt.project);
+      // Inject project chip into session header
+      const topLine = sessions[sid].el.querySelector('.session-top-line');
+      if (topLine && !topLine.querySelector('.session-project')) {
+        const span = document.createElement('span');
+        span.className = 'session-project';
+        span.id = 'pname-' + sid;
+        span.textContent = nick;
+        span.title = 'Click to rename \u2014 folder: ' + evt.project;
+        span.addEventListener('click', e => { e.stopPropagation(); startRename(sid, evt.project); });
+        topLine.appendChild(span);
+      }
+      // Update sidebar chip
+      const cname = document.getElementById('cname-' + sid);
+      if (cname) cname.textContent = modelLabel(sessions[sid].model) + ' \u00b7 ' + nick;
+    }
+    return sessions[sid];
+  }
+  document.getElementById('empty-state').style.display = 'none';
+
+  const model = detectModel(sid, evt);
+  const folder = evt?.project || '';
+  const nick = getProjectNick(folder);
+  const div = document.createElement('div');
+  div.className = `session ${model}-glow`;
+  div.id = `s-${sid}`;
+  div.innerHTML = `
+    <div class="session-header">
+      <div class="avatar ${model}">${modelInitial(model)}</div>
+      <div class="session-info">
+        <div class="session-top-line">
+          <span class="session-model">${modelLabel(model)}</span>
+          ${folder ? `<span class="session-project" id="pname-${sid}" title="Click to rename \u2014 folder: ${folder}">${nick}</span>` : ''}
+        </div>
+        <div class="session-id">${sid.length > 26 ? sid.slice(0,26)+'\u2026' : sid}</div>
+      </div>
+      <div class="session-meta">
+        <div class="meta-chip" title="File edits">\u270E <span class="mc-n" id="se-${sid}">0</span></div>
+        <div class="meta-chip" title="Preflight checks fired">\u26A1 <span class="mc-n" id="sp-${sid}">0</span></div>
+        <div class="meta-chip" title="Commits">\u2713 <span class="mc-n" id="sc-${sid}">0</span></div>
+        <div class="meta-chip" id="dur-${sid}" style="color:var(--text3)" title="Session duration">0m</div>
+        <button class="diag-btn" id="diag-${sid}" title="Diagnose: check which PACT subsystems were exercised" onclick="event.stopPropagation(); diagnose('${sid}')">&#x2609;</button>
+        <button class="track-btn" id="track-btn-${sid}" onclick="event.stopPropagation(); toggleTaskTracking('${sid}')">Track Next Task</button>
+        <div class="session-actions">
+          <button class="sa-btn" title="Archive session (hide)" onclick="event.stopPropagation(); archiveSession('${sid}')">&#x2193;</button>
+          <button class="sa-btn del" title="Delete session" onclick="event.stopPropagation(); deleteSession('${sid}')">&#x2715;</button>
+        </div>
+      </div>
+    </div>
+  `;
+  // Newest sessions on top
+  const lanes = document.getElementById('lanes');
+  const firstSession = lanes.querySelector('.session');
+  if (firstSession) {
+    lanes.insertBefore(div, firstSession);
+  } else {
+    lanes.appendChild(div);
+  }
+
+  // Wire up rename click
+  if (folder) {
+    const pnameEl = div.querySelector('#pname-' + sid);
+    if (pnameEl) pnameEl.addEventListener('click', e => { e.stopPropagation(); startRename(sid, folder); });
+  }
+
+  // Sidebar chip
+  const chip = document.createElement('div');
+  chip.className = 'session-chip';
+  chip.id = `chip-${sid}`;
+  chip.innerHTML = `
+    <div class="mini-avatar ${model}">${modelInitial(model)}</div>
+    <div class="chip-info">
+      <div class="chip-model" id="cname-${sid}">${modelLabel(model)}${folder ? ' \u00b7 ' + nick : ''}</div>
+      <div class="chip-sub" id="csub-${sid}">0 events</div>
+    </div>`;
+  document.getElementById('session-chips').appendChild(chip);
+
+  sessions[sid] = { el: div, model, folder, n: 0, stats: {edit:0, preflight:0, commit:0}, startTs: evt?.ts ? new Date(evt.ts) : new Date(), lastTs: new Date() };
+  updateSessionCount();
+  return sessions[sid];
+}
+
+function getUntrackedRow(sid) {
+  const trackId = 'untracked-' + sid;
+  const existing = document.getElementById('track-' + trackId);
+  if (existing) return existing;
+
+  const sessionEl = sessions[sid]?.el;
+  if (!sessionEl) return null;
+
+  const taskRow = document.createElement('div');
+  taskRow.className = 'task-row untracked';
+  taskRow.id = trackId;
+  taskRow.innerHTML = `
+    <div class="task-label" onclick="toggleTaskRow('${trackId}')">
+      <span class="task-chevron">\u25BC</span>
+      <div class="task-dot" style="background:var(--text3);opacity:0.4"></div>
+      <span class="task-name" style="color:var(--text3)">Untracked</span>
+    </div>
+    <div class="track" id="track-${trackId}"></div>`;
+  // Insert as the first sub-row (before any tracked tasks)
+  const firstTask = sessionEl.querySelector('.task-row');
+  if (firstTask) {
+    sessionEl.insertBefore(taskRow, firstTask);
+  } else {
+    sessionEl.appendChild(taskRow);
+  }
+  return document.getElementById('track-' + trackId);
+}
+
+function updateSessionCount() {
+  document.getElementById('ft-sessions').textContent = Object.keys(sessions).length + ' session' + (Object.keys(sessions).length !== 1 ? 's' : '');
+}
+
+function addCard(sid, evt) {
+  const session = getSession(sid, evt);
+  if (!session) return; // archived/deleted
+  session.n++;
+  session.lastTs = evt?.ts ? new Date(evt.ts) : new Date();
+  totalEvents++;
+  document.getElementById('ft-events').textContent = totalEvents;
+
+  // During initial load, just accumulate — don't render cards yet
+  if (!initialLoadDone) return;
+
+  // Route cards to the active task sub-row, or create an "Untracked" sub-row
+  let track;
+  if (currentTask && currentTask.sid === sid && currentTask.taskId) {
+    track = document.getElementById('track-' + currentTask.taskId);
+  }
+  if (!track) {
+    track = getUntrackedRow(sid);
+  }
+
+  let body = '', sub = '', label = '';
+  switch (evt.type) {
+    case 'edit': label='edit'; body=`<strong>${short(evt.file)}</strong>`; sub=evt.file||''; break;
+    case 'preflight': label='preflight'; body=`<strong>${evt.check||'?'}</strong>`; sub=`${evt.severity||'think'} \u00b7 ${short(evt.file)}`; break;
+    case 'hook_block': label='blocked'; body=`<strong>${evt.hook||'?'}</strong>`; sub=evt.reason||''; break;
+    case 'hook_warn': label='warning'; body=(evt.message||'').slice(0,50); break;
+    case 'flow_read': label='flow'; body=`<strong>${short(evt.flow)}</strong>`; break;
+    case 'system_map': label='sysmap'; body=`<strong>${evt.section}</strong>`; break;
+    case 'governance': label='gov'; body=`<strong>${short(evt.file)}</strong>`; sub=evt.action||''; break;
+    case 'session_start': label='started'; body=evt.model||'new session'; break;
+    case 'commit': label='commit'; body=(evt.message||'').slice(0,40); break;
+    case 'task_rating': label=`${evt.score}/5`; body=`<strong>${evt.task||'task'}</strong>`; sub=(evt.tags||[]).join(', '); break;
+    case 'prompt': break; // handled separately below
+    default: label=evt.type; body=JSON.stringify(evt).slice(0,40);
+  }
+
+  const card = document.createElement('div');
+  card.dataset.sid = sid;
+  card.dataset.eventIdx = totalEvents - 1;
+  card.addEventListener('click', e => { if (!card.classList.contains('no-click')) { e.stopPropagation(); openOverlay(evt); } });
+
+  if (evt.type === 'prompt') {
+    card.className = 'card card-prompt';
+    const msg = (evt.message || '').slice(0, 200);
+    card.innerHTML = `
+      <div class="card-top">
+        <div class="card-badge b-prompt"><span class="badge-icon">${icons.prompt}</span></div>
+        <span class="card-label">you</span>
+        <button class="track-from-btn" onclick="event.stopPropagation(); trackFromHere('${sid}', ${totalEvents - 1}, this)" title="Start a new task from this message">Track From Here</button>
+        <span class="card-time">${ts(evt.ts)}</span>
+      </div>
+      <div class="card-body">${msg}</div>`;
+  } else {
+    card.className = 'card';
+    card.innerHTML = `
+      <div class="card-top">
+        <div class="card-badge b-${evt.type}"><span class="badge-icon">${icons[evt.type]||'\u00b7'}</span></div>
+        <span class="card-label">${label}</span>
+        <span class="card-time">${ts(evt.ts)}</span>
+      </div>
+      <div class="card-body">${body}</div>
+      ${sub ? `<div class="card-sub">${sub}</div>` : ''}`;
+  }
+  // Remove "latest" from all previous cards
+  clearLatestAnimation();
+  // Mark this card as the latest
+  card.classList.add('latest-card');
+  const badge = card.querySelector('.card-badge');
+  if (badge) badge.classList.add('latest');
+  // Auto-stop animation after 4s of no new events
+  clearTimeout(latestTimer);
+  latestTimer = setTimeout(clearLatestAnimation, 4000);
+
+  track.appendChild(card);
+  requestAnimationFrame(() => { track.scrollLeft = track.scrollWidth; });
+
+  // Per-session stats
+  if (evt.type === 'edit') { session.stats.edit++; const el = document.getElementById('se-'+sid); if(el) el.textContent = session.stats.edit; }
+  if (evt.type === 'preflight') { session.stats.preflight++; const el = document.getElementById('sp-'+sid); if(el) el.textContent = session.stats.preflight; }
+  if (evt.type === 'commit') { session.stats.commit++; const el = document.getElementById('sc-'+sid); if(el) el.textContent = session.stats.commit; }
+
+  // Sidebar chip
+  const csub = document.getElementById('csub-' + sid);
+  if (csub) csub.textContent = session.n + ' event' + (session.n !== 1 ? 's' : '');
+
+  // Update duration
+  updateDuration(sid);
+
+  // Timeline — group into 5-minute buckets by event timestamp
+  const evtTime = evt.ts ? new Date(evt.ts) : new Date();
+  const bucketMs = 5 * 60 * 1000;
+  const bucketKey = new Date(Math.floor(evtTime.getTime() / bucketMs) * bucketMs).toISOString();
+  if (!tlBuckets[bucketKey]) tlBuckets[bucketKey] = { types: [], count: 0 };
+  tlBuckets[bucketKey].types.push(evt.type);
+  tlBuckets[bucketKey].count++;
+  renderTimeline();
+}
+
+function updateDuration(sid) {
+  const s = sessions[sid];
+  if (!s) return;
+  // Duration = now minus session start (live clock, not just last event)
+  const mins = Math.max(0, Math.round((Date.now() - s.startTs.getTime()) / 60000));
+  const el = document.getElementById('dur-' + sid);
+  if (el) el.textContent = mins < 60 ? mins + 'm' : Math.floor(mins/60) + 'h' + (mins%60) + 'm';
+}
+
+// Tick durations every 30s for live sessions
+setInterval(() => { Object.keys(sessions).forEach(updateDuration); }, 30000);
+
+function renderTimeline() {
+  const el = document.getElementById('timeline');
+  const keys = Object.keys(tlBuckets).sort();
+  if (keys.length === 0) { el.innerHTML = ''; return; }
+
+  const scores = {edit:1, preflight:2, flow_read:3, governance:3, system_map:3, commit:4, hook_block:5, task_rating:4, session_start:1};
+  const colors = {edit:'#3b82f6', preflight:'#f59e0b', hook_block:'#ef4444', commit:'#22c55e', flow_read:'#a855f7', governance:'#06b6d4', system_map:'#06b6d4', task_rating:'#f59e0b', session_start:'#22c55e'};
+
+  // Fill gaps — insert empty buckets so the timeline shows quiet periods too
+  const bucketMs = 5 * 60 * 1000;
+  const firstMs = new Date(keys[0]).getTime();
+  const lastMs = new Date(keys[keys.length - 1]).getTime();
+  const allKeys = [];
+  for (let t = firstMs; t <= lastMs; t += bucketMs) {
+    allKeys.push(new Date(t).toISOString());
+  }
+
+  const maxCount = Math.max(...Object.values(tlBuckets).map(b => b.count), 1);
+
+  el.innerHTML = allKeys.map((key, i) => {
+    const b = tlBuckets[key];
+    const time = new Date(key).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+    if (!b) {
+      // Empty bucket — show a tiny bar
+      return `<div class="tl-bar" style="height:2px;background:var(--border-hi);opacity:0.3" title="${time} — no activity"></div>`;
+    }
+    // Weighted height
+    const weightedTotal = b.types.reduce((s, t) => s + (scores[t] || 1), 0);
+    const maxWeighted = maxCount * 3; // rough scale
+    const h = Math.max(4, Math.round((weightedTotal / maxWeighted) * 36));
+    // Dominant type for color
+    const typeCounts = {};
+    b.types.forEach(t => typeCounts[t] = (typeCounts[t]||0) + 1);
+    const dominant = Object.entries(typeCounts).sort((a,b) => b[1]-a[1])[0]?.[0] || 'edit';
+    const c = colors[dominant] || '#3b82f6';
+    const recent = i >= allKeys.length - 2;
+    return `<div class="tl-bar${recent?' recent':''}" style="height:${h}px;background:${c}" title="${time} — ${b.count} events"></div>`;
+  }).join('');
+}
+
+function pulseHeader(id, cls) {
+  const p = document.getElementById(id);
+  if (!p) return;
+  p.classList.add('active');
+  if (cls) p.classList.add(cls);
+  setTimeout(() => p.classList.remove('active', 'warn', 'block'), 2500);
+}
+
+function updateMetric(id, vid, did, label) {
+  const m = document.getElementById(id);
+  m.classList.add('hot');
+  document.getElementById(vid).textContent = parseInt(document.getElementById(vid).textContent) + 1;
+  document.getElementById(did).textContent = label;
+  setTimeout(() => m.classList.remove('hot'), 2000);
+}
+
+function processEvent(evt) {
+  const sid = evt.sid || 'default';
+  allEvents.push(evt);
+  addCard(sid, evt);
+
+  switch (evt.type) {
+    case 'edit':
+      counts.edits++;
+      updateMetric('mc-edits', 'mv-edits', 'md-edits', short(evt.file));
+      pulseHeader('p-edit');
+      if (evt.file) {
+        uniqueFiles.add(evt.file);
+        document.getElementById('mv-files').textContent = uniqueFiles.size;
+        document.getElementById('md-files').textContent = short(evt.file);
+        document.getElementById('mc-files').classList.add('hot');
+        setTimeout(() => document.getElementById('mc-files').classList.remove('hot'), 2000);
+      }
+      break;
+    case 'preflight':
+      counts.checks++;
+      updateMetric('mc-checks', 'mv-checks', 'md-checks', evt.check || '?');
+      pulseHeader('p-pre', evt.severity === 'warn' ? 'warn' : '');
+      break;
+    case 'hook_block':
+      counts.blocks++;
+      updateMetric('mc-blocks', 'mv-blocks', 'md-blocks', evt.hook || 'blocked');
+      pulseHeader('p-pre', 'block');
+      break;
+    case 'hook_warn':
+      pulseHeader('p-pre', 'warn');
+      break;
+    case 'flow_read':
+      counts.flows++;
+      pulseHeader('p-flow');
+      break;
+    case 'system_map': case 'governance':
+      counts.govs++;
+      pulseHeader('p-gov');
+      break;
+    case 'commit':
+      counts.commits++;
+      updateMetric('mc-commits', 'mv-commits', 'md-commits', (evt.message||'').slice(0,20));
+      pulseHeader('p-com');
+      break;
+  }
+}
+
+// ── Load completed tasks from ratings ──
+let ratingsCache = [];
+async function loadCompletedTasks() {
+  try {
+    const r = await fetch('/ratings');
+    if (!r.ok) return;
+    ratingsCache = await r.json();
+    renderCompletedTasks();
+  } catch {}
+}
+
+function renderCompletedTasks() {
+  // Remove any previously rendered completed tasks
+  document.querySelectorAll('.task-row-completed').forEach(el => el.remove());
+
+  const scoreWords = {1:'Failed',2:'Poor',3:'Adequate',4:'Good',5:'Nailed It'};
+
+  ratingsCache.forEach((rating, idx) => {
+    const sid = rating.sid;
+    const sessionEl = sessions[sid]?.el;
+    if (!sessionEl) return;
+
+    // Check if already rendered (by data attribute)
+    const existingId = 'task-done-' + idx;
+    if (document.getElementById(existingId)) return;
+
+    taskCounter++;
+    const taskId = existingId;
+
+    // Find events that belong to this task by timestamp range
+    const startTime = rating.started_at ? new Date(rating.started_at).getTime() : 0;
+    const endTime = rating.rated_at ? new Date(rating.rated_at).getTime() : Date.now();
+    const taskEvents = allEvents.filter(e =>
+      e.sid === sid && e.ts &&
+      new Date(e.ts).getTime() >= startTime &&
+      new Date(e.ts).getTime() <= endTime
+    );
+    const eventCount = taskEvents.length;
+
+    const taskRow = document.createElement('div');
+    taskRow.className = 'task-row task-row-completed collapsed';
+    taskRow.id = taskId;
+    taskRow.innerHTML = `
+      <div class="task-label" onclick="toggleTaskRow('${taskId}')">
+        <span class="task-chevron">\u25BC</span>
+        <div class="task-dot rated"></div>
+        <span class="task-name">${rating.task || 'unnamed'}</span>
+        <span style="font-size:9px;color:var(--text3)">${eventCount} events${rating.tags?.filter(t=>t!=='Nothing').length ? ' \u00b7 ' + rating.tags.filter(t=>t!=='Nothing').join(', ') : ''}</span>
+        <span class="task-score s${rating.score}">${rating.score}/5 ${scoreWords[rating.score]||''}</span>
+      </div>
+      <div class="track" id="track-${taskId}"></div>`;
+    sessionEl.appendChild(taskRow);
+    // Cards will be distributed by distributeInitialEvents()
+  });
+}
+
+// ── Distribute initial events into correct task sub-rows ──
+function distributeInitialEvents() {
+  // Build a map of time ranges -> track elements from rated tasks
+  const taskRanges = []; // [{start, end, trackEl, sid}]
+  ratingsCache.forEach((rating, idx) => {
+    const trackEl = document.getElementById('track-task-done-' + idx);
+    if (!trackEl) return;
+    const start = rating.started_at ? new Date(rating.started_at).getTime() : 0;
+    const end = rating.rated_at ? new Date(rating.rated_at).getTime() : Infinity;
+    taskRanges.push({ start, end, trackEl, sid: rating.sid });
+  });
+
+  // Also check active task from localStorage
+  if (currentTask && currentTask.taskId) {
+    const trackEl = document.getElementById('track-' + currentTask.taskId);
+    if (trackEl) {
+      const start = currentTask.startedAt ? new Date(currentTask.startedAt).getTime() : 0;
+      taskRanges.push({ start, end: Infinity, trackEl, sid: currentTask.sid });
+    }
+  }
+
+  // Distribute each event to the correct track
+  allEvents.forEach(evt => {
+    const sid = evt.sid || 'default';
+    if (!sessions[sid] || isSessionHidden(sid)) return;
+
+    const evtTime = evt.ts ? new Date(evt.ts).getTime() : 0;
+
+    // Find which task this event belongs to (by time range + session)
+    let targetTrack = null;
+    for (const range of taskRanges) {
+      if (range.sid === sid && evtTime >= range.start && evtTime <= range.end) {
+        targetTrack = range.trackEl;
+        break;
+      }
+    }
+
+    // Fall back to untracked
+    if (!targetTrack) {
+      targetTrack = getUntrackedRow(sid);
+    }
+    if (!targetTrack) return;
+
+    // Render the card (no animation)
+    let body = '', sub = '', label = '';
+    switch (evt.type) {
+      case 'edit': label='edit'; body=`<strong>${short(evt.file)}</strong>`; sub=evt.file||''; break;
+      case 'preflight': label='preflight'; body=`<strong>${evt.check||'?'}</strong>`; break;
+      case 'commit': label='commit'; body=(evt.message||'').slice(0,40); break;
+      case 'flow_read': label='flow'; body=`<strong>${short(evt.flow)}</strong>`; break;
+      case 'governance': label='gov'; body=`<strong>${short(evt.file)}</strong>`; break;
+      case 'prompt': break; // handled separately
+      case 'session_start': label='started'; body=evt.model||''; break;
+      case 'task_rating': label=`${evt.score}/5`; body=`<strong>${evt.task||''}</strong>`; break;
+      default: label=evt.type; body=short(evt.file||''); break;
+    }
+    const card = document.createElement('div');
+    card.addEventListener('click', () => openOverlay(evt));
+
+    if (evt.type === 'prompt') {
+      card.className = 'card card-prompt';
+      const evtIdx = allEvents.indexOf(evt);
+      card.innerHTML = `
+        <div class="card-top">
+          <div class="card-badge b-prompt"><span class="badge-icon">${icons.prompt}</span></div>
+          <span class="card-label">you</span>
+          <button class="track-from-btn" onclick="event.stopPropagation(); trackFromHere('${sid}', ${evtIdx}, this)">Track From Here</button>
+          <span class="card-time">${ts(evt.ts)}</span>
+        </div>
+        <div class="card-body">${(evt.message||'').slice(0,200)}</div>`;
+    } else {
+      card.className = 'card';
+      card.innerHTML = `
+        <div class="card-top">
+          <div class="card-badge b-${evt.type}"><span class="badge-icon">${icons[evt.type]||'\u00b7'}</span></div>
+          <span class="card-label">${label}</span>
+          <span class="card-time">${ts(evt.ts)}</span>
+        </div>
+        <div class="card-body">${body}</div>
+        ${sub ? `<div class="card-sub">${sub}</div>` : ''}`;
+    }
+    targetTrack.appendChild(card);
+  });
+
+  // Scroll all tracks to the end — delay to ensure full layout
+  setTimeout(() => {
+    document.querySelectorAll('.track').forEach(t => { t.scrollLeft = t.scrollWidth; });
+  }, 200);
+}
+
+// ── Reset metrics ──
+function resetMetrics() {
+  counts = {edits:0, checks:0, blocks:0, commits:0, flows:0, govs:0};
+  uniqueFiles.clear();
+  ['mv-edits','mv-checks','mv-blocks','mv-commits','mv-files'].forEach(id => { document.getElementById(id).textContent = '0'; });
+  ['md-edits','md-checks','md-blocks','md-commits','md-files'].forEach(id => { document.getElementById(id).textContent = '\u2014'; });
+  Object.keys(tlBuckets).forEach(k => delete tlBuckets[k]);
+  renderTimeline();
+}
+
+// ── Task tracking & rating ──
+let currentTask = null; // {name, startedAt, startEventIdx, sid}
+let pendingTrackSid = null;
+let selectedScore = 0;
+let selectedTags = new Set();
+
+let taskCounter = 0;
+
+function trackFromHere(sid, eventIdx, btnEl) {
+  // Use the prompt message as the default task name
+  const evt = allEvents[eventIdx];
+  const defaultName = (evt?.message || '').slice(0, 80) || 'Untitled task';
+
+  // If currently tracking, rate that first
+  if (currentTask && currentTask.sid === sid) {
+    openRating();
+    return;
+  }
+
+  // Create the task directly with the prompt as the name
+  taskCounter++;
+  const taskId = 'task-' + taskCounter;
+  const sessionEl = sessions[sid]?.el;
+  if (!sessionEl) return;
+
+  const taskRow = document.createElement('div');
+  taskRow.className = 'task-row';
+  taskRow.id = taskId;
+  taskRow.innerHTML = `
+    <div class="task-label" onclick="toggleTaskRow('${taskId}')">
+      <span class="task-chevron">\u25BC</span>
+      <div class="task-dot active"></div>
+      <span class="task-name">${defaultName}</span>
+      <button class="diag-btn" title="Diagnose this task" onclick="event.stopPropagation(); diagnoseTask('${taskId}', '${sid}')">&#x2609;</button>
+      <button class="task-btn rate" onclick="event.stopPropagation(); openRating()">Rate</button>
+      <button class="task-btn" onclick="event.stopPropagation(); cancelTask()">Cancel</button>
+    </div>
+    <div class="track" id="track-${taskId}"></div>`;
+  sessionEl.appendChild(taskRow);
+
+  currentTask = {
+    name: defaultName,
+    taskId,
+    startedAt: evt?.ts || new Date().toISOString(),
+    startEventIdx: eventIdx,
+    sid,
+    project: sessions[sid]?.folder || '',
+  };
+  try { localStorage.setItem('pact-active-task', JSON.stringify(currentTask)); } catch {}
+
+  const btn = document.getElementById('track-btn-' + sid);
+  if (btn) { btn.textContent = 'Rate Task'; btn.classList.add('tracking'); }
+
+  // Visual feedback on the button
+  if (btnEl) { btnEl.textContent = '\u2713 Tracking'; btnEl.style.color = 'var(--green)'; btnEl.style.borderColor = 'var(--green)'; }
+}
+
+function toggleTaskTracking(sid) {
+  if (currentTask && currentTask.sid === sid) {
+    openRating();
+  } else {
+    pendingTrackSid = sid;
+    openTaskPrompt();
+  }
+}
+
+function openTaskPrompt() {
+  document.getElementById('task-prompt').style.display = 'flex';
+  const input = document.getElementById('task-name-input');
+  input.value = '';
+  input.focus();
+  input.onkeydown = e => { if (e.key === 'Enter') startTask(); if (e.key === 'Escape') closeTaskPrompt(); };
+}
+
+function closeTaskPrompt() {
+  document.getElementById('task-prompt').style.display = 'none';
+}
+
+function startTask() {
+  const name = document.getElementById('task-name-input').value.trim();
+  if (!name) return;
+  closeTaskPrompt();
+
+  const sid = pendingTrackSid || 'unknown';
+  pendingTrackSid = null;
+  taskCounter++;
+  const taskId = 'task-' + taskCounter;
+
+  // Create a new sub-row inside the session
+  const sessionEl = sessions[sid]?.el;
+  if (!sessionEl) return;
+
+  const taskRow = document.createElement('div');
+  taskRow.className = 'task-row';
+  taskRow.id = taskId;
+  taskRow.innerHTML = `
+    <div class="task-label" onclick="toggleTaskRow('${taskId}')">
+      <span class="task-chevron">\u25BC</span>
+      <div class="task-dot active"></div>
+      <span class="task-name">${name}</span>
+      <button class="diag-btn" title="Diagnose this task" onclick="event.stopPropagation(); diagnoseTask('${taskId}', '${sid}')">&#x2609;</button>
+      <button class="task-btn rate" onclick="event.stopPropagation(); openRating()">Rate</button>
+      <button class="task-btn" onclick="event.stopPropagation(); cancelTask()">Cancel</button>
+    </div>
+    <div class="track" id="track-${taskId}"></div>`;
+  sessionEl.appendChild(taskRow);
+
+  // Add a collapse-all toggle if this is the second+ task
+  if (!sessionEl.querySelector('.tasks-toggle')) {
+    const toggle = document.createElement('div');
+    toggle.className = 'tasks-toggle';
+    toggle.id = 'tt-' + sid;
+    toggle.textContent = '\u25B2 Collapse all tasks';
+    toggle.onclick = () => toggleAllTasks(sid);
+    // Insert before the first task-row
+    const firstTask = sessionEl.querySelector('.task-row');
+    if (firstTask) sessionEl.insertBefore(toggle, firstTask);
+  }
+
+  currentTask = {
+    name,
+    taskId,
+    startedAt: new Date().toISOString(),
+    startEventIdx: totalEvents,
+    sid,
+    project: sessions[sid]?.folder || '',
+  };
+  // Persist across refreshes
+  try { localStorage.setItem('pact-active-task', JSON.stringify(currentTask)); } catch {}
+
+  // Update the session's header button
+  const btn = document.getElementById('track-btn-' + sid);
+  if (btn) { btn.textContent = 'Rate Task'; btn.classList.add('tracking'); }
+}
+
+function toggleTaskRow(taskId) {
+  const row = document.getElementById(taskId);
+  if (row) row.classList.toggle('collapsed');
+}
+
+function toggleAllTasks(sid) {
+  const sessionEl = sessions[sid]?.el;
+  if (!sessionEl) return;
+  const rows = sessionEl.querySelectorAll('.task-row');
+  const allCollapsed = [...rows].every(r => r.classList.contains('collapsed'));
+  rows.forEach(r => r.classList.toggle('collapsed', !allCollapsed));
+  const toggle = document.getElementById('tt-' + sid);
+  if (toggle) toggle.textContent = allCollapsed ? '\u25B2 Collapse all tasks' : '\u25BC Expand all tasks';
+}
+
+function cancelTask() {
+  if (!currentTask) return;
+  const taskRow = document.getElementById(currentTask.taskId);
+  if (taskRow) taskRow.remove();
+  const btn = document.getElementById('track-btn-' + currentTask.sid);
+  if (btn) { btn.textContent = 'Track Next Task'; btn.classList.remove('tracking'); }
+  currentTask = null;
+  try { localStorage.removeItem('pact-active-task'); } catch {}
+}
+
+function restoreTask() {
+  try {
+    const saved = localStorage.getItem('pact-active-task');
+    if (!saved) return;
+    const t = JSON.parse(saved);
+    if (!t.sid || !sessions[t.sid]) return;
+    // Re-create the task sub-row
+    pendingTrackSid = t.sid;
+    taskCounter++;
+    const taskId = 'task-' + taskCounter;
+    const sessionEl = sessions[t.sid]?.el;
+    if (!sessionEl) return;
+
+    const taskRow = document.createElement('div');
+    taskRow.className = 'task-row';
+    taskRow.id = taskId;
+    taskRow.innerHTML = `
+      <div class="task-label" onclick="toggleTaskRow('${taskId}')">
+        <span class="task-chevron">\u25BC</span>
+        <div class="task-dot active"></div>
+        <span class="task-name">${t.name}</span>
+        <button class="diag-btn" title="Diagnose this task" onclick="event.stopPropagation(); diagnoseTask('${taskId}', '${t.sid}')">&#x2609;</button>
+        <button class="task-btn rate" onclick="event.stopPropagation(); openRating()">Rate</button>
+        <button class="task-btn" onclick="event.stopPropagation(); cancelTask()">Cancel</button>
+      </div>
+      <div class="track" id="track-${taskId}"></div>`;
+    sessionEl.appendChild(taskRow);
+
+    currentTask = { ...t, taskId, startEventIdx: totalEvents };
+    // Update persisted version with new taskId
+    try { localStorage.setItem('pact-active-task', JSON.stringify(currentTask)); } catch {}
+
+    const btn = document.getElementById('track-btn-' + t.sid);
+    if (btn) { btn.textContent = 'Rate Task'; btn.classList.add('tracking'); }
+  } catch {}
+}
+
+function openRating() {
+  if (!currentTask) return;
+  selectedScore = 0;
+  selectedTags = new Set();
+  document.getElementById('rate-task-name').textContent = currentTask.name;
+  document.querySelectorAll('.score-btn').forEach(b => b.classList.remove('selected'));
+  document.querySelectorAll('.tag-chip').forEach(b => b.classList.remove('selected'));
+  document.getElementById('rate-wrong').value = '';
+  document.getElementById('rate-right').value = '';
+  document.getElementById('rate-submit').disabled = true;
+  document.getElementById('rate-submit').textContent = 'Select a score to submit';
+  document.getElementById('rate-modal').classList.add('open');
+}
+
+function closeRating() {
+  document.getElementById('rate-modal').classList.remove('open');
+}
+
+function selectScore(n) {
+  selectedScore = n;
+  document.querySelectorAll('.score-btn').forEach(b => {
+    b.classList.toggle('selected', parseInt(b.dataset.score) === n);
+  });
+  const btn = document.getElementById('rate-submit');
+  btn.disabled = false;
+  const words = {1:'Submit: Failed', 2:'Submit: Poor', 3:'Submit: Adequate', 4:'Submit: Good', 5:'Submit: Nailed It'};
+  btn.textContent = words[n] || 'Submit';
+}
+
+// Tag chip toggle
+document.getElementById('tag-grid').addEventListener('click', e => {
+  const chip = e.target.closest('.tag-chip');
+  if (!chip) return;
+  const tag = chip.dataset.tag;
+  if (selectedTags.has(tag)) { selectedTags.delete(tag); chip.classList.remove('selected'); }
+  else { selectedTags.add(tag); chip.classList.add('selected'); }
+});
+
+async function submitRating() {
+  if (!currentTask || selectedScore === 0) return;
+
+  const rating = {
+    task: currentTask.name,
+    score: selectedScore,
+    tags: [...selectedTags],
+    wrong: document.getElementById('rate-wrong').value.trim(),
+    right: document.getElementById('rate-right').value.trim(),
+    sid: currentTask.sid,
+    project: currentTask.project,
+    started_at: currentTask.startedAt,
+    events_during: totalEvents - currentTask.startEventIdx,
+  };
+
+  // Submit to server
+  try {
+    const r = await fetch('/rate', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(rating),
+    });
+    if (r.ok) {
+      const result = await r.json();
+      // Update scorecard display
+      loadScorecard();
+    }
+  } catch (err) {
+    console.error('Rating submit failed:', err);
+  }
+
+  closeRating();
+
+  // Mark the task sub-row as rated (don't remove it)
+  if (currentTask) {
+    const taskRow = document.getElementById(currentTask.taskId);
+    if (taskRow) {
+      const dot = taskRow.querySelector('.task-dot');
+      if (dot) { dot.classList.remove('active'); dot.classList.add('rated'); }
+      const label = taskRow.querySelector('.task-label');
+      if (label) {
+        // Replace buttons with score display
+        const btns = label.querySelectorAll('.task-btn');
+        btns.forEach(b => b.remove());
+        const scoreEl = document.createElement('span');
+        scoreEl.className = `task-score s${selectedScore}`;
+        scoreEl.textContent = `${selectedScore}/5`;
+        label.appendChild(scoreEl);
+      }
+    }
+    const btn = document.getElementById('track-btn-' + currentTask.sid);
+    if (btn) { btn.textContent = 'Track Next Task'; btn.classList.remove('tracking'); }
+    currentTask = null;
+    try { localStorage.removeItem('pact-active-task'); } catch {}
+  }
+}
+
+async function loadScorecard() {
+  try {
+    const r = await fetch('/ratings');
+    if (!r.ok) return;
+    const ratings = await r.json();
+    if (!ratings.length) return;
+
+    const recent = ratings.slice(-10);
+    const scores = recent.map(r => r.score).filter(Boolean);
+    const avg = scores.reduce((a,b) => a+b, 0) / scores.length;
+
+    document.getElementById('sc-avg').textContent = avg.toFixed(1);
+    document.querySelector('.sc-avg-label').textContent = `avg score (last ${recent.length} tasks)`;
+
+    // Streak
+    let streak = 0;
+    for (let i = recent.length - 1; i >= 0; i--) {
+      if ((recent[i].score || 0) >= 4) streak++; else break;
+    }
+    document.getElementById('sc-streak').textContent = streak >= 2 ? `\u{1F525} ${streak} consecutive 4+` : '';
+
+    // Weakest tag
+    const tagCounts = {};
+    recent.forEach(r => (r.tags||[]).forEach(t => { if (t !== 'Nothing') tagCounts[t] = (tagCounts[t]||0) + 1; }));
+    const worst = Object.entries(tagCounts).sort((a,b) => b[1]-a[1])[0];
+    document.getElementById('sc-weak').textContent = worst ? `Weakest: ${worst[0]} (${worst[1]}x)` : '';
+  } catch {}
+}
+
+// ── Session management ──
+function archiveSession(sid) {
+  const session = sessions[sid];
+  if (!session) return;
+  session.el.style.display = 'none';
+  const chip = document.getElementById('chip-' + sid);
+  if (chip) chip.style.display = 'none';
+  // Store in localStorage so it stays hidden on reload
+  const archived = JSON.parse(localStorage.getItem('pact-archived') || '[]');
+  if (!archived.includes(sid)) { archived.push(sid); localStorage.setItem('pact-archived', JSON.stringify(archived)); }
+  updateArchivedCount();
+}
+
+function deleteSession(sid) {
+  if (!confirm('Delete session ' + sid.slice(0,16) + '...? This hides it permanently.')) return;
+  const session = sessions[sid];
+  if (!session) return;
+  session.el.remove();
+  const chip = document.getElementById('chip-' + sid);
+  if (chip) chip.remove();
+  delete sessions[sid];
+  // Store deleted in localStorage
+  const deleted = JSON.parse(localStorage.getItem('pact-deleted') || '[]');
+  if (!deleted.includes(sid)) { deleted.push(sid); localStorage.setItem('pact-deleted', JSON.stringify(deleted)); }
+  updateSessionCount();
+}
+
+function isSessionHidden(sid) {
+  const archived = JSON.parse(localStorage.getItem('pact-archived') || '[]');
+  const deleted = JSON.parse(localStorage.getItem('pact-deleted') || '[]');
+  return archived.includes(sid) || deleted.includes(sid);
+}
+
+function updateArchivedCount() {
+  const archived = JSON.parse(localStorage.getItem('pact-archived') || '[]');
+  document.getElementById('archived-count').textContent = archived.length;
+  document.getElementById('show-archived-btn').style.display = archived.length > 0 ? '' : 'none';
+}
+
+function toggleArchived() {
+  const list = document.getElementById('archived-list');
+  const visible = list.style.display !== 'none';
+  if (visible) { list.style.display = 'none'; return; }
+
+  const archived = JSON.parse(localStorage.getItem('pact-archived') || '[]');
+  list.innerHTML = '';
+  if (archived.length === 0) { list.style.display = 'none'; return; }
+
+  archived.forEach(sid => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:6px 8px;border-radius:6px;font-size:11px;color:var(--text3);';
+    row.innerHTML = `
+      <span style="font-family:'JetBrains Mono',monospace;font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:130px;">${sid}</span>
+      <button class="sa-btn" style="opacity:1;font-size:9px;width:auto;padding:0 6px;" onclick="restoreSession('${sid}')" title="Restore session">restore</button>`;
+    list.appendChild(row);
+  });
+  list.style.display = 'block';
+}
+
+function restoreSession(sid) {
+  let archived = JSON.parse(localStorage.getItem('pact-archived') || '[]');
+  archived = archived.filter(s => s !== sid);
+  localStorage.setItem('pact-archived', JSON.stringify(archived));
+  // Show the session lane and chip again
+  const session = sessions[sid];
+  if (session) {
+    session.el.style.display = '';
+    const chip = document.getElementById('chip-' + sid);
+    if (chip) chip.style.display = '';
+  }
+  updateArchivedCount();
+  toggleArchived(); // refresh the list
+  if (archived.length > 0) toggleArchived(); // reopen if still has items
+}
+
+// ── Diagnosis ──
+// PACT subsystems that SHOULD fire during a well-governed session
+const SUBSYSTEMS = [
+  { id: 'session_start', label: 'Session Start', desc: 'Session registered with model identity' },
+  { id: 'edit', label: 'File Edits', desc: 'Edit events tracked with file paths' },
+  { id: 'preflight', label: 'Preflight', desc: 'Cognitive redirections fired on edits' },
+  { id: 'flow_read', label: 'Flow Docs', desc: 'Feature flow docs read before critical edits' },
+  { id: 'governance', label: 'Governance', desc: 'SYSTEM_MAP or governance artifacts updated' },
+  { id: 'commit', label: 'Commit', desc: 'Git commits captured' },
+  { id: 'hook_block', label: 'Hook Guards', desc: 'PreToolUse guards evaluated (blocks = working)' },
+  { id: 'hook_warn', label: 'Warnings', desc: 'PostToolUse warnings checked' },
+  { id: 'system_map', label: 'System Map', desc: 'SYSTEM_MAP.yaml consulted or updated' },
+];
+
+// Collect all events for a given session
+function sessionEvents(sid) {
+  // We store events as cards in the DOM, but we also need the raw data.
+  // Rebuild from the global allEvents array.
+  return allEvents.filter(e => e.sid === sid);
+}
+
+function buildDiagPrompt(sid, evts, passed, total, missed, filesEdited) {
+  const lines = [
+    `/diagnose session ${sid}`,
+    '',
+    'The PACT dashboard detected the following gaps in this session. Analyze whether each missing subsystem SHOULD have fired given the files that were edited, and recommend specific fixes (new hooks, new preflight checks, new cognitive redirections) to prevent these gaps in future sessions.',
+    '',
+    `## Session summary`,
+    `- Session: ${sid}`,
+    `- Events: ${evts.length}`,
+    `- Coverage: ${passed}/${total} subsystems (${Math.round((passed/total)*100)}%)`,
+    `- Files edited: ${filesEdited.join(', ') || 'none'}`,
+    '',
+    `## Subsystems that fired`,
+    ...SUBSYSTEMS.filter(s => !missed.find(m => m.id === s.id)).map(s => `- \u2713 ${s.label}: ${s.desc}`),
+    '',
+    `## Subsystems that DID NOT fire`,
+    ...missed.map(s => `- \u2717 ${s.label}: ${s.desc}`),
+    '',
+    `## Event log`,
+    ...evts.map(e => `- [${e.ts}] ${e.type}${e.file ? ' ' + e.file : ''}${e.check ? ' check=' + e.check : ''}${e.flow ? ' flow=' + e.flow : ''}${e.message ? ' "' + e.message + '"' : ''}`),
+    '',
+    '## Questions to answer',
+    '1. For each missing subsystem: was it EXPECTED to fire given the files edited? If yes, what hook/check is missing?',
+    '2. Are there preflight check patterns that should be added to preflight-checks.yaml?',
+    '3. Are there cognitive redirections that should be added to CLAUDE.md?',
+    '4. Should any new PostToolUse/PreToolUse hooks be created to capture these gaps?',
+    '5. Rate this session\'s governance completeness: thorough / adequate / gaps / poor',
+  ];
+  return lines.join('\n');
+}
+
+function diagnoseTask(taskId, sid) {
+  const taskRow = document.getElementById(taskId);
+  if (!taskRow) return;
+  const existing = taskRow.querySelector('.diag-panel');
+  if (existing) { existing.remove(); return; }
+
+  // Get events from the task's track cards
+  const track = document.getElementById('track-' + taskId);
+  const cards = track ? track.querySelectorAll('.card') : [];
+  // We need the raw events — pull from allEvents based on what's in this task's track
+  // Cards don't store events directly, so scope by time: events between task start and now for this session
+  const taskData = currentTask?.taskId === taskId ? currentTask : null;
+  const startIdx = taskData?.startEventIdx || 0;
+  const evts = allEvents.slice(startIdx).filter(e => e.sid === sid);
+
+  const typesSeen = new Set(evts.map(e => e.type));
+  const filesEdited = [...new Set(evts.filter(e => e.file).map(e => e.file))];
+  const passed = SUBSYSTEMS.filter(s => typesSeen.has(s.id)).length;
+  const total = SUBSYSTEMS.length;
+  const missed = SUBSYSTEMS.filter(s => !typesSeen.has(s.id));
+  const pct = Math.round((passed / total) * 100);
+
+  const items = SUBSYSTEMS.map(sub => {
+    const hit = typesSeen.has(sub.id);
+    return `<div class="diag-item ${hit?'pass':'miss'}" title="${sub.desc}"><div class="diag-dot"></div>${sub.label}</div>`;
+  }).join('');
+
+  let summary = `<strong>${passed}/${total}</strong> subsystems (${pct}% coverage). ${evts.length} events in task.`;
+  if (missed.length > 0) summary += ` Missing: ${missed.map(m => m.label).join(', ')}.`;
+
+  const panel = document.createElement('div');
+  panel.className = 'diag-panel';
+  panel.innerHTML = `
+    <div class="diag-title">\u2609 Task Diagnosis</div>
+    <div class="diag-grid">${items}</div>
+    <div class="diag-summary">${summary}</div>
+    <button class="diag-copy-btn" onclick="event.stopPropagation(); copyTaskDiag('${taskId}', '${sid}')">Copy diagnostic prompt</button>`;
+  taskRow.appendChild(panel);
+}
+
+function copyTaskDiag(taskId, sid) {
+  const taskData = currentTask?.taskId === taskId ? currentTask : null;
+  const startIdx = taskData?.startEventIdx || 0;
+  const evts = allEvents.slice(startIdx).filter(e => e.sid === sid);
+  const filesEdited = [...new Set(evts.filter(e => e.file).map(e => e.file))];
+  const passed = SUBSYSTEMS.filter(s => new Set(evts.map(e=>e.type)).has(s.id)).length;
+  const missed = SUBSYSTEMS.filter(s => !new Set(evts.map(e=>e.type)).has(s.id));
+  const prompt = buildDiagPrompt(sid, evts, passed, SUBSYSTEMS.length, missed, filesEdited);
+  navigator.clipboard.writeText(prompt).then(() => {
+    const btn = document.getElementById(taskId)?.querySelector('.diag-copy-btn');
+    if (btn) { btn.textContent = '\u2713 Copied'; setTimeout(() => btn.textContent = 'Copy diagnostic prompt', 2000); }
+  });
+}
+
+function diagnose(sid) {
+  const session = sessions[sid];
+  if (!session) return;
+
+  // Remove existing diagnosis panel if present
+  const existing = session.el.querySelector('.diag-panel');
+  if (existing) { existing.remove(); return; } // toggle off
+
+  const evts = sessionEvents(sid);
+  const typesSeen = new Set(evts.map(e => e.type));
+  const filesEdited = [...new Set(evts.filter(e => e.file).map(e => e.file))];
+
+  const items = SUBSYSTEMS.map(sub => {
+    const hit = typesSeen.has(sub.id);
+    return `<div class="diag-item ${hit ? 'pass' : 'miss'}" title="${sub.desc}"><div class="diag-dot"></div>${sub.label}</div>`;
+  }).join('');
+
+  const passed = SUBSYSTEMS.filter(s => typesSeen.has(s.id)).length;
+  const total = SUBSYSTEMS.length;
+  const pct = Math.round((passed / total) * 100);
+  const missed = SUBSYSTEMS.filter(s => !typesSeen.has(s.id));
+
+  let summary = `<strong>${passed}/${total}</strong> subsystems active (${pct}% coverage).`;
+  if (missed.length > 0) {
+    summary += ` Missing: ${missed.map(m => m.label).join(', ')}.`;
+  }
+
+  const panel = document.createElement('div');
+  panel.className = 'diag-panel';
+  panel.innerHTML = `
+    <div class="diag-title">\u2609 Diagnosis \u2014 ${evts.length} events</div>
+    <div class="diag-grid">${items}</div>
+    <div class="diag-summary">${summary}</div>
+    <button class="diag-copy-btn" id="dcopy-${sid}" title="Copy diagnostic prompt to clipboard \u2014 paste into Claude for full analysis">
+      Copy diagnostic prompt
+    </button>`;
+  session.el.appendChild(panel);
+
+  document.getElementById('dcopy-' + sid).addEventListener('click', e => {
+    e.stopPropagation();
+    const prompt = buildDiagPrompt(sid, evts, passed, total, missed, filesEdited);
+    navigator.clipboard.writeText(prompt).then(() => {
+      e.target.textContent = '\u2713 Copied \u2014 paste into Claude';
+      e.target.style.borderColor = 'var(--green)';
+      e.target.style.color = 'var(--green)';
+      setTimeout(() => {
+        e.target.textContent = 'Copy diagnostic prompt';
+        e.target.style.borderColor = '';
+        e.target.style.color = '';
+      }, 3000);
+    });
+  });
+}
+
+// ── Info modal ──
+function openInfo() {
+  document.getElementById('info-modal').classList.add('open');
+  loadPactPref();
+}
+function closeInfo() { document.getElementById('info-modal').classList.remove('open'); }
+
+async function loadPactPref() {
+  try {
+    const r = await fetch('/pact-config');
+    if (r.ok) {
+      const config = await r.json();
+      const pref = config.dashboard || 'ask';
+      ['ask','auto','off'].forEach(p => {
+        document.getElementById('pref-' + p).classList.toggle('selected', p === pref);
+      });
+      document.getElementById('pref-status').textContent = 'Current: ' + pref;
+    }
+  } catch {}
+}
+
+async function setPactPref(pref) {
+  try {
+    await fetch('/pact-config', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({dashboard: pref}),
+    });
+    ['ask','auto','off'].forEach(p => {
+      document.getElementById('pref-' + p).classList.toggle('selected', p === pref);
+    });
+    document.getElementById('pref-status').textContent = 'Saved: ' + pref;
+  } catch { document.getElementById('pref-status').textContent = 'Failed to save'; }
+}
+
+// ── Detail overlay ──
+function openOverlay(evt) {
+  const ov = document.getElementById('overlay');
+  const icon = document.getElementById('ov-icon');
+  icon.textContent = icons[evt.type] || '\u00b7';
+  icon.style.background = `color-mix(in srgb, ${colorMap[evt.type]||'var(--text3)'} 15%, transparent)`;
+  icon.style.color = colorMap[evt.type] || 'var(--text3)';
+
+  document.getElementById('ov-type').textContent = evt.type.replace(/_/g,' ').toUpperCase();
+  document.getElementById('ov-type').style.color = colorMap[evt.type] || 'var(--text3)';
+
+  let title = '';
+  switch (evt.type) {
+    case 'edit': title = short(evt.file) || 'File edit'; break;
+    case 'preflight': title = evt.check || 'Preflight check'; break;
+    case 'hook_block': title = 'Blocked by ' + (evt.hook||'hook'); break;
+    case 'flow_read': title = short(evt.flow) || 'Flow read'; break;
+    case 'governance': title = short(evt.file) || 'Governance update'; break;
+    case 'commit': title = (evt.message||'').slice(0,60) || 'Commit'; break;
+    case 'session_start': title = 'Session started'; break;
+    default: title = evt.type;
+  }
+  document.getElementById('ov-title').textContent = title;
+  document.getElementById('ov-time').textContent = ts(evt.ts);
+
+  const body = document.getElementById('ov-body');
+  body.innerHTML = '';
+  [['Type', evt.type], ['Timestamp', evt.ts], ['Session', evt.sid],
+   evt.file&&['File', evt.file], evt.check&&['Check', evt.check],
+   evt.severity&&['Severity', evt.severity], evt.flow&&['Flow', evt.flow],
+   evt.section&&['Section', evt.section], evt.hook&&['Hook', evt.hook],
+   evt.reason&&['Reason', evt.reason], evt.action&&['Action', evt.action],
+   evt.message&&['Message', evt.message], evt.model&&['Model', evt.model]
+  ].filter(Boolean).forEach(([l,v]) => {
+    const r = document.createElement('div');
+    r.className = 'd-row';
+    const mono = ['File','Flow','Session','Timestamp','Hook','Check'].includes(l);
+    r.innerHTML = `<div class="d-label">${l}</div><div class="d-value${mono?' mono':''}">${v}</div>`;
+    body.appendChild(r);
+  });
+
+  ov.classList.add('open');
+}
+function closeOverlay() { document.getElementById('overlay').classList.remove('open'); }
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeOverlay(); closeInfo(); closeRating(); closeTaskPrompt(); }
+});
+
+// ── Drag-to-scroll (with click suppression) ──
+let dragTarget = null;
+document.addEventListener('mousedown', e => {
+  const t = e.target.closest('.track');
+  if (!t) return;
+  dragTarget = t;
+  t.classList.add('dragging');
+  let sx = e.pageX, sl = t.scrollLeft, moved = false;
+
+  const mv = ev => {
+    const dx = Math.abs(ev.pageX - sx);
+    if (dx > 4) moved = true;
+    t.scrollLeft = sl - (ev.pageX - sx);
+  };
+  const up = () => {
+    document.removeEventListener('mousemove', mv);
+    document.removeEventListener('mouseup', up);
+    t.classList.remove('dragging');
+    if (moved) {
+      // Suppress clicks on cards inside this track for a tick
+      t.querySelectorAll('.card').forEach(c => c.classList.add('no-click'));
+      setTimeout(() => t.querySelectorAll('.card').forEach(c => c.classList.remove('no-click')), 50);
+    }
+  };
+  document.addEventListener('mousemove', mv);
+  document.addEventListener('mouseup', up);
+});
+
+// ── Polling ──
+let initialLoadDone = false;
+async function poll() {
+  try {
+    const r = await fetch('/events?after=' + pollIdx);
+    if (r.ok) {
+      const events = await r.json();
+      events.forEach(e => { pollIdx++; processEvent(e); });
+      if (!initialLoadDone && events.length > 0) {
+        initialLoadDone = true;
+        document.body.classList.remove('loading');
+        // First render completed task sub-rows, THEN distribute events into them
+        await renderCompletedTasks();
+        restoreTask();
+        distributeInitialEvents();
+        clearLatestAnimation();
+      }
+    }
+  } catch {}
+  if (!initialLoadDone) {
+    initialLoadDone = true;
+    document.body.classList.remove('loading');
+    await renderCompletedTasks();
+    restoreTask();
+    distributeInitialEvents();
+    clearLatestAnimation();
+  }
+  setTimeout(poll, 600);
+}
+if (location.protocol !== 'file:') poll();
+
+// Init
+renderTimeline();
+updateArchivedCount();
+loadScorecard();
+loadCompletedTasks();
+</script>
+</body>
+</html>

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/pact-handshake.png" alt="PACT — Human and AI shaking hands" width="640"/>
+  <img src="assets/pact-logo.svg" alt="PACT" width="120"/>
 </p>
 
 # PACT — Programmatic Agent Constraint Toolkit
@@ -10,7 +10,7 @@
 
 <p align="center">
   <a href="https://buymeacoffee.com/jonathanmr22" target="_blank"><img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black" alt="Buy Me A Coffee"/></a>
-  <img src="https://img.shields.io/badge/version-0.4.1-blue?style=for-the-badge" alt="Version 0.4.1"/>
+  <img src="https://img.shields.io/badge/version-0.5.0-blue?style=for-the-badge" alt="Version 0.5.0"/>
   <img src="https://img.shields.io/badge/license-MIT-green?style=for-the-badge" alt="MIT License"/>
 </p>
 
@@ -22,7 +22,7 @@ PACT is a governance framework for AI coding agents (Claude Code, Cursor, Copilo
 
 AI agents forget rules under cognitive load. They confidently edit files they haven't read. They make single-layer fixes that break downstream systems. They guess at package APIs instead of reading documentation. No amount of prompt engineering fixes these problems because they are architecture problems, not model problems.
 
-PACT addresses this with six pillars:
+PACT addresses this with seven pillars:
 
 1. **Mechanical Enforcement** — Shell hooks that block violations before they land
 2. **Context Replacement** — Architecture maps and lifecycle flows that replace memory
@@ -30,6 +30,7 @@ PACT addresses this with six pillars:
 4. **Structure/Behavior Separation** — Static wiring maps vs dynamic lifecycle flows
 5. **Multi-Agent Resilience** — When Claude is down, switch to Gemini (or vice versa) with zero context loss
 6. **Compound Intelligence** — Research synthesis, cross-system knowledge directory, and capability baseline that make each session smarter than the last
+7. **Observability & Feedback** — Real-time dashboard that visualizes agent activity, captures user prompts, tracks tasks, and feeds user ratings back into future sessions
 
 ---
 
@@ -46,6 +47,30 @@ PACT supports running **multiple AI agents on the same project** — Claude Code
 
 ---
 
+## Live Dashboard (New in 0.5.0)
+
+PACT includes a real-time dashboard that visualizes everything your AI agent does — every file edit, preflight check, hook block, commit, and governance update appears as a card in a horizontal timeline. Your own prompts show up too, so you can see the full conversation flow alongside the agent's actions.
+
+**Task Rating System** — Click "Track Next Task" on any session, describe what you're asking the agent to do, and all subsequent events flow into that task's sub-row. When the task is done, rate it 1-5 with category tags (UI, Backend, Logic, Missed Requirements, Hallucination, etc.) and free-text feedback on what went right and wrong. Ratings are stored permanently and compiled into a **scorecard** (`~/.claude/pact-scorecard.md`) that the agent reads at the start of every session — creating a feedback loop where past ratings directly shape future behavior.
+
+**What you see:**
+- Session lanes with model identity (Claude/Gemini) and project name
+- Task sub-rows with collapse/expand, diagnosis, and rating
+- Per-type animated icons (the pencil writes while editing, the lightning strikes on preflight checks)
+- Activity timeline, sidebar metrics, scorecard with rolling average and streak tracking
+- "Track From Here" on any prompt card to retroactively mark where a new task started
+- Diagnosis per session or per task — coverage analysis of which PACT subsystems were exercised
+
+**Start the dashboard:**
+```shell
+python .claude/hooks/pact-server.py &
+# Opens at http://127.0.0.1:7246
+```
+
+Or set `"dashboard": "auto"` in `~/.claude/pact-config.json` to start it automatically every session.
+
+---
+
 ## Quick Start — Claude Code Plugin (Recommended)
 
 Install PACT as a Claude Code plugin with one command:
@@ -56,8 +81,9 @@ Install PACT as a Claude Code plugin with one command:
 ```
 
 This gives you:
-- **11 hooks** — automatically active (read-before-write, secrets blocker, git safety, multi-session coordination, edit warnings, PreFlight architectural checks, feature flow protection, issue tracker gate, knowledge directory pairing, session tracking, timestamps, status page health check)
+- **13 hooks** — automatically active (read-before-write, secrets blocker, git safety, multi-session coordination, edit warnings, PreFlight architectural checks, feature flow protection, issue tracker gate, knowledge directory pairing, session tracking, timestamps, status page health check, prompt capture, PACT event logging)
 - **4 slash commands** — `/pact-init`, `/pact-check`, `/pact-flow`, `/pact-bug`
+- **Live dashboard** — real-time visualization of agent activity, task tracking, and rating system
 
 Then run `/pact-init` in your project to scaffold the governance files (architecture map, flow docs, bug tracker, cognitive redirections, cutting room).
 
@@ -181,6 +207,9 @@ Configure hooks in `.claude/settings.local.json` (or your agent's equivalent):
 | `post-sentry-bug-reminder.sh` | PostToolUse (GATES) | After fetching an issue, blocks source edits until bug file is created |
 | `session-register.sh` | SessionStart (LOGS) | Registers session for multi-session awareness, prunes old sessions |
 | `session-status-check.sh` | SessionStart (WARNS) | Checks status.claude.com for major/critical incidents affecting Claude Code or API — warns user at session start, silent when healthy |
+| `pact-event-logger.sh` | Utility (LOGS) | Appends structured events to central JSONL for dashboard visualization — called by other hooks |
+| `pact-prompt-logger.sh` | UserPromptSubmit (LOGS) | Captures user messages as dashboard event cards with IDE context stripped |
+| `pact-server.py` | SessionStart (SERVES) | Dashboard server on port 7246 — serves HTML, events, ratings, scorecard, and config endpoints |
 
 ### Slash Commands
 
@@ -209,6 +238,10 @@ Configure hooks in `.claude/settings.local.json` (or your agent's equivalent):
 | `aesthetic_skill.md` | Project design identity template (evocative, not prescriptive) |
 | `cutting_room/_INDEX.yaml` | Visual prototyping workspace registry |
 | `cutting_room/_TRIAL_TEMPLATE.yaml` | Trial log format for visual iteration |
+| `dashboard/pact-dashboard.html` | Live dashboard UI — session lanes, task sub-rows, rating overlay, diagnosis, activity timeline |
+| `dashboard/pact-server.py` | Dashboard server — events, ratings, scorecard generation, config management |
+| `dashboard/pact-event-logger.sh` | Event logger — central JSONL writer with project detection, called by all hooks |
+| `dashboard/pact-prompt-logger.sh` | Prompt capture — logs user messages with IDE context stripping |
 
 ### Gemini Integration (templates/gemini/)
 

@@ -1,0 +1,20 @@
+<svg viewBox="0 0 120 120" width="120" height="120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="pg" x1="0" y1="0" x2="120" y2="120" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#d4a27f"/>
+      <stop offset="100%" stop-color="#a855f7"/>
+    </linearGradient>
+  </defs>
+  <!-- Outer diamond frame — constraints -->
+  <path d="M60 8 L112 60 L60 112 L8 60 Z" stroke="url(#pg)" stroke-width="4" fill="none" stroke-linejoin="round"/>
+  <!-- Inner cross — structure/framework -->
+  <line x1="60" y1="28" x2="60" y2="92" stroke="url(#pg)" stroke-width="3" stroke-linecap="round"/>
+  <line x1="28" y1="60" x2="92" y2="60" stroke="url(#pg)" stroke-width="3" stroke-linecap="round"/>
+  <!-- Corner nodes — agents -->
+  <circle cx="60" cy="8" r="6" fill="url(#pg)"/>
+  <circle cx="112" cy="60" r="6" fill="url(#pg)"/>
+  <circle cx="60" cy="112" r="6" fill="url(#pg)"/>
+  <circle cx="8" cy="60" r="6" fill="url(#pg)"/>
+  <!-- Center dot — core -->
+  <circle cx="60" cy="60" r="8" fill="url(#pg)"/>
+</svg>

@@ -7,6 +7,32 @@ PACT uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.5.0] — 2026-03-30
+
+### Added
+
+**Live Dashboard — Observability & Feedback (Pillar 7)**
+- `templates/dashboard/pact-dashboard.html` — Real-time visualization of all agent activity. Session lanes with model identity, project names (renameable), task sub-rows with collapse/expand, per-type animated icons, activity timeline, sidebar metrics, diagnosis with clipboard prompt generation.
+- `templates/dashboard/pact-server.py` — Dashboard server (port 7246). Serves events, ratings, scorecard, and config. Auto-kills previous instance on startup. Regenerates scorecard after every rating.
+- `templates/dashboard/pact-event-logger.sh` — Central event logger. Dual-write to `~/.claude/pact-events.jsonl` (multi-project) and project-local. Auto-detects project folder.
+- `templates/dashboard/pact-prompt-logger.sh` — Captures user messages as event cards. Strips IDE context tags.
+
+**Task Rating System**
+- Per-session "Track Next Task" with named task sub-rows. "Track From Here" on prompt cards for retroactive task boundaries.
+- Rating overlay: 1-5 score, 9 category tags, free-text feedback for what went wrong and right.
+- Ratings in `~/.claude/pact-ratings.jsonl`. Scorecard at `~/.claude/pact-scorecard.md` with rolling average, streaks, weakest areas, and action items. Agent reads scorecard at session start.
+
+**Dashboard Startup Preference**
+- `~/.claude/pact-config.json`: `ask` (agent offers), `auto` (silent start), `off` (never). Configurable from dashboard info panel.
+
+### Changed
+- `templates/hooks/session-register.sh` — Emits session_start PACT event, checks dashboard status, reads startup preference, notifies agent about scorecard.
+- `templates/hooks/post-edit-timestamp.sh` — Emits PACT events for all file types, uses PACT session ID.
+- `templates/hooks/post-edit-preflight.sh` — Uses PACT session ID from temp file, emits preflight events.
+- README: 7 pillars (was 6), 13 hooks (was 11), dashboard section, new SVG logo.
+
+---
+
 ## [0.4.1] — 2026-03-29
 
 ### Added

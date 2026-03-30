@@ -98,9 +98,43 @@ with open(session_file, 'w') as f:
 
 ACTIVE=$(grep -c "status: active" "$SESSION_FILE" 2>/dev/null || echo 0)
 
+# ── Emit PACT session_start event (if event logger exists) ──
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+if [ -f "$SCRIPT_DIR/pact-event-logger.sh" ]; then
+  bash "$SCRIPT_DIR/pact-event-logger.sh" "session_start" "{\"model\":\"$AGENT_MODEL\"}" "$SESSION_ID" 2>/dev/null &
+fi
+
+# ── PACT Dashboard check ──
+PACT_CONFIG="$HOME/.claude/pact-config.json"
+PACT_PREF="ask"
+if [ -f "$PACT_CONFIG" ]; then
+  PACT_PREF=$(python -c "import json; print(json.load(open('$PACT_CONFIG')).get('dashboard','ask'))" 2>/dev/null || echo "ask")
+fi
+
+PACT_RUNNING=false
+if curl -s --max-time 1 http://127.0.0.1:7246/ > /dev/null 2>&1; then
+  PACT_RUNNING=true
+fi
+
 echo "[Session] Registered: ${SESSION_ID} (${AGENT_MODEL})"
 if [ "$ACTIVE" -gt 1 ]; then
   echo "[Session] WARNING: $ACTIVE active sessions detected. Check .claude/sessions.yaml"
+fi
+
+if [ "$PACT_PREF" = "off" ]; then
+  :
+elif [ "$PACT_RUNNING" = "true" ]; then
+  echo "[PACT] Dashboard active at http://127.0.0.1:7246"
+elif [ "$PACT_PREF" = "auto" ]; then
+  python "$SCRIPT_DIR/../dashboard/pact-server.py" > /dev/null 2>&1 &
+  echo "[PACT] Dashboard auto-started at http://127.0.0.1:7246"
+else
+  echo "[PACT] Dashboard is not running. User preference is 'ask'. Ask the user if they'd like to activate it. To start: python .claude/hooks/pact-server.py &"
+fi
+
+SCORECARD="$HOME/.claude/pact-scorecard.md"
+if [ -f "$SCORECARD" ]; then
+  echo "[PACT] Task scorecard available — read ~/.claude/pact-scorecard.md for user feedback on past tasks."
 fi
 
 exit 0

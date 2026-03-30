@@ -48,7 +48,8 @@ except:
 " <<< "$INPUT" 2>/dev/null)
 
 # Session-scoped dedup: don't fire the same check twice per session
-SESSION_ID="${CLAUDE_SESSION_ID:-default}"
+SESSION_ID_FILE="${TEMP:-${TMP:-/tmp}}/claude_session_id.txt"
+SESSION_ID=$(cat "$SESSION_ID_FILE" 2>/dev/null || echo "default")
 STATE_FILE="${TEMP:-${TMP:-/tmp}}/preflight_fired_${SESSION_ID}.json"
 
 # Run checks (with session dedup)
@@ -135,6 +136,12 @@ if fired:
 
 if [ -n "$WARNINGS" ]; then
   echo "$WARNINGS"
+  # Emit PACT events for dashboard
+  if [ -f "$SCRIPT_DIR/pact-event-logger.sh" ]; then
+    echo "$WARNINGS" | grep -oP 'Preflight \[\K[^\]]+' | while read -r check_id; do
+      bash "$SCRIPT_DIR/pact-event-logger.sh" "preflight" "{\"check\":\"$check_id\",\"file\":\"$FILE_PATH\"}" "$SESSION_ID" 2>/dev/null &
+    done
+  fi
 fi
 
 exit 0
