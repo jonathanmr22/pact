@@ -61,6 +61,10 @@ PACT includes a real-time dashboard that visualizes everything your AI agent doe
 - "Track From Here" on any prompt card to retroactively mark where a new task started
 - Diagnosis per session or per task — coverage analysis of which PACT subsystems were exercised
 
+<p align="center">
+  <img src="assets/pact-dashboard.png" alt="PACT Dashboard" width="800"/>
+</p>
+
 **Start the dashboard:**
 ```shell
 python .claude/hooks/pact-server.py &
