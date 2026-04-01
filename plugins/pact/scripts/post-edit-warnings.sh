@@ -16,6 +16,9 @@
 # CUSTOMIZE: Uncomment or add project-specific warnings at the bottom.
 # =============================================================================
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "$SCRIPT_DIR/pact-common.sh"
+
 INPUT=$(cat)
 
 FILE_PATH=$(echo "$INPUT" | grep -o '"file_path"[[:space:]]*:[[:space:]]*"[^"]*"' \
@@ -56,7 +59,7 @@ fi
 # CODE DELETION WITH COMMENTS REMOVED
 # Catches when the agent deletes code without understanding WHY it exists.
 # ============================================================================
-COMMENT_REMOVAL_WARN=$(python3 -c "
+COMMENT_REMOVAL_WARN=$($PACT_PYTHON -c "
 import sys, json
 
 try:
@@ -101,7 +104,7 @@ fi
 # WORKAROUND / HACK LANGUAGE IN NEW CODE
 # Detects bespoke workarounds instead of proper research.
 # ============================================================================
-WORKAROUND_WARN=$(python3 -c "
+WORKAROUND_WARN=$($PACT_PYTHON -c "
 import sys, json, re
 
 try:
@@ -153,7 +156,7 @@ fi
 # ENTITY ID STRING INTERPOLATION (double-prefix bug)
 # Catches 'prefix_${entity.id}' where id already contains the prefix.
 # ============================================================================
-if grep -qP "'\w+_\\\$\{.*\.(id|entityId)" "$FILE_PATH" 2>/dev/null; then
+if grep -qE "'[a-zA-Z_]+_\\\$\{.*\.(id|entityId)" "$FILE_PATH" 2>/dev/null; then
   WARNINGS="${WARNINGS}WARNING: Entity ID string interpolation in $FILE_PATH — verify the ID isn't already prefixed (double-prefix bug).\n"
 fi
 
@@ -172,7 +175,7 @@ fi
 # Uncomment if using Flutter.
 # ============================================================================
 # if [[ "$FILE_PATH" =~ \.dart$ ]] && grep -qE 'await ' "$FILE_PATH" 2>/dev/null; then
-#   MISSING=$(python3 -c "
+#   MISSING=$($PACT_PYTHON -c "
 # with open('$FILE_PATH', 'r', errors='replace') as f:
 #     lines = f.read().split('\n')
 # count = 0

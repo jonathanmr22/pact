@@ -9,6 +9,9 @@
 # CUSTOMIZE: Edit CRITICAL_PATTERNS and get_flow_category() for your project.
 # =============================================================================
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "$SCRIPT_DIR/pact-common.sh"
+
 INPUT=$(cat)
 
 FILE_PATH=$(echo "$INPUT" | grep -o '"file_path"[[:space:]]*:[[:space:]]*"[^"]*"' \

@@ -3,6 +3,9 @@
 # PACT PostToolUse Hook — Logs file edit timestamps for cross-session awareness.
 # =============================================================================
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "$SCRIPT_DIR/pact-common.sh"
+
 INPUT=$(cat)
 FILE_PATH=$(echo "$INPUT" | grep -o '"file_path"[[:space:]]*:[[:space:]]*"[^"]*"' \
   | head -1 | sed 's/.*"file_path"[[:space:]]*:[[:space:]]*"//;s/"$//')

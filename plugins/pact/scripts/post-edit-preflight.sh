@@ -13,6 +13,9 @@
 # Each check fires ONCE per session (session-scoped dedup prevents alert fatigue).
 # ============================================================================
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "$SCRIPT_DIR/pact-common.sh"
+
 INPUT=$(cat)
 
 # Extract file_path from the hook input
@@ -36,7 +39,7 @@ if [ ! -f "$CHECKS_FILE" ]; then
 fi
 
 # Extract new_string from the JSON input (the content being written)
-NEW_STRING=$(python3 -c "
+NEW_STRING=$($PACT_PYTHON -c "
 import sys, json
 try:
     d = json.load(sys.stdin)
@@ -49,10 +52,10 @@ except:
 
 # Session-scoped dedup: don't fire the same check twice per session
 SESSION_ID="${CLAUDE_SESSION_ID:-default}"
-STATE_FILE="${TEMP:-${TMP:-/tmp}}/preflight_fired_${SESSION_ID}.json"
+STATE_FILE="${PACT_TEMP}/preflight_fired_${SESSION_ID}.json"
 
 # Run checks (with session dedup)
-WARNINGS=$(python3 -c "
+WARNINGS=$($PACT_PYTHON -c "
 import sys, re, json, os
 
 try:

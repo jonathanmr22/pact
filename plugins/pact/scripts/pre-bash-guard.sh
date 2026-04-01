@@ -14,9 +14,12 @@
 # CUSTOMIZE: Uncomment project-specific rules at the bottom.
 # =============================================================================
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "$SCRIPT_DIR/pact-common.sh"
+
 INPUT=$(cat)
 
-COMMAND=$(echo "$INPUT" | python3 -c "
+COMMAND=$(echo "$INPUT" | $PACT_PYTHON -c "
 import sys, json
 d = json.load(sys.stdin)
 print(d.get('tool_input', {}).get('command', ''))
@@ -134,7 +137,7 @@ fi
 if echo "$COMMAND" | grep -qE '^git commit'; then
   PROJECT_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
   SESSION_FILE="${PROJECT_ROOT}/.claude/sessions.yaml"
-  SESSION_ID_FILE="${TEMP:-/tmp}/pact_session_id.txt"
+  SESSION_ID_FILE="${PACT_TEMP}/pact_session_id.txt"
   COMMIT_TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
   if [ -f "$SESSION_FILE" ] && [ -f "$SESSION_ID_FILE" ]; then
@@ -145,7 +148,7 @@ if echo "$COMMAND" | grep -qE '^git commit'; then
       [ -z "$COMMIT_MSG" ] && COMMIT_MSG=$(echo "$COMMAND" | sed -n "s/.*-m[[:space:]]*'\([^']*\).*/\1/p" | head -c 60)
       [ -z "$COMMIT_MSG" ] && COMMIT_MSG="(in progress)"
 
-      python3 -c "
+      $PACT_PYTHON -c "
 import sys, re
 
 session_file = sys.argv[1]
@@ -225,7 +228,8 @@ if echo "$COMMAND" | grep -qE '^git commit'; then
   if [ -f "$SMAP" ]; then
     SMAP_DATE=$(grep "Last verified:" "$SMAP" | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}')
     if [ -n "$SMAP_DATE" ]; then
-      SMAP_AGE=$(( ($(date +%s) - $(date -d "$SMAP_DATE" +%s 2>/dev/null || echo 0)) / 86400 ))
+      SMAP_EPOCH=$(pact_date_to_epoch "$SMAP_DATE")
+      SMAP_AGE=$(( ($(date +%s) - SMAP_EPOCH) / 86400 ))
       if [ "$SMAP_AGE" -gt 3 ]; then
         WARNINGS="${WARNINGS}  - SYSTEM_MAP.yaml last verified ${SMAP_AGE} days ago\n"
       fi

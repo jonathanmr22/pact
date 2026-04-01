@@ -10,10 +10,15 @@
 # =============================================================================
 
 # ── Claude status check ─────────────────────────────────────────────────
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "$SCRIPT_DIR/pact-common.sh"
+
+[ -z "$PACT_PYTHON" ] && exit 0
+
 CLAUDE_RESPONSE=$(curl -s --max-time 4 "https://status.claude.com/api/v2/incidents/unresolved.json" 2>/dev/null)
 
 if [ -n "$CLAUDE_RESPONSE" ]; then
-  python3 -c "
+  $PACT_PYTHON -c "
 import json, sys
 from datetime import datetime
 
@@ -67,7 +72,7 @@ fi
 GOOGLE_RESPONSE=$(curl -s --max-time 4 "https://status.cloud.google.com/incidents.json" 2>/dev/null)
 
 if [ -n "$GOOGLE_RESPONSE" ]; then
-  python3 -c "
+  $PACT_PYTHON -c "
 import json, sys
 from datetime import datetime, timezone, timedelta
 

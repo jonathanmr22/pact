@@ -4,13 +4,16 @@
 # Enables the "must read before edit" rule in pre-edit-rules.sh.
 # =============================================================================
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "$SCRIPT_DIR/pact-common.sh"
+
 INPUT=$(cat)
 FILE_PATH=$(echo "$INPUT" | grep -o '"file_path"[[:space:]]*:[[:space:]]*"[^"]*"' \
   | head -1 | sed 's/.*"file_path"[[:space:]]*:[[:space:]]*"//;s/"$//')
 
 if [ -z "$FILE_PATH" ]; then exit 0; fi
 
-TRACK_FILE="${TEMP:-/tmp}/pact_read_files.txt"
+TRACK_FILE="${PACT_TEMP}/pact_read_files.txt"
 NORM_PATH=$(echo "$FILE_PATH" | sed 's|\\|/|g' | tr '[:upper:]' '[:lower:]')
 echo "$NORM_PATH" >> "$TRACK_FILE"
 exit 0

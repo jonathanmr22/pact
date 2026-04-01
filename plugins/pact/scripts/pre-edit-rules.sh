@@ -8,12 +8,15 @@
 # tracker gate). Customize by adding patterns for your project.
 # =============================================================================
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "$SCRIPT_DIR/pact-common.sh"
+
 INPUT=$(cat)
 
 FILE_PATH=$(echo "$INPUT" | grep -o '"file_path"[[:space:]]*:[[:space:]]*"[^"]*"' \
   | head -1 | sed 's/.*"file_path"[[:space:]]*:[[:space:]]*"//;s/"$//')
 
-NEW_STRING=$(echo "$INPUT" | python3 -c "
+NEW_STRING=$(echo "$INPUT" | $PACT_PYTHON -c "
 import sys, json
 try:
     d = json.load(sys.stdin)
@@ -28,12 +31,12 @@ except:
 # If an issue was fetched (post-sentry-bug-reminder.sh wrote a flag),
 # BLOCK source file edits until a .claude/bugs/ file has been created.
 # ============================================================================
-ISSUE_FLAG="${TEMP:-${TMP:-/tmp}}/pact_issue_pending.txt"
+ISSUE_FLAG="${PACT_TEMP}/pact_issue_pending.txt"
 if [ -f "$ISSUE_FLAG" ] && [ -s "$ISSUE_FLAG" ]; then
   # Only gate source file edits — bug files, docs, tests are always allowed
   if echo "$FILE_PATH" | grep -qiE '[/\\](lib|src|app|packages)[/\\]'; then
     BUG_FILED=false
-    TRACK_FILE="${TEMP:-${TMP:-/tmp}}/pact_read_files.txt"
+    TRACK_FILE="${PACT_TEMP}/pact_read_files.txt"
     if [ -f "$TRACK_FILE" ] && grep -qiE '\.claude/bugs/.*\.yaml' "$TRACK_FILE" 2>/dev/null; then
       BUG_FILED=true
     fi
@@ -70,7 +73,7 @@ fi
 # ============================================================================
 # READ-BEFORE-WRITE: Agent must read a file before editing it
 # ============================================================================
-TRACK_FILE="${TEMP:-${TMP:-/tmp}}/pact_read_files.txt"
+TRACK_FILE="${PACT_TEMP}/pact_read_files.txt"
 NORM_PATH=$(echo "$FILE_PATH" | sed 's|\\|/|g' | tr '[:upper:]' '[:lower:]')
 if [ -f "$FILE_PATH" ] && [ -f "$TRACK_FILE" ]; then
   if ! grep -qF "$NORM_PATH" "$TRACK_FILE" 2>/dev/null; then

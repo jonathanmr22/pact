@@ -13,9 +13,12 @@
 # CUSTOMIZE: Adjust the ISSUE_ID regex for your issue tracker format.
 # =============================================================================
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "$SCRIPT_DIR/pact-common.sh"
+
 INPUT=$(cat)
 
-TOOL_OUTPUT=$(echo "$INPUT" | python3 -c "
+TOOL_OUTPUT=$(echo "$INPUT" | $PACT_PYTHON -c "
 import sys, json
 d = json.load(sys.stdin)
 print(d.get('tool_result', {}).get('content', '') if isinstance(d.get('tool_result'), dict) else str(d.get('tool_result', '')))
@@ -31,7 +34,7 @@ if [ -z "$ISSUE_ID" ]; then
 fi
 
 # Write the flag file
-FLAG_FILE="${TEMP:-${TMP:-/tmp}}/pact_issue_pending.txt"
+FLAG_FILE="${PACT_TEMP}/pact_issue_pending.txt"
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 echo "${ISSUE_ID} ${TIMESTAMP}" >> "$FLAG_FILE"
 
