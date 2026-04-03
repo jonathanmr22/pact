@@ -7,6 +7,26 @@ PACT uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.7.1] — 2026-04-03
+
+### Added
+- **Embedded Agent Guide** (`EMBEDDED.md`) — Comprehensive guide for translating PACT governance patterns from CLI agents to web applications. Covers knowledge persistence, mechanical enforcement, error tracking, session protocols, data mirror architecture, and pattern rules. Includes common patterns for bookkeeping, support, operations, and sales agents.
+- **Project Context for Subagents** (`templates/pact-context.yaml`) — Lightweight project brief injected into all PACT subagents. Gives researcher, reviewer, and tracer project awareness (stack, conventions, critical paths, external services) without requiring the main session to manually brief them.
+- **7 new embedded agent examples** in `EXAMPLES.md` — Knowledge enforcement, duplicate detection, mirror sync, memory optimization, recurring template duplicates, error notifications, glass cannon problem.
+
+### Changed
+- Reorganized `EXAMPLES.md` by project type: Mobile App, Embedded AI Agent, General. Each example follows consistent structure: Pattern → Failure → Mechanism → Why it works.
+- All three agent templates (researcher, reviewer, tracer) now read `pact-context.yaml` as Phase 0 before doing any work.
+- `pact-init` scaffolds `pact-context.yaml` (item 21) and sets `first_used` in `pact-config.json`.
+- README "Who Is PACT For" section tightened.
+
+### Fixed
+- **Feedback milestones not triggering** — Plugin `session-register.sh` was a stripped-down copy missing the dashboard check, scorecard check, vector memory check, and feedback milestone code. Synced with full template.
+- **Dashboard prompt never appearing** — Same root cause as above. Users with `"dashboard": "ask"` will now be prompted on session start.
+- **`pact-config.json` missing `first_used`** — `pact-init` now includes `first_used` in the initial config. Without it, feedback milestones never triggered because days-since-install was always 0.
+
+---
+
 ## [0.7.0] — 2026-03-30
 
 ### Added

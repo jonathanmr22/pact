@@ -32,7 +32,7 @@ PACT_DIR = os.path.join(HOME_DIR, '.claude')
 EVENTS_FILE = os.path.join(PACT_DIR, 'pact-events.jsonl')
 CONFIG_FILE = os.path.join(PACT_DIR, 'pact-config.json')
 RATINGS_FILE = os.path.join(CLAUDE_DIR, 'bugs', '_FEEDBACK.jsonl')
-LEGACY_RATINGS_FILE = os.path.join(PACT_DIR, 'pact-ratings.jsonl')  # pre-0.7.0 location
+LEGACY_RATINGS_FILE = os.path.join(PACT_DIR, 'pact-ratings.jsonl')  # pre-0.7.1 location
 SCORECARD_FILE = os.path.join(PACT_DIR, 'pact-scorecard.md')
 # Fallback to project-local if central doesn't exist
 LOCAL_EVENTS_FILE = os.path.join(CLAUDE_DIR, 'pact-events.jsonl')

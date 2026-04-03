@@ -27,13 +27,9 @@ PACT asks: *"How do we help Claude think?"*
 
 ## Who Is PACT For?
 
-**Every project. Every size. Especially yours.**
+Solo developers and small teams. PACT was built by a solo developer for solo developers, then designed to scale up. The smaller your team, the more you need it. There's no code reviewer to notice the stale cache, no teammate to check the dependency chain, no QA to catch the UI regression. Large teams have humans for that. You have PACT.
 
-PACT is not enterprise tooling downsized for solo developers. It was built BY a solo developer, FOR solo developers — and then designed to scale up. The smaller your team, the more you need PACT, because there's no one else to catch the mistakes your AI agent makes. No code reviewer to notice the stale cache. No teammate to say "did you check the dependency chain?" No QA to catch the UI regression.
-
-Large teams have humans for that. You don't. PACT is your humans.
-
-And if your project is small today — good. That's when infrastructure matters most. Every large project was once a small project that either had scaffolding from the beginning or wished it did. PACT grows with your project because PACT's subsystems activate on the patterns they detect, not on a project size threshold.
+Small project? Good. That's when infrastructure matters most. PACT's subsystems activate on the patterns they detect, not on project size.
 
 ---
 

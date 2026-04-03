@@ -5,16 +5,29 @@
       <stop offset="100%" stop-color="#a855f7"/>
     </linearGradient>
   </defs>
-  <!-- Outer diamond frame — constraints -->
+  <!-- Outer diamond frame -->
   <path d="M60 8 L112 60 L60 112 L8 60 Z" stroke="url(#pg)" stroke-width="4" fill="none" stroke-linejoin="round"/>
-  <!-- Inner cross — structure/framework -->
-  <line x1="60" y1="28" x2="60" y2="92" stroke="url(#pg)" stroke-width="3" stroke-linecap="round"/>
-  <line x1="28" y1="60" x2="92" y2="60" stroke="url(#pg)" stroke-width="3" stroke-linecap="round"/>
-  <!-- Corner nodes — agents -->
+
+  <!-- Cross lines -->
+  <line x1="60" y1="20" x2="60" y2="32" stroke="url(#pg)" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="60" y1="88" x2="60" y2="100" stroke="url(#pg)" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="20" y1="60" x2="32" y2="60" stroke="url(#pg)" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="88" y1="60" x2="100" y2="60" stroke="url(#pg)" stroke-width="1.5" stroke-linecap="round"/>
+
+  <!-- Corner circles -->
   <circle cx="60" cy="8" r="6" fill="url(#pg)"/>
   <circle cx="112" cy="60" r="6" fill="url(#pg)"/>
   <circle cx="60" cy="112" r="6" fill="url(#pg)"/>
   <circle cx="8" cy="60" r="6" fill="url(#pg)"/>
-  <!-- Center dot — core -->
-  <circle cx="60" cy="60" r="8" fill="url(#pg)"/>
+
+  <!-- Center honeycomb — 3D flip on X axis -->
+  <g>
+    <path d="M66.4 60.0 L63.2 65.5 L56.8 65.5 L53.6 60.0 L56.8 54.5 L63.2 54.5 Z" fill="url(#pg)" stroke="url(#pg)" stroke-width="0.5" stroke-linejoin="round"/>
+    <path d="M66.4 49.0 L63.2 54.5 L56.8 54.5 L53.6 49.0 L56.8 43.5 L63.2 43.5 Z" fill="url(#pg)" stroke="url(#pg)" stroke-width="0.5" stroke-linejoin="round"/>
+    <path d="M75.9 54.5 L72.7 60.0 L66.3 60.0 L63.1 54.5 L66.3 49.0 L72.7 49.0 Z" fill="url(#pg)" stroke="url(#pg)" stroke-width="0.5" stroke-linejoin="round"/>
+    <path d="M75.9 65.5 L72.7 71.0 L66.3 71.0 L63.1 65.5 L66.3 60.0 L72.7 60.0 Z" fill="url(#pg)" stroke="url(#pg)" stroke-width="0.5" stroke-linejoin="round"/>
+    <path d="M66.4 71.0 L63.2 76.5 L56.8 76.5 L53.6 71.0 L56.8 65.5 L63.2 65.5 Z" fill="url(#pg)" stroke="url(#pg)" stroke-width="0.5" stroke-linejoin="round"/>
+    <path d="M56.9 65.5 L53.7 71.0 L47.3 71.0 L44.1 65.5 L47.3 60.0 L53.7 60.0 Z" fill="url(#pg)" stroke="url(#pg)" stroke-width="0.5" stroke-linejoin="round"/>
+    <path d="M56.9 54.5 L53.7 60.0 L47.3 60.0 L44.1 54.5 L47.3 49.0 L53.7 49.0 Z" fill="url(#pg)" stroke="url(#pg)" stroke-width="0.5" stroke-linejoin="round"/>
+  </g>
 </svg>

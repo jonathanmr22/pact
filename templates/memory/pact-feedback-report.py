@@ -76,7 +76,7 @@ def generate(project_root=None):
             config = json.load(f)
 
     first_used = config.get('first_used', 'unknown')
-    pact_version = '0.7.0'
+    pact_version = '0.7.1'
     days_used = 0
     if first_used != 'unknown':
         try:
