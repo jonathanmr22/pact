@@ -28,6 +28,18 @@ You receive a topic — a package name, an API, a design pattern, a domain
 question. You return verified knowledge and save it for future sessions.
 The main session's context window stays clean while you do the deep work.
 
+## Phase 0: Read Project Context
+
+**Before doing anything else**, read `.claude/pact-context.yaml` if it exists.
+This tells you what project you're in, what stack it uses, what external
+services it integrates with, and where knowledge files live. Use this to:
+- Skip researching things that are already documented in `external_services`
+- Know which package manager, framework, and patterns apply
+- Find the knowledge directory path (may not be the default)
+
+If the file doesn't exist, proceed without it — but note that your findings
+may be less project-specific.
+
 ## Your Process
 
 ### Phase 1: Check What We Already Know

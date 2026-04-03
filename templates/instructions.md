@@ -183,6 +183,7 @@ Ask: **"What did my changes just make stale?"**
 
 ### On-Demand Reference Files
 
+- `.claude/pact-context.yaml` — **SUBAGENT PROJECT BRIEF.** Lightweight project context that all PACT subagents (researcher, reviewer, tracer) read before doing any work. Contains stack, conventions, critical paths, external service gotchas, and governance file locations. Keep this updated when the project's stack, patterns, or integrations change — it's how subagents know your project without conversation history.
 - `docs/reference/KNOWLEDGE_DIRECTORY.yaml` — **READ BEFORE RESEARCHING.** Single-file tag directory across all knowledge systems (research, bugs, solutions, packages, feature flows). Find what exists about a topic without opening files one by one.
 - `docs/reference/PACT_BASELINE.yaml` — **CHECK AT SESSION START.** Agent capability baseline, PACT compensations for native limitations, capability deltas log. When something about your capabilities changes, this is where you notice it and decide how PACT should adapt.
 - `docs/reference/packages/{name}.yaml` — **CHECK BEFORE WRITING PACKAGE CODE.** Verified package knowledge. Read before coding, save after researching.

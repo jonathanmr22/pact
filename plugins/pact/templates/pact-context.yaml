@@ -1,0 +1,79 @@
+# PACT Project Context
+# =====================
+# Lightweight project brief injected into all PACT subagents (researcher,
+# reviewer, tracer). Subagents launch without conversation history — this
+# file gives them the minimum context to make project-aware decisions.
+#
+# Keep this file SMALL (<80 lines). Subagents have limited context budgets.
+# Only include what a smart colleague needs to know on day one.
+#
+# Created by: /pact-init
+# Updated by: developer (manually) when stack, conventions, or critical
+#             patterns change.
+
+project:
+  name: "{{PROJECT_NAME}}"
+  # One-line description so subagents know the domain
+  description: "{{DESCRIPTION}}"
+
+stack:
+  # Languages, frameworks, and runtime — what the code IS
+  # Example: ["TypeScript", "Astro SSR", "Supabase", "TailwindCSS v4"]
+  primary: []
+  # Package manager and build tool
+  # Example: "npm / Vite"
+  build: ""
+  # Deployment target
+  # Example: "Vercel (auto-deploy on push to master)"
+  deploy: ""
+
+conventions:
+  # Patterns subagents should enforce or follow when reviewing/researching.
+  # Each entry: short rule + why it matters.
+  # Examples:
+  #   - "Error logs use [module] prefix format, e.g. [chat], [sync]"
+  #   - "Email sends use Report@domain.com (verified in Resend)"
+  #   - "All Supabase queries check { error } return value"
+  #   - "API routes export `const prerender = false`"
+  patterns: []
+
+  # Things subagents should NOT do or suggest
+  # Examples:
+  #   - "Never suggest console.log — use structured logger"
+  #   - "Never create .env files — secrets are in Vercel env vars"
+  anti_patterns: []
+
+critical_paths:
+  # Files or systems where changes have outsized impact.
+  # Reviewer uses this to flag risky diffs. Tracer uses it as seed.
+  # Examples:
+  #   - "src/pages/api/qbo/chat.ts — 7000+ line bookkeeping AI chat endpoint"
+  #   - "src/lib/qbo-client.ts — all QBO API access flows through here"
+  #   - "supabase/migrations/ — DDL changes require dashboard execution"
+  files: []
+
+  # Database tables that are high-risk to modify
+  # Examples:
+  #   - "qbo_bookkeeper_actions — audit trail for all QBO writes"
+  #   - "plaid_transactions — FK links to multiple tables"
+  tables: []
+
+external_services:
+  # APIs and services the project integrates with.
+  # Researcher uses this to know what to look up.
+  # Examples:
+  #   - name: "QuickBooks Online"
+  #     auth: "OAuth2 via qbo_connection table"
+  #     gotchas: "Transfer entities don't support Memo field or sparse updates"
+  #   - name: "Resend"
+  #     auth: "RESEND_API_KEY env var"
+  #     gotchas: "Sender must be verified domain"
+  services: []
+
+governance:
+  # Path to SYSTEM_MAP (tracer needs this)
+  system_map: "SYSTEM_MAP.yaml"
+  # Path to knowledge directory (researcher needs this)
+  knowledge_directory: "docs/reference/KNOWLEDGE_DIRECTORY.yaml"
+  # Path to solutions file (all agents can reference)
+  solutions: ".claude/bugs/_SOLUTIONS.yaml"

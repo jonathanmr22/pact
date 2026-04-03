@@ -66,6 +66,17 @@ Scaffold the PACT governance infrastructure into this project. Create the follow
 
 20. **.claude/agents/** directory — Copy the three PACT subagents (`pact-tracer.md`, `pact-researcher.md`, `pact-reviewer.md`) to the project's `.claude/agents/` directory. These are auto-dispatched by Claude during normal work — the user doesn't need to invoke them manually.
 
+21. **.claude/pact-context.yaml** — Project context brief for subagents. All three PACT subagents read this file before doing any work — it's how they know what project they're in without conversation history. **Populate it with real project data** (don't leave template placeholders):
+    - `project.name` and `project.description` from the repo/CLAUDE.md
+    - `stack.primary` from package.json / pubspec.yaml / actual source files
+    - `stack.build` and `stack.deploy` from config files or CLAUDE.md
+    - `conventions.patterns` — ask the user about their key conventions, or infer from CLAUDE.md / existing code patterns
+    - `conventions.anti_patterns` — ask the user what they want to avoid
+    - `critical_paths.files` — identify the highest-impact files from SYSTEM_MAP.yaml
+    - `critical_paths.tables` — identify tables with many FK relationships
+    - `external_services` — list APIs/services the project integrates with, including known gotchas
+    - `governance` paths — point to the actual locations of SYSTEM_MAP, KNOWLEDGE_DIRECTORY, and _SOLUTIONS
+
 After creating the files, update `.claude/settings.local.json` to register the prompt logger hook under `UserPromptSubmit` with a 10-second timeout. Also ensure the `SessionStart` hooks include `session-register.sh` (which checks dashboard status and emits session events).
 
 Then add the PACT cognitive redirections to the project's CLAUDE.md (or create one if it doesn't exist). Include ALL of these:
