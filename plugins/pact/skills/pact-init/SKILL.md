@@ -62,7 +62,7 @@ Scaffold the PACT governance infrastructure into this project. Create the follow
 
 18. **.claude/hooks/pact-server.py** — Dashboard server. Copy from the dashboard templates.
 
-19. **~/.claude/pact-config.json** — Dashboard startup preference. Create with `{"dashboard": "ask"}`. Ask the user if they'd like it set to `"auto"` (start every session), `"ask"` (agent offers each time), or `"off"` (never).
+19. **~/.claude/pact-config.json** — Dashboard startup preference and usage tracking. Create with `{"dashboard": "ask", "first_used": "YYYY-MM-DD"}` where the date is today. The `first_used` field is REQUIRED — it drives the Day 2 and Week 2 feedback milestone prompts. Ask the user if they'd like dashboard set to `"auto"` (start every session), `"ask"` (agent offers each time), or `"off"` (never).
 
 20. **.claude/agents/** directory — Copy the three PACT subagents (`pact-tracer.md`, `pact-researcher.md`, `pact-reviewer.md`) to the project's `.claude/agents/` directory. These are auto-dispatched by Claude during normal work — the user doesn't need to invoke them manually.
 
