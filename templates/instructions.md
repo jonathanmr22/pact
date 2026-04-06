@@ -78,6 +78,16 @@ At the start of every conversation, the agent MUST:
    </checkpoint>
    ```
 
+6. **`ui_work`** — Trigger: about to build or significantly modify a UI element (widget, screen, modal, sheet, overlay, card).
+   ```
+   <checkpoint type="ui_work">
+   <task>[What UI element you're building or modifying]</task>
+   <existing_widgets>[Reusable widgets checked — list what you looked at and whether any apply]</existing_widgets>
+   <reference_screens>[Existing screens/widgets you read for design guidance — name them]</reference_screens>
+   <design_pattern>[Pattern you're following: matches X screen, extends Y widget, or net-new because Z]</design_pattern>
+   </checkpoint>
+   ```
+
 ---
 
 ## Cognitive Redirections (guidance, not gates)
@@ -119,6 +129,8 @@ At the start of every conversation, the agent MUST:
 - **When building a complex visual (heat maps, animations, shaders, charts, custom painters):** *"Can I prototype this outside the framework first?"* — full app rebuilds are expensive and you can't see intermediate results. Use adjacent tools to iterate visually: Python (matplotlib, folium) for data viz, Shadertoy/GLSL sandbox for shaders, HTML/CSS for layouts, PIL for image processing. Create a subfolder in `cutting_room/`, write a generator script, and log every trial in `trials.yaml` with parameters, result (pass/fail/partial), and WHY it failed or succeeded. Only move the winning config to the app after you've nailed the look locally. **This is not optional for visual work.**
 
 - **Before declaring a task done:** *"Did I do everything the user asked in the last request?"* — re-read their message word by word. If they asked for 3 things and you did 1, you're not done. If they asked for a label change AND a behavior change, the label alone is not the fix. Check every item before committing.
+
+- **When starting any UI work (new widget, screen, modal, sheet, card, overlay):** *"What already exists that I should reuse or reference?"* — before writing a single line of UI code, search the codebase for reusable widgets, shared constants (spacing, text styles, input decorations), existing screens that solve a similar problem, and established patterns. Then READ at least one existing screen that's closest to what you're building — not to copy it, but to absorb the project's visual language, spacing rhythm, and widget composition patterns. The failure mode: building a bespoke widget from scratch that looks subtly different from the rest of the app, or reinventing something that already exists. Every screen in the app should feel like it belongs to the same family. That consistency comes from studying siblings before creating a new one.
 
 - **After finishing any UI build (new flow, modal, sheet, chip, overlay):** *"Am I the user right now?"* — walk through the ENTIRE user journey for the feature you just built. Open the app. What do you see first? Tap the thing. What happens? Try to do the thing it's supposed to let you do. Is the text right? Is anything cut off? Can you correct a wrong value? What happens at edge cases — zero items, many items, missing data, interrupted flow? This mental walkthrough is where you catch the things that code review can't — the text that reads wrong to a real person, the edge case at zero, the flow that works technically but feels broken. The 2 minutes spent here is the difference between shipping something polished and shipping something that needs immediate revision.
 

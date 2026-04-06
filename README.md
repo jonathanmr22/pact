@@ -343,7 +343,7 @@ PACT uses three layers of enforcement, from strongest to lightest:
 
 Checkpoints solve the core failure mode of cognitive redirections: **rules encoded as prose get skipped when the agent is under cognitive pressure.** A checkpoint is a structured block the agent must output *before acting*. It's visible to the user, verifiable, and much harder to skip than an internal question.
 
-**Five checkpoint types:**
+**Six checkpoint types:**
 
 1. **`bug_fix`** — Triggers when the user reports something broken. Forces the agent to trace the causal chain from symptom to root cause and create a bug tracker file *before* writing any fix.
 
@@ -355,11 +355,13 @@ Checkpoints solve the core failure mode of cognitive redirections: **rules encod
 
 5. **`done_check`** — Triggers when declaring a task complete. Forces the agent to re-read the user's exact request and list stale artifacts.
 
+6. **`ui_work`** — Triggers before building or modifying a UI element. Forces the agent to audit existing reusable widgets, read reference screens for design guidance, and declare which pattern it's following. Prevents bespoke UI that drifts from the app's visual language.
+
 **Research basis:** Claude API docs on extended thinking confirm that system prompts don't reach into internal thinking blocks. Output-level format requirements are the proven mechanism for structured reasoning — they're visible, verifiable, and survive cognitive load. ([Extended thinking docs](https://platform.claude.com/docs/en/build-with-claude/extended-thinking), [Prompt engineering best practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices))
 
 ### Cognitive Redirections
 
-Cognitive redirections are the lighter layer — questions the agent asks itself at decision points. They work well for routine decisions but historically fail under cognitive pressure (which is why the five patterns above were upgraded to checkpoints).
+Cognitive redirections are the lighter layer — questions the agent asks itself at decision points. They work well for routine decisions but historically fail under cognitive pressure (which is why the six patterns above were upgraded to checkpoints).
 
 ```
 - When about to edit any file:
@@ -371,6 +373,9 @@ Cognitive redirections are the lighter layer — questions the agent asks itself
 - When a package doesn't behave as expected:
   "Do I actually know this package, or am I guessing?"
 
+- Before starting any UI work:
+  "What already exists that I should reuse or reference?"
+
 - After finishing any UI build:
   "Am I the user right now?"
 ```
@@ -381,7 +386,7 @@ The agent has autonomy to add new redirections — and to **promote a redirectio
 
 | | Architecture Map | Lifecycle Flow |
 |---|---|---|
-| **Answers** | "What files do I touch?" | "What breaks if I touch them wrong?" |
+| **Answers** | "What files are involved?" | "What's the safe order of operations?" |
 | **Contains** | Tables, services, state, screens, caches, cascades | States, ordering, assumptions, memory model |
 | **Nature** | Static structure (spatial) | Dynamic behavior (temporal) |
 | **Analogy** | Circuit diagram | Timing diagram |

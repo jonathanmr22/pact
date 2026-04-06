@@ -7,6 +7,14 @@ PACT uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.9.1] — 2026-04-06
+
+### Added
+- **Checkpoint: `ui_work`** — 6th checkpoint type. Triggers before building or significantly modifying a UI element (widget, screen, modal, sheet, overlay, card). Forces the agent to document which existing reusable widgets it checked, which reference screens it read for design guidance, and what design pattern it's following. Prevents the failure mode of building bespoke UI from scratch that looks subtly different from the rest of the app.
+- **Cognitive redirection: UI reuse audit** — "What already exists that I should reuse or reference?" Triggers when starting any UI work. Directs the agent to search for reusable widgets, shared constants, and established patterns before writing UI code, and to READ at least one sibling screen to absorb the project's visual language. Paired with the existing "Am I the user right now?" post-build redirection — creating a before/after pair for UI work.
+
+---
+
 ## [0.9.0] — 2026-04-06
 
 ### Added
