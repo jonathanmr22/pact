@@ -12,25 +12,31 @@ disable-model-invocation: false
 5. **Check for known tools** — `.mem0/`, `claude-mem`, `memsearch`, Taskmaster, Superpowers, Cline rules, Cursor rules, or any custom system visible in config files.
 6. **Ask the user** — "Do you have any existing memory, task tracking, or workflow tools I should know about before setting up PACT?"
 
-For every PACT subsystem, decide: **does something equivalent already exist here?**
+For every PACT subsystem, decide: **does something equivalent already exist here?** If it does, **compare the two** — read both implementations and make an informed recommendation.
 
 Present this table to the user BEFORE creating files:
 
 ```
-PACT Subsystem          Existing Equivalent      Recommendation
-─────────────────────   ─────────────────────   ──────────────────────────
-Vector memory           [what you found]         [Skip / Install / Merge]
-Bug tracker             [what you found]         [Skip / Install / Merge]
-Architecture map        [what you found]         [Skip / Install / Merge]
-Research knowledge      [what you found]         [Skip / Install / Merge]
-Task tracking           [what you found]         [Skip / Install / Merge]
-Dashboard               [what you found]         [Skip / Install / Merge]
-Hooks/enforcement       [what you found]         [Skip / Install / Merge]
-Subagents               [what you found]         [Skip / Install / Merge]
-Cognitive redirections  [what you found]         [Skip / Install / Merge]
+PACT Subsystem          Existing Equivalent      Comparison                              Recommendation
+─────────────────────   ─────────────────────   ─────────────────────────────────────   ───────────────
+Vector memory           [what you found]         [which is stronger and why]              [action]
+Bug tracker             [none detected]          PACT's includes solutions KB + tags      Install PACT's
+Architecture map        [what you found]         [which is stronger and why]              [action]
+Research knowledge      [what you found]         [which is stronger and why]              [action]
+Task tracking           [what you found]         [which is stronger and why]              [action]
+Dashboard               [none detected]          —                                       Install PACT's
+Hooks/enforcement       [what you found]         [which is stronger and why]              [action]
+Subagents               [none detected]          —                                       Install PACT's
+Cognitive redirections  [what you found]         [which is stronger and why]              [action]
 ```
 
-**Merge** means: the user has something that partially overlaps. Integrate PACT's approach into their existing system rather than replacing it or duplicating it. For example, if they have a CLAUDE.md with rules but no cognitive redirections, ADD the redirections to their existing file — don't create a competing one.
+**Actions:**
+- **Install** — nothing exists. Scaffold PACT's version.
+- **Keep yours** — the existing system is equal or stronger. Don't touch it.
+- **Migrate to PACT's** — PACT's version is stronger. Explain why: "PACT's bug tracker includes a reusable solutions knowledge base and tag-based search. Your current system tracks bugs but doesn't capture solutions for reuse. Would you like to migrate?"
+- **Merge** — both have strengths. Integrate PACT's additions into the existing system rather than replacing it. For example, if they have a CLAUDE.md with rules but no cognitive redirections, ADD the redirections to their existing file — don't create a competing one.
+
+**Be specific in comparisons.** Don't say "PACT's is better." Say "PACT's bug tracker includes a `_SOLUTIONS.yaml` that maps reusable fix patterns by tag, so when a similar bug appears in a future session, the agent checks solutions before debugging from scratch. Your current system logs bugs but doesn't capture the fix for reuse."
 
 Let the user decide per row. Only scaffold what they choose. The goal is zero redundancy — PACT should make the project better without adding burden.
 
