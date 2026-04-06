@@ -212,11 +212,14 @@ fi
 if echo "$COMMAND" | grep -qE '^git commit'; then
   PROJECT_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
   SESSION_FILE="${PROJECT_ROOT}/.claude/sessions.yaml"
-  SESSION_ID_FILE="${TEMP:-/tmp}/pact_session_id.txt"
   COMMIT_TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
-  if [ -f "$SESSION_FILE" ] && [ -f "$SESSION_ID_FILE" ]; then
-    MY_SESSION_ID=$(cat "$SESSION_ID_FILE" 2>/dev/null)
+  # Extract session_id from hook input JSON (per-conversation, no shared state)
+  MY_SESSION_ID=$(echo "$INPUT" | grep -o '"session_id"[[:space:]]*:[[:space:]]*"[^"]*"' \
+    | head -1 | sed 's/.*"session_id"[[:space:]]*:[[:space:]]*"//;s/"$//')
+  [ -z "$MY_SESSION_ID" ] && MY_SESSION_ID=$(cat "${TEMP:-/tmp}/pact_session_id.txt" 2>/dev/null)
+
+  if [ -f "$SESSION_FILE" ] && [ -n "$MY_SESSION_ID" ]; then
     if [ -n "$MY_SESSION_ID" ]; then
       LAST_HASH=$(git log -1 --format=%h 2>/dev/null || echo "unknown")
       COMMIT_MSG=$(echo "$COMMAND" | sed -n 's/.*-m[[:space:]]*"\([^"]*\).*/\1/p' | head -c 60)

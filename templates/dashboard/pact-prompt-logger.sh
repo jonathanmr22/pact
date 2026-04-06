@@ -26,9 +26,10 @@ if [ -z "$MESSAGE" ]; then
   exit 0
 fi
 
-# Read session ID
-SESSION_ID_FILE="${TEMP:-${TMP:-/tmp}}/claude_session_id.txt"
-SESSION_ID=$(cat "$SESSION_ID_FILE" 2>/dev/null || echo "default")
+# Extract session_id from hook input JSON (per-conversation, no shared state)
+SESSION_ID=$(echo "$INPUT" | grep -o '"session_id"[[:space:]]*:[[:space:]]*"[^"]*"' \
+  | head -1 | sed 's/.*"session_id"[[:space:]]*:[[:space:]]*"//;s/"$//')
+[ -z "$SESSION_ID" ] && SESSION_ID=$(cat "${TEMP:-${TMP:-/tmp}}/claude_session_id.txt" 2>/dev/null || echo "default")
 
 # Escape for JSON
 ESCAPED=$(echo "$MESSAGE" | python -c "import sys,json; print(json.dumps(sys.stdin.read().strip()))" 2>/dev/null)

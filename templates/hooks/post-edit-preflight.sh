@@ -47,9 +47,10 @@ except:
     pass
 " <<< "$INPUT" 2>/dev/null)
 
-# Session-scoped dedup: don't fire the same check twice per session
-SESSION_ID_FILE="${TEMP:-${TMP:-/tmp}}/claude_session_id.txt"
-SESSION_ID=$(cat "$SESSION_ID_FILE" 2>/dev/null || echo "default")
+# Extract session_id from hook input JSON (per-conversation, no shared state)
+SESSION_ID=$(echo "$INPUT" | grep -o '"session_id"[[:space:]]*:[[:space:]]*"[^"]*"' \
+  | head -1 | sed 's/.*"session_id"[[:space:]]*:[[:space:]]*"//;s/"$//')
+[ -z "$SESSION_ID" ] && SESSION_ID=$(cat "${TEMP:-${TMP:-/tmp}}/claude_session_id.txt" 2>/dev/null || echo "default")
 STATE_FILE="${TEMP:-${TMP:-/tmp}}/preflight_fired_${SESSION_ID}.json"
 
 # Run checks (with session dedup)

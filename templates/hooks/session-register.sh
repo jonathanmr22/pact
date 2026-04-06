@@ -9,29 +9,35 @@
 # alongside code changes via pre-bash-guard auto-staging.
 # =============================================================================
 
+INPUT=$(cat)
+
 PROJECT_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo ".")
 SESSION_FILE="${PROJECT_ROOT}/.claude/sessions.yaml"
 
-# ── Dedup guard: reuse existing session if one was registered recently ──
-# The IDE fires SessionStart multiple times: once per workspace root, and
-# again when settings.json changes (which triggers an extension restart).
-# Instead of creating a new session each time, reuse the existing one if
-# it was created within the last 30 minutes.
-SESSION_ID_FILE="${TEMP:-/tmp}/pact_session_id.txt"
-SESSION_TS_FILE="${TEMP:-/tmp}/pact_session_ts.txt"
+# ── Extract session_id from hook input JSON ──
+# Claude Code provides a unique per-conversation session_id in every hook payload.
+# This is the correct identity source — no shared temp files, no collisions.
+NATIVE_SESSION_ID=$(echo "$INPUT" | grep -o '"session_id"[[:space:]]*:[[:space:]]*"[^"]*"' \
+  | head -1 | sed 's/.*"session_id"[[:space:]]*:[[:space:]]*"//;s/"$//')
 
-if [ -f "$SESSION_ID_FILE" ] && [ -f "$SESSION_TS_FILE" ]; then
-  EXISTING_TS=$(cat "$SESSION_TS_FILE" 2>/dev/null || echo 0)
-  SESSION_AGE=$(( $(date +%s) - EXISTING_TS ))
-  if [ "$SESSION_AGE" -lt 1800 ]; then
-    # Session is less than 30 minutes old — reuse it, skip re-registration
+# ── Dedup guard: skip if this session is already registered ──
+SESSION_ID_FILE="${TEMP:-/tmp}/pact_session_id.txt"
+if [ -n "$NATIVE_SESSION_ID" ] && [ -f "$SESSION_ID_FILE" ]; then
+  EXISTING_ID=$(cat "$SESSION_ID_FILE" 2>/dev/null)
+  if [ "$EXISTING_ID" = "$NATIVE_SESSION_ID" ]; then
+    # Same conversation — skip re-registration
     exit 0
   fi
 fi
 
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-SESSION_ID="${TIMESTAMP}_$(head -c 2 /dev/urandom | od -An -tx1 | tr -d ' \n')"
-date +%s > "$SESSION_TS_FILE"
+
+# Use native session_id if available, otherwise generate one
+if [ -n "$NATIVE_SESSION_ID" ]; then
+  SESSION_ID="$NATIVE_SESSION_ID"
+else
+  SESSION_ID="${TIMESTAMP}_$(head -c 2 /dev/urandom | od -An -tx1 | tr -d ' \n')"
+fi
 
 # Detect which agent is running
 if [ -n "$GEMINI_API_KEY" ] || [ -n "$GEMINI_PROJECT_DIR" ] || [ -n "$GOOGLE_GENAI_USE_VERTEXAI" ]; then
