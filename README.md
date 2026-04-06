@@ -37,7 +37,7 @@ Small project? Good. That's when infrastructure matters most. PACT's subsystems 
 
 PACT is a modular governance framework for AI coding agents (Claude Code, Cursor, Copilot Workspace, etc.). Use all of it or just the parts that fill gaps in your existing setup — if you already have a memory layer, a task manager, or a workflow orchestrator, PACT detects that and only scaffolds what's missing.
 
-PACT has ten features. Take what you need:
+PACT has eleven features. Take what you need:
 
 1. **Mechanical Enforcement** — Shell hooks that block violations before they land
 2. **Context Replacement** — Architecture maps and lifecycle flows that replace memory
@@ -49,6 +49,7 @@ PACT has ten features. Take what you need:
 8. **Observability & Feedback** — Real-time dashboard that visualizes agent activity, captures user prompts, tracks tasks, and feeds user ratings back into future sessions
 9. **Distributed Cognition** — Auto-dispatched subagents for dependency tracing, knowledge research, and pre-commit review so the main session stays focused on the user's task
 10. **Vector Memory** — Semantic search across bugs, solutions, research, and task feedback using local embeddings (no API keys, no cloud). YAML stays authoritative; vector search finds the right file faster
+11. **Project Philosophy** — Define what your product *believes* — core principles, decision filters, and anti-patterns that govern every product decision across sessions. The counterpart to the aesthetic skill: aesthetics govern how things look, philosophy governs why things exist
 
 ---
 

@@ -7,6 +7,17 @@ PACT uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.9.2] — 2026-04-06
+
+### Added
+- **Project Philosophy** — New section in `instructions.md` template for defining the project's core beliefs, decision filters, and anti-patterns. This is the product counterpart to the aesthetic skill: the aesthetic skill governs **how things look**, the philosophy section governs **what the product believes**. Unlike the aesthetic skill (which triggers per-edit via preflight), philosophy is set once during project setup and lives in CLAUDE.md where every session reads it at startup. Includes: The Why (core purpose), Core Beliefs (non-negotiable principles), Decision Filters (trade-off resolution rules), and What This Product Is NOT (anti-patterns to resist).
+- **Philosophy skill template** (`templates/philosophy_skill.md`) — Standalone reference template with detailed guidance and examples for defining project philosophy. Can be used as a worksheet during setup before distilling into the CLAUDE.md section.
+
+### Why
+The aesthetic skill solved visual consistency across sessions. But product decisions — data collection, privacy defaults, feature scope, user communication — had no equivalent anchor. Claude defaults to industry norms (track everything, optimize for engagement, require sign-up) which may directly contradict a project's values. The philosophy section makes those values explicit so every Claude session inherits them. Born from a session building a community curation feature where every product decision (anonymous vs public, demographic accommodation, accessibility requirements) was filtered through unstated beliefs that should have been stated.
+
+---
+
 ## [0.9.1] — 2026-04-06
 
 ### Added

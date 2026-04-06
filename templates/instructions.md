@@ -90,6 +90,50 @@ At the start of every conversation, the agent MUST:
 
 ---
 
+## Project Philosophy
+
+<!--
+PACT Template: Fill this in during project setup. These are the beliefs
+that govern every product decision. Unlike the aesthetic skill (which
+triggers per-edit), philosophy is set once and referenced from here in
+CLAUDE.md — every session reads it at startup.
+
+The aesthetic skill answers: "What does it look like?"
+This section answers: "What does it believe?"
+
+Delete the template comments and fill in your project's actual beliefs.
+If you don't have strong opinions yet, leave this section minimal and
+grow it over time as decisions crystallize.
+-->
+
+### The Why
+<!-- Why does this project exist? Not what it does — why it matters. -->
+
+{2-3 sentences on the core purpose and why it matters to you personally.}
+
+### Core Beliefs
+<!-- Non-negotiable principles. These should NEVER be compromised, even
+     when they make implementation harder. -->
+
+- **{Belief 1}:** {What you believe and why. Include reasoning for edge cases.}
+- **{Belief 2}:** {What you believe and why.}
+- **{Belief 3}:** {What you believe and why.}
+
+### Decision Filters
+<!-- When Claude faces a product trade-off, these resolve it. -->
+
+- **Data collection:** {Your rule. e.g., "Only collect what the feature requires. Never 'nice to have.'"}
+- **Defaults:** {Your rule. e.g., "Defaults protect the user, not optimize engagement."}
+- **Convenience vs principle:** {Your rule. e.g., "If the easy path compromises a Core Belief, take the harder path."}
+
+### What This Product Is NOT
+<!-- What should Claude actively resist building? -->
+
+- Not {anti-pattern 1}
+- Not {anti-pattern 2}
+
+---
+
 ## Cognitive Redirections (guidance, not gates)
 
 > **These are guidance for lighter decisions.** The checkpoints above are the heavy-duty gates for patterns that historically fail under cognitive load. Redirections below are questions you ask yourself — they accelerate your thinking but aren't format requirements.
