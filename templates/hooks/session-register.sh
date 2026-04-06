@@ -11,6 +11,20 @@
 
 PROJECT_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo ".")
 SESSION_FILE="${PROJECT_ROOT}/.claude/sessions.yaml"
+
+# ── Dedup guard: skip if this script already ran within the last 5 seconds ──
+# Prevents duplicate session entries when the IDE fires SessionStart once per
+# workspace root (e.g. multi-root VS Code workspaces).
+LOCKFILE="${TEMP:-/tmp}/pact_session_register.lock"
+if [ -f "$LOCKFILE" ]; then
+  LOCK_AGE=$(( $(date +%s) - $(cat "$LOCKFILE" 2>/dev/null || echo 0) ))
+  if [ "$LOCK_AGE" -lt 5 ]; then
+    # Already registered within the last 5 seconds — reuse that session ID
+    exit 0
+  fi
+fi
+date +%s > "$LOCKFILE"
+
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 SESSION_ID="${TIMESTAMP}_$(head -c 2 /dev/urandom | od -An -tx1 | tr -d ' \n')"
 
