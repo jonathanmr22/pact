@@ -10,7 +10,7 @@
 
 <p align="center">
   <a href="https://buymeacoffee.com/jonathanmr22" target="_blank"><img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black" alt="Buy Me A Coffee"/></a>
-  <img src="https://img.shields.io/badge/version-0.8.0-blue?style=for-the-badge" alt="Version 0.8.0"/>
+  <img src="https://img.shields.io/badge/version-0.9.0-blue?style=for-the-badge" alt="Version 0.9.0"/>
   <img src="https://img.shields.io/badge/license-MIT-green?style=for-the-badge" alt="MIT License"/>
 </p>
 
@@ -37,17 +37,18 @@ Small project? Good. That's when infrastructure matters most. PACT's subsystems 
 
 PACT is a modular governance framework for AI coding agents (Claude Code, Cursor, Copilot Workspace, etc.). Use all of it or just the parts that fill gaps in your existing setup — if you already have a memory layer, a task manager, or a workflow orchestrator, PACT detects that and only scaffolds what's missing.
 
-PACT has nine features. Take what you need:
+PACT has ten features. Take what you need:
 
 1. **Mechanical Enforcement** — Shell hooks that block violations before they land
 2. **Context Replacement** — Architecture maps and lifecycle flows that replace memory
-3. **Self-Evolving Reasoning** — Questions the agent asks itself at decision points
-4. **Structure/Behavior Separation** — Static wiring maps vs dynamic lifecycle flows
-5. **Multi-Agent Resilience** — When Claude is down, switch to Gemini (or vice versa) with zero context loss
-6. **Compound Intelligence** — Research synthesis, cross-system knowledge directory, and capability baseline that make each session smarter than the last
-7. **Observability & Feedback** — Real-time dashboard that visualizes agent activity, captures user prompts, tracks tasks, and feeds user ratings back into future sessions
-8. **Distributed Cognition** — Auto-dispatched subagents for dependency tracing, knowledge research, and pre-commit review so the main session stays focused on the user's task
-9. **Vector Memory** — Semantic search across bugs, solutions, research, and task feedback using local embeddings (no API keys, no cloud). YAML stays authoritative; vector search finds the right file faster
+3. **Required Checkpoints** — Output-level reasoning gates that force visible, structured analysis before acting — immune to cognitive load
+4. **Self-Evolving Reasoning** — Questions the agent asks itself at decision points
+5. **Structure/Behavior Separation** — Static wiring maps vs dynamic lifecycle flows
+6. **Multi-Agent Resilience** — When Claude is down, switch to Gemini (or vice versa) with zero context loss
+7. **Compound Intelligence** — Research synthesis, cross-system knowledge directory, and capability baseline that make each session smarter than the last
+8. **Observability & Feedback** — Real-time dashboard that visualizes agent activity, captures user prompts, tracks tasks, and feeds user ratings back into future sessions
+9. **Distributed Cognition** — Auto-dispatched subagents for dependency tracing, knowledge research, and pre-commit review so the main session stays focused on the user's task
+10. **Vector Memory** — Semantic search across bugs, solutions, research, and task feedback using local embeddings (no API keys, no cloud). YAML stays authoritative; vector search finds the right file faster
 
 ---
 
@@ -326,11 +327,39 @@ Every rule falls into one of two categories:
 - "Walk through the user journey after building UI"
 - "Research before writing workarounds"
 
-**The rule:** If a violation can be detected by grep, it's a hook. If it requires understanding, it's a redirection. The instructions file only contains rules that hooks cannot catch.
+**The rule:** If a violation can be detected by grep, it's a hook. If it requires understanding, it's a checkpoint or a redirection.
+
+### Three Enforcement Layers
+
+PACT uses three layers of enforcement, from strongest to lightest:
+
+| Layer | Mechanism | Can be skipped? | Use for |
+|-------|-----------|-----------------|---------|
+| **Hooks** | Shell scripts that block tool calls | No — mechanical | Pattern-matchable violations (secrets, forbidden imports, git safety) |
+| **Checkpoints** | Output-level `<checkpoint>` blocks the agent must produce | Hard to skip — format requirement | Reasoning that historically fails under load (bug analysis, solution comparison, dependency tracing) |
+| **Redirections** | Questions the agent asks itself | Yes — guidance only | Lighter decisions where a prompt is sufficient |
+
+### Required Checkpoints (New in 0.9.0)
+
+Checkpoints solve the core failure mode of cognitive redirections: **rules encoded as prose get skipped when the agent is under cognitive pressure.** A checkpoint is a structured block the agent must output *before acting*. It's visible to the user, verifiable, and much harder to skip than an internal question.
+
+**Five checkpoint types:**
+
+1. **`bug_fix`** — Triggers when the user reports something broken. Forces the agent to trace the causal chain from symptom to root cause and create a bug tracker file *before* writing any fix.
+
+2. **`solution_compare`** — Triggers when the agent considers 2+ approaches. Forces a side-by-side comparison with research sources named. Prevents the "spiral" pattern of trying approaches sequentially without structured evaluation.
+
+3. **`package_verify`** — Triggers when calling a package API. Forces the agent to cite where it verified the API (docs, knowledge file, WebSearch) instead of guessing from training data.
+
+4. **`dependency_trace`** — Triggers when editing a file with downstream dependents. Forces the agent to trace 3 hops in both directions using the architecture map before making changes.
+
+5. **`done_check`** — Triggers when declaring a task complete. Forces the agent to re-read the user's exact request and list stale artifacts.
+
+**Research basis:** Claude API docs on extended thinking confirm that system prompts don't reach into internal thinking blocks. Output-level format requirements are the proven mechanism for structured reasoning — they're visible, verifiable, and survive cognitive load. ([Extended thinking docs](https://platform.claude.com/docs/en/build-with-claude/extended-thinking), [Prompt engineering best practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices))
 
 ### Cognitive Redirections
 
-Traditional rules get skimmed under cognitive load. Cognitive redirections are *questions* that engage reasoning at specific decision points:
+Cognitive redirections are the lighter layer — questions the agent asks itself at decision points. They work well for routine decisions but historically fail under cognitive pressure (which is why the five patterns above were upgraded to checkpoints).
 
 ```
 - When about to edit any file:
@@ -346,7 +375,7 @@ Traditional rules get skimmed under cognitive load. Cognitive redirections are *
   "Am I the user right now?"
 ```
 
-The agent has autonomy to add new redirections when it notices itself making assumptions or falling into patterns. Future sessions inherit this self-awareness.
+The agent has autonomy to add new redirections — and to **promote a redirection to a checkpoint** when it notices the redirection being skipped under load. Future sessions inherit this awareness.
 
 ### Architecture Map vs Lifecycle Flow
 

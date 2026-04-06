@@ -7,6 +7,28 @@ PACT uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.9.0] — 2026-04-06
+
+### Added
+- **Required Checkpoints** — Output-level reasoning gates that force visible, structured analysis before acting. Five checkpoint types: `bug_fix`, `solution_compare`, `package_verify`, `dependency_trace`, `done_check`. Each has a specific trigger condition and required output format. Checkpoints are format requirements (hard to skip), not prose guidance (easily skipped under cognitive load).
+- **Three Enforcement Layers** model documented in README: Hooks (mechanical, can't skip) → Checkpoints (output format, hard to skip) → Redirections (guidance, can be skipped). Checkpoints fill the gap between hooks and redirections.
+- **Cognitive redirection: solution comparison** — "Have I compared them, or am I just iterating?" Stops the spiral pattern of trying approaches sequentially without structured evaluation.
+- **Cognitive redirection: symptom vs core issue** — "Am I treating a symptom or the core issue?" Traces causal chains back to where bad state is produced, not observed.
+- **Research mandate** — "You never need permission to research" embedded in both checkpoints and redirections. The user expects informed analysis, not guesses.
+
+### Changed
+- Cognitive redirections section retitled to clarify they are guidance, not gates. The checkpoints section handles the patterns that historically fail under load.
+- Feature count updated from 9 to 10 in README.
+- Agents can now promote a redirection to a checkpoint when they notice it being skipped under load.
+
+### Fixed
+- **Dashboard crash from colons in session IDs** — `querySelector('#pname-{sid}')` threw on IDs containing colons. Replaced with `getElementById`.
+- **Session dedup** — 30-minute reuse guard prevents ghost sessions from IDE restarts and settings changes.
+- **Auto-archive stale sessions** — Sessions >3 days old, >30min inactive, or ≤2 events are hidden on dashboard load.
+- **Per-session stats** — Edit counts, durations, and event counts now flush correctly after initial load.
+
+---
+
 ## [0.8.0] — 2026-04-06
 
 ### Added
