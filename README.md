@@ -10,7 +10,7 @@
 
 <p align="center">
   <a href="https://buymeacoffee.com/jonathanmr22" target="_blank"><img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black" alt="Buy Me A Coffee"/></a>
-  <img src="https://img.shields.io/badge/version-0.7.0-blue?style=for-the-badge" alt="Version 0.7.0"/>
+  <img src="https://img.shields.io/badge/version-0.8.0-blue?style=for-the-badge" alt="Version 0.8.0"/>
   <img src="https://img.shields.io/badge/license-MIT-green?style=for-the-badge" alt="MIT License"/>
 </p>
 
@@ -222,14 +222,14 @@ Configure hooks in `.claude/settings.local.json` (or your agent's equivalent):
 | Hook | Type | What It Does |
 |------|------|-------------|
 | `pre-edit-rules.sh` | PreToolUse (BLOCKS) | Stops hardcoded secrets, enforces read-before-write, gates source edits after issue fetch |
-| `pre-bash-guard.sh` | PreToolUse (BLOCKS) | Git safety (no force push, no --no-verify, no reset --hard), multi-session coordination, bug tracker on fix commits, knowledge directory pairing |
+| `pre-bash-guard.sh` | PreToolUse (BLOCKS) | Git safety (no force push, no --no-verify, no reset --hard), multi-session coordination, worktree merge/push gate (opt-in), bug tracker on fix commits, knowledge directory pairing |
 | `pre-edit-feature-flow.sh` | PreToolUse (BLOCKS) | Requires feature flow doc before editing critical system files (auth, encryption, backup, sync) |
 | `post-edit-preflight.sh` | PostToolUse (THINKS) | Architectural metacognitive checks — data-driven from preflight-checks.yaml. Catches wrong call sites, missing platform config, unverified APIs, state changes without UI notification, UI without aesthetic skill |
 | `post-edit-warnings.sh` | PostToolUse (WARNS) | Large files, high imports, missing scroll wrappers, workaround language, comment deletion, name-based matching |
 | `post-read-tracker.sh` | PostToolUse (LOGS) | Tracks file reads to enable read-before-write |
 | `post-edit-timestamp.sh` | PostToolUse (LOGS) | Records file edit timestamps for cross-session awareness |
 | `post-sentry-bug-reminder.sh` | PostToolUse (GATES) | After fetching an issue, blocks source edits until bug file is created |
-| `session-register.sh` | SessionStart (LOGS) | Registers session for multi-session awareness, prunes old sessions |
+| `session-register.sh` | SessionStart (LOGS) | Registers session, prunes old sessions, creates worktree if isolation enabled |
 | `session-status-check.sh` | SessionStart (WARNS) | Checks status.claude.com for major/critical incidents affecting Claude Code or API — warns user at session start, silent when healthy |
 | `pact-event-logger.sh` | Utility (LOGS) | Appends structured events to central JSONL for dashboard visualization — called by other hooks |
 | `pact-prompt-logger.sh` | UserPromptSubmit (LOGS) | Captures user messages as dashboard event cards with IDE context stripped |
@@ -391,6 +391,32 @@ When multiple AI sessions work on the same codebase simultaneously:
 
 This prevents the most common multi-session failure: two sessions editing the same files, one pushes, the other commits on stale HEAD and force-pushes to recover, destroying the first session's work.
 
+### Worktree Isolation (Recommended)
+
+For projects where agents commit too eagerly or multiple sessions collide, PACT offers **worktree isolation** — each session gets its own git worktree and branch, completely isolated from other sessions. Commits on session branches are free (low-stakes checkpoints). The gate moves to *merging into the main branch*, which requires explicit user approval.
+
+**How it works:**
+1. Session starts → `session-register.sh` creates `.worktrees/{SESSION_ID}/` with branch `session/{SESSION_ID}`
+2. All edits and commits happen on the session branch — no interference with other sessions
+3. When the user approves, the agent merges the session branch into the main branch and pushes
+4. Session ends → agent removes only its own worktree
+
+**Enable it:**
+```json
+// ~/.claude/pact-config.json
+{
+  "worktree_isolation": true
+}
+```
+
+Or set `PACT_WORKTREE_ISOLATION=1` in your environment.
+
+**What this solves:**
+- No more "local behind remote" blocks from another session pushing
+- No more accidentally staging another session's uncommitted changes
+- Clean git history — one merge per session instead of interleaved commits
+- The user controls exactly when work lands on the main branch
+
 ---
 
 ## What to .gitignore
@@ -403,6 +429,9 @@ PACT generates some files that should be committed (hooks, architecture maps, kn
 .claude/pact-server.pid
 .claude/pact-events.jsonl
 .claude/memory/file_edit_log.yaml
+
+# Session worktrees (if worktree isolation is enabled)
+.worktrees/
 ```
 
 ---
@@ -427,6 +456,7 @@ PACT generates some files that should be committed (hooks, architecture maps, kn
 - [ ] Create `cutting_room/` for visual prototyping
 - [ ] Create `.claude/bugs/` with `_INDEX.yaml` and `_SOLUTIONS.yaml`
 - [ ] Set up `session-register.sh` for multi-session awareness
+- [ ] **Optional: Enable worktree isolation** — set `"worktree_isolation": true` in `~/.claude/pact-config.json`. Each session gets its own git branch; merges to main require user approval. Recommended if agents commit too eagerly or you run parallel sessions. Add `.worktrees/` to `.gitignore`.
 - [ ] Set up the PACT dashboard (`pact-server.py`, `pact-dashboard.html`, `pact-event-logger.sh`)
 - [ ] Configure dashboard startup preference in `~/.claude/pact-config.json` (`ask`/`auto`/`off`)
 - [ ] Add `pact-prompt-logger.sh` to `UserPromptSubmit` hooks for prompt capture

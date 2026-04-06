@@ -22,5 +22,8 @@ cutting_room/**/output/
 cutting_room/**/*.png
 cutting_room/**/*.mp4
 
+# Session worktrees (PACT creates per-session isolated working copies)
+.worktrees/
+
 # Temporary files
 .tmp/

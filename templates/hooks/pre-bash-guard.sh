@@ -100,6 +100,84 @@ if [ -n "$VIOLATIONS" ]; then
 fi
 
 # ============================================================================
+# WORKTREE ISOLATION: merge/push to main branch requires user approval
+# With worktree isolation, commits on session branches are free (low-stakes
+# checkpoints). The gate is on merging/pushing to the main branch — landing
+# work on the shared branch requires explicit user approval.
+# To enable: set PACT_WORKTREE_ISOLATION=1 in your environment or
+# pact-config.json { "worktree_isolation": true }
+# ============================================================================
+PACT_WORKTREE_ENABLED=false
+PACT_CONFIG="$HOME/.claude/pact-config.json"
+if [ -n "$PACT_WORKTREE_ISOLATION" ] && [ "$PACT_WORKTREE_ISOLATION" = "1" ]; then
+  PACT_WORKTREE_ENABLED=true
+elif [ -f "$PACT_CONFIG" ]; then
+  if python3 -c "import json; exit(0 if json.load(open('$PACT_CONFIG')).get('worktree_isolation') else 1)" 2>/dev/null; then
+    PACT_WORKTREE_ENABLED=true
+  fi
+fi
+
+if [ "$PACT_WORKTREE_ENABLED" = true ]; then
+  CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+  DEFAULT_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@')
+  [ -z "$DEFAULT_BRANCH" ] && DEFAULT_BRANCH="main"
+
+  # Block: git merge into default branch without approval
+  if echo "$COMMAND" | grep -qE '^git merge' && [ "$CURRENT_BRANCH" = "$DEFAULT_BRANCH" ]; then
+    APPROVAL_FILE="${TEMP:-/tmp}/pact_merge_approved.lock"
+    if [ -f "$APPROVAL_FILE" ]; then
+      APPROVAL_AGE=$(( $(date +%s) - $(cat "$APPROVAL_FILE" 2>/dev/null || echo 0) ))
+      if [ "$APPROVAL_AGE" -lt 120 ]; then
+        rm -f "$APPROVAL_FILE"
+      else
+        rm -f "$APPROVAL_FILE"
+        echo "" >&2
+        echo "═══ BLOCKED: MERGE APPROVAL EXPIRED ═══" >&2
+        echo "  Ask the user again, then: date +%s > \"\${TEMP:-/tmp}/pact_merge_approved.lock\"" >&2
+        echo "═════════════════════════════════════════" >&2
+        exit 1
+      fi
+    else
+      echo "" >&2
+      echo "═══ BLOCKED: MERGE TO ${DEFAULT_BRANCH} REQUIRES USER APPROVAL ═══" >&2
+      echo "  Merges to ${DEFAULT_BRANCH} are gated — ask the user before merging." >&2
+      echo "  When approved, run:" >&2
+      echo "    date +%s > \"\${TEMP:-/tmp}/pact_merge_approved.lock\"" >&2
+      echo "  Then re-run the merge." >&2
+      echo "═══════════════════════════════════════════════════════════════════" >&2
+      exit 1
+    fi
+  fi
+
+  # Block: git push from default branch without approval
+  if echo "$COMMAND" | grep -qE '^git push' && [ "$CURRENT_BRANCH" = "$DEFAULT_BRANCH" ]; then
+    APPROVAL_FILE="${TEMP:-/tmp}/pact_merge_approved.lock"
+    if [ -f "$APPROVAL_FILE" ]; then
+      APPROVAL_AGE=$(( $(date +%s) - $(cat "$APPROVAL_FILE" 2>/dev/null || echo 0) ))
+      if [ "$APPROVAL_AGE" -lt 120 ]; then
+        rm -f "$APPROVAL_FILE"
+      else
+        rm -f "$APPROVAL_FILE"
+        echo "" >&2
+        echo "═══ BLOCKED: PUSH APPROVAL EXPIRED ═══" >&2
+        echo "  Ask the user again, then: date +%s > \"\${TEMP:-/tmp}/pact_merge_approved.lock\"" >&2
+        echo "═════════════════════════════════════════" >&2
+        exit 1
+      fi
+    else
+      echo "" >&2
+      echo "═══ BLOCKED: PUSH TO ${DEFAULT_BRANCH} REQUIRES USER APPROVAL ═══" >&2
+      echo "  Pushes to ${DEFAULT_BRANCH} are gated — ask the user before pushing." >&2
+      echo "  When approved, run:" >&2
+      echo "    date +%s > \"\${TEMP:-/tmp}/pact_merge_approved.lock\"" >&2
+      echo "  Then re-run the push." >&2
+      echo "═══════════════════════════════════════════════════════════════════" >&2
+      exit 1
+    fi
+  fi
+fi
+
+# ============================================================================
 # MULTI-SESSION SAFETY: check remote before commit or push (BLOCKING)
 # If another session pushed while we were working, our local branch is behind.
 # ============================================================================

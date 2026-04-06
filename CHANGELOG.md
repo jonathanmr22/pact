@@ -7,6 +7,21 @@ PACT uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.8.0] — 2026-04-06
+
+### Added
+- **Worktree Isolation** (opt-in) — Each session gets its own git worktree and branch (`session/{SESSION_ID}`), completely isolated from other sessions. Commits on session branches are free; merging to the main branch requires explicit user approval via a one-time lockfile. Enable with `"worktree_isolation": true` in `~/.claude/pact-config.json` or `PACT_WORKTREE_ISOLATION=1` env var.
+- **Merge/push approval gate** in `pre-bash-guard.sh` — When worktree isolation is enabled, `git merge` and `git push` on the main branch are blocked unless a fresh approval lock exists (120s expiry, consumed on use).
+- Worktree creation in `session-register.sh` — Auto-creates `.worktrees/{SESSION_ID}/` at session start when isolation is enabled. Auto-detects `master` vs `main` for broader compatibility.
+- `.worktrees/` added to `pact-gitignore` template.
+- Instructions template now documents both workflows (worktree isolation vs shared working tree) with clear Option A/Option B guidance.
+- Adoption checklist includes worktree isolation as an optional item.
+
+### Fixed
+- **Duplicate session registration** — `session-register.sh` now uses a lockfile-based dedup guard (5s window) to prevent duplicate entries when the IDE fires `SessionStart` once per workspace root in multi-root VS Code workspaces.
+
+---
+
 ## [0.7.1] — 2026-04-03
 
 ### Added

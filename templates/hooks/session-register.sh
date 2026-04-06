@@ -112,6 +112,44 @@ with open(session_file, 'w') as f:
 
 ACTIVE=$(grep -c "status: active" "$SESSION_FILE" 2>/dev/null || echo 0)
 
+# ── Create git worktree for session isolation (opt-in) ──
+# Enable: set "worktree_isolation": true in ~/.claude/pact-config.json
+# Or: export PACT_WORKTREE_ISOLATION=1
+PACT_WORKTREE_ENABLED=false
+PACT_CONFIG_WT="$HOME/.claude/pact-config.json"
+if [ -n "$PACT_WORKTREE_ISOLATION" ] && [ "$PACT_WORKTREE_ISOLATION" = "1" ]; then
+  PACT_WORKTREE_ENABLED=true
+elif [ -f "$PACT_CONFIG_WT" ]; then
+  if python3 -c "import json; exit(0 if json.load(open('$PACT_CONFIG_WT')).get('worktree_isolation') else 1)" 2>/dev/null; then
+    PACT_WORKTREE_ENABLED=true
+  fi
+fi
+
+if [ "$PACT_WORKTREE_ENABLED" = true ]; then
+  WORKTREE_DIR="${PROJECT_ROOT}/.worktrees/${SESSION_ID}"
+  WORKTREE_BRANCH="session/${SESSION_ID}"
+
+  # Sanitize branch name (colons not allowed in git branch names)
+  WORKTREE_BRANCH=$(echo "$WORKTREE_BRANCH" | tr ':' '-')
+
+  if [ ! -d "$WORKTREE_DIR" ]; then
+    mkdir -p "$(dirname "$WORKTREE_DIR")"
+    # Create worktree with a new branch based on current master/main
+    DEFAULT_BRANCH=$(git -C "$PROJECT_ROOT" symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@')
+    [ -z "$DEFAULT_BRANCH" ] && DEFAULT_BRANCH="master"
+    git -C "$PROJECT_ROOT" worktree add -b "$WORKTREE_BRANCH" "$WORKTREE_DIR" "$DEFAULT_BRANCH" 2>/dev/null
+    if [ $? -eq 0 ]; then
+      echo "[Session] Worktree created: $WORKTREE_DIR (branch: $WORKTREE_BRANCH)"
+    else
+      echo "[Session] WARNING: Failed to create worktree — falling back to main working tree"
+    fi
+  fi
+
+  # Store worktree path for hooks and agent to reference
+  echo "$WORKTREE_DIR" > "${TEMP:-/tmp}/pact_worktree_path.txt"
+  echo "$WORKTREE_BRANCH" > "${TEMP:-/tmp}/pact_worktree_branch.txt"
+fi
+
 # ── Emit PACT session_start event (if event logger exists) ──
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 if [ -f "$SCRIPT_DIR/pact-event-logger.sh" ]; then

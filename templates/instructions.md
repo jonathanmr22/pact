@@ -139,6 +139,7 @@ Common overlaps:
 | No git reset --hard | pre-bash-guard.sh | BLOCKS bash |
 | No --no-verify on git commands | pre-bash-guard.sh | BLOCKS bash |
 | No destructive file operations (rm -rf project dirs) | pre-bash-guard.sh | BLOCKS bash |
+| Worktree merge/push gate: merge and push to main require user approval (opt-in) | pre-bash-guard.sh | BLOCKS bash |
 | Multi-session safety: blocks commit if local behind remote | pre-bash-guard.sh | BLOCKS bash |
 | Bug tracker required for fix commits | pre-bash-guard.sh | BLOCKS bash |
 | Knowledge Directory pairing: knowledge files require KNOWLEDGE_DIRECTORY.yaml in same commit | pre-bash-guard.sh | BLOCKS bash |
@@ -192,10 +193,25 @@ Ask: **"What did my changes just make stale?"**
 
 ### Git & Data Safety
 
+<!-- Choose ONE of the two workflows below based on your pact-config.json "worktree_isolation" setting. -->
+
+#### Option A: Worktree Isolation (Recommended — set `"worktree_isolation": true` in pact-config.json)
+
+- **Every session works on its own branch.** The session-register hook auto-creates a git worktree at `{PROJECT_ROOT}/.worktrees/{SESSION_ID}/` with branch `session/{SESSION_ID}`. All edits and commits happen on this isolated branch.
+- **Commits on session branches are free** — commit as needed for checkpoints. No approval required.
+- **NEVER merge to the main branch or push without explicit user approval — hook-enforced.** The pre-bash-guard hook BLOCKS `git merge` and `git push` on the main branch unless a fresh approval file exists. When the user approves landing: (1) run `date +%s > "${TEMP:-/tmp}/pact_merge_approved.lock"`, (2) checkout the main branch, (3) merge the session branch, (4) create a new approval for the push, (5) push. The approval expires after 120 seconds and is consumed on use.
+- **Session cleanup — only delete your own worktree.** When a session ends, remove only the worktree at your stored path: `git worktree remove {path}`. Never delete other sessions' worktrees.
+- **Always pull the main branch before merging** — the pre-bash-guard hook BLOCKS commits/pushes if local is behind remote.
+
+#### Option B: Shared Working Tree (Default — no config needed)
+
 - **Always push immediately after committing** — never leave local ahead of remote
 - **Always pull before committing** — the pre-bash-guard hook BLOCKS commits if local is behind remote
 - **Session coordination via `.claude/sessions.yaml`** — check for other active sessions when starting work
 - **Don't erase work from other sessions** — ask which changes to include when committing
+
+#### Common Rules (Both Options)
+
 - **Notify user before deleting unused code** (unused imports are safe to auto-fix)
 
 ---
