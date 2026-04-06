@@ -3,24 +3,36 @@ description: Initialize PACT governance files in the current project
 disable-model-invocation: false
 ---
 
-**Before scaffolding**, check the project for existing tools that overlap with PACT subsystems. Look for: `.mem0/`, `claude-mem` config, `memsearch` hooks, Taskmaster config, Superpowers skills, or any custom memory/knowledge system in the project's settings or CLAUDE.md.
+**Before scaffolding**, audit the project for existing systems that overlap with PACT subsystems. You are already in the project — use what you know. Don't rely on a checklist of tool names. Actually look:
 
-If you find overlap, present this table to the user BEFORE creating files:
+1. **Read CLAUDE.md** (if it exists) — does it already define rules, memory systems, hooks, or workflows?
+2. **Read `.claude/settings.local.json`** — are there existing hooks registered?
+3. **Check `.claude/` directory** — are there existing memory files, agent definitions, skills, or hook scripts?
+4. **Check `docs/` and project root** — is there an existing architecture map, knowledge base, or governance system?
+5. **Check for known tools** — `.mem0/`, `claude-mem`, `memsearch`, Taskmaster, Superpowers, Cline rules, Cursor rules, or any custom system visible in config files.
+6. **Ask the user** — "Do you have any existing memory, task tracking, or workflow tools I should know about before setting up PACT?"
+
+For every PACT subsystem, decide: **does something equivalent already exist here?**
+
+Present this table to the user BEFORE creating files:
 
 ```
-PACT Subsystem          Your Existing Tool       Recommendation
+PACT Subsystem          Existing Equivalent      Recommendation
 ─────────────────────   ─────────────────────   ──────────────────────────
-Vector memory           [detected tool]          Skip PACT's — yours works
-Bug tracker             [none detected]          Install PACT's
-Architecture map        [none detected]          Install PACT's
-Research knowledge      [detected tool]          Your choice — complementary
-Task tracking           [detected tool]          Coexist or pick one
-Dashboard               [none detected]          Install PACT's
-Hooks/enforcement       [none detected]          Install PACT's (unique to PACT)
-Subagents               [none detected]          Install PACT's
+Vector memory           [what you found]         [Skip / Install / Merge]
+Bug tracker             [what you found]         [Skip / Install / Merge]
+Architecture map        [what you found]         [Skip / Install / Merge]
+Research knowledge      [what you found]         [Skip / Install / Merge]
+Task tracking           [what you found]         [Skip / Install / Merge]
+Dashboard               [what you found]         [Skip / Install / Merge]
+Hooks/enforcement       [what you found]         [Skip / Install / Merge]
+Subagents               [what you found]         [Skip / Install / Merge]
+Cognitive redirections  [what you found]         [Skip / Install / Merge]
 ```
 
-Let the user decide per row. Only scaffold what they choose. If no overlaps are detected, scaffold everything.
+**Merge** means: the user has something that partially overlaps. Integrate PACT's approach into their existing system rather than replacing it or duplicating it. For example, if they have a CLAUDE.md with rules but no cognitive redirections, ADD the redirections to their existing file — don't create a competing one.
+
+Let the user decide per row. Only scaffold what they choose. The goal is zero redundancy — PACT should make the project better without adding burden.
 
 ---
 
