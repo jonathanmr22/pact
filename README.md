@@ -10,7 +10,7 @@
 
 <p align="center">
   <a href="https://buymeacoffee.com/jonathanmr22" target="_blank"><img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black" alt="Buy Me A Coffee"/></a>
-  <img src="https://img.shields.io/badge/version-0.9.0-blue?style=for-the-badge" alt="Version 0.9.0"/>
+  <img src="https://img.shields.io/badge/version-0.9.3-blue?style=for-the-badge" alt="Version 0.9.3"/>
   <img src="https://img.shields.io/badge/license-MIT-green?style=for-the-badge" alt="MIT License"/>
 </p>
 
@@ -29,7 +29,7 @@ PACT asks: *"How do we help Claude think?"*
 
 Solo developers and small teams. PACT was built by a solo developer for solo developers, then designed to scale up. The smaller your team, the more you need it. There's no code reviewer to notice the stale cache, no teammate to check the dependency chain, no QA to catch the UI regression. Large teams have humans for that. You have PACT.
 
-Small project? Good. That's when infrastructure matters most. PACT's subsystems activate on the patterns they detect, not on project size.
+Small project? Good. PACT scales down with you — the **Seed** tier gives you reasoning quality without structural overhead, and **delegation** lets small projects inherit knowledge from a larger one or a shared stack-level instance. PACT's subsystems activate on the patterns they detect, not on project size.
 
 ---
 
@@ -39,7 +39,7 @@ PACT is a modular governance framework for AI coding agents (Claude Code, Cursor
 
 > **Every recommendation in Anthropic's [Claude Prompting Best Practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) guide is addressed by PACT** — clear instructions, context with rationale, structured XML, role-setting, examples, anti-hallucination guards, investigation-before-answering mandates, state management, subagent orchestration, autonomy/safety balancing, and anti-overengineering. PACT was built from production failures before these were published as best practices.
 
-PACT has eleven features. Take what you need:
+PACT has twelve features. Take what you need:
 
 1. **Mechanical Enforcement** — Shell hooks that block violations before they land
 2. **Context Replacement** — Architecture maps and lifecycle flows that replace memory
@@ -52,6 +52,7 @@ PACT has eleven features. Take what you need:
 9. **Distributed Cognition** — Auto-dispatched subagents for dependency tracing, knowledge research, and pre-commit review so the main session stays focused on the user's task
 10. **Vector Memory** — Semantic search across bugs, solutions, research, and task feedback using local embeddings (no API keys, no cloud). YAML stays authoritative; vector search finds the right file faster
 11. **Project Philosophy** — Define what your product *believes* — core principles, decision filters, and anti-patterns that govern every product decision across sessions. The counterpart to the aesthetic skill: aesthetics govern how things look, philosophy governs why things exist
+12. **Project Scale & Delegation** — Three tiers (Seed, Growth, Full) so small projects get governance without overhead, plus delegation so projects can inherit knowledge from a parent PACT instance — either a specific larger project (satellite) or a shared technology stack (stack)
 
 ---
 
@@ -111,9 +112,13 @@ This gives you:
 - **5 slash commands** — `/pact-init`, `/pact-check`, `/pact-flow`, `/pact-bug`, `/pact-recall`
 - **Live dashboard** — real-time visualization of agent activity, task tracking, and rating system
 
-Then run `/pact-init` in your project to scaffold the governance files (architecture map, flow docs, bug tracker, cognitive redirections, cutting room).
+Then run `/pact-init` in your project to scaffold the governance files. The init process will:
+1. **Assess project scale** — recommend Seed, Growth, or Full tier based on project complexity
+2. **Check for delegation** — ask if this project shares infrastructure with a parent project or technology stack
+3. **Detect existing tools** — present an overlap table so you make informed decisions
+4. **Scaffold** — create only the files appropriate for your tier and delegation setup
 
-**Install everything. Do not ask the user to pick subsystems.** Selective installation is a false choice at this stage — neither you nor the user have enough context to evaluate what's needed before `/pact-init` has run. The init skill already detects existing tools and presents an overlap table so the user can make informed decisions at that point. Asking "hooks only or full install?" before init is premature and creates confusion.
+**Install the plugin fully. Do not ask the user to pick subsystems before init.** The `/pact-init` skill handles tier selection, delegation, and overlap detection — that's where informed decisions happen, not at plugin install time.
 
 ### Customize
 
@@ -453,6 +458,56 @@ Or set `PACT_WORKTREE_ISOLATION=1` in your environment.
 - No more accidentally staging another session's uncommitted changes
 - Clean git history — one merge per session instead of interleaved commits
 - The user controls exactly when work lands on the main branch
+
+---
+
+## Project Scale & Delegation (New in 0.9.3)
+
+Not every project needs 21 scaffolded files. PACT has three tiers that match governance depth to project complexity:
+
+| Subsystem | Seed | Growth | Full |
+|---|:---:|:---:|:---:|
+| Cognitive redirections | Yes | Yes | Yes |
+| Bug tracker + solutions KB | Yes | Yes | Yes |
+| Package knowledge | Yes | Yes | Yes |
+| PENDING_WORK | Yes | Yes | Yes |
+| Core hooks | Yes | Yes | Yes |
+| Preflight checks | — | Yes | Yes |
+| SYSTEM_MAP | — | Yes | Yes |
+| Feature flows | — | Critical paths | Yes |
+| Dashboard | — | Optional | Yes |
+| Subagents | — | Researcher only | All 3 |
+| Aesthetic skill | — | — | Yes |
+| Cutting room | — | — | Yes |
+| Capability baseline | — | — | Yes |
+
+**Seed** — Small utilities, scripts, CLI tools. Gets the reasoning foundation (redirections, bug tracking, package knowledge) without structural overhead.
+
+**Growth** — Medium projects with databases and multiple services. Adds structural awareness (SYSTEM_MAP, feature flows) and research compounding.
+
+**Full** — Large applications with rich UI and complex state. Gets everything — the project's complexity justifies every subsystem.
+
+### Delegation
+
+A project can **delegate** to a parent PACT instance instead of maintaining its own knowledge files. Two patterns:
+
+**Satellite** — A project that orbits a specific larger project (utility library, microservice, Edge Function repo). Shares the parent's knowledge directory, solutions KB, research files, and package knowledge because they're part of the same system.
+
+**Stack** — A project that shares a technology stack with sibling projects. The "parent" is a stack-level PACT instance — not an app, but a governance project for a technology. Example: a developer with 5 Flutter apps creates one `flutter-pact/` project with Flutter-specific package knowledge, solutions, and cognitive redirections. All 5 apps delegate to it.
+
+```yaml
+# In the child project's pact-context.yaml
+delegates_to:
+  path: "C:/Users/dev/flutter-pact"
+  type: "stack"
+  shared: [solutions_kb, package_knowledge, research, knowledge_directory]
+```
+
+**What this solves:**
+- A bug solved in one project's solutions KB is immediately available to all sibling projects
+- Package research done once (e.g., "how does supabase_flutter handle auth refresh") benefits every project using that package
+- Stack-level cognitive redirections (e.g., "always check `mounted` after `await` in Flutter") live in one place, not copied into 5 CLAUDE.md files
+- Small projects get full-tier reasoning quality without full-tier file count
 
 ---
 

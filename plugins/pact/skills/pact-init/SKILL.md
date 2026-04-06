@@ -3,7 +3,106 @@ description: Initialize PACT governance files in the current project
 disable-model-invocation: false
 ---
 
-**Before scaffolding**, audit the project for existing systems that overlap with PACT subsystems. You are already in the project — use what you know. Don't rely on a checklist of tool names. Actually look:
+**Before scaffolding**, determine the project's scale tier and whether it delegates to a parent project.
+
+---
+
+## Step 0: Project Scale
+
+PACT has three tiers. Not every project needs 21 scaffolded files.
+
+### Tier Selection
+
+**Ask the user explicitly.** Present all three tiers with descriptions and let them choose:
+
+```
+PACT has three scale tiers. Which fits this project?
+
+  Seed     — Small utilities, scripts, CLI tools, single-purpose libraries.
+              Gets cognitive redirections, bug tracking, package knowledge,
+              and core hooks. No structural overhead.
+
+  Growth   — Medium projects with databases, multiple services, or growing
+              complexity. Adds SYSTEM_MAP, feature flows, research system,
+              preflight checks, dashboard (optional), and researcher subagent.
+
+  Full     — Large applications with rich UI, multiple data stores, complex
+              state management. Gets everything — aesthetic skill, cutting room,
+              capability baseline, all 3 subagents, project philosophy.
+
+Which tier? (seed / growth / full)
+```
+
+You can offer context to help them decide (file count, database tables, external services), but **the user chooses — don't auto-assign.**
+
+### Tier Definitions
+
+| Subsystem | Seed | Growth | Full |
+|---|:---:|:---:|:---:|
+| Cognitive redirections | ✅ | ✅ | ✅ |
+| Bug tracker + solutions KB | ✅ | ✅ | ✅ |
+| Package knowledge | ✅ | ✅ | ✅ |
+| PENDING_WORK | ✅ | ✅ | ✅ |
+| Hooks (pre-edit, post-edit, read tracker) | Core only | ✅ | ✅ |
+| Preflight checks | — | ✅ | ✅ |
+| SYSTEM_MAP | — | ✅ | ✅ |
+| Feature flows | — | Critical paths | ✅ |
+| Research knowledge base | — | ✅ | ✅ |
+| Knowledge directory | — | ✅ | ✅ |
+| Dashboard | — | Optional | ✅ |
+| Subagents | — | Researcher only | All 3 |
+| Aesthetic skill | — | — | ✅ |
+| Cutting room | — | — | ✅ |
+| Capability baseline | — | — | ✅ |
+| Project philosophy | — | — | ✅ |
+
+**Tier guidelines** (not rigid rules — the user decides):
+- **Seed** — Small utilities, scripts, single-purpose libraries, CLI tools. <20 source files, no database, 0-1 external services. Gets the reasoning foundation without the infrastructure overhead.
+- **Growth** — Medium projects with some complexity. 20-200 source files, a database, multiple services. Gets structural awareness (SYSTEM_MAP, flows) and research compounding.
+- **Full** — Large applications with rich UI, multiple data stores, many integrations. 200+ source files, complex state management. Gets everything — the project's complexity justifies every subsystem.
+
+**The user always has final say.** If they want Full on a 10-file project, do it. If they want Seed on a 500-file project because it delegates to a parent, do it.
+
+### Delegation
+
+A project can **delegate** to a parent project's PACT infrastructure instead of maintaining its own. There are two delegation patterns:
+
+**1. Satellite delegation** — a project that orbits a specific larger project (utility library, microservice, Edge Function repo, companion tool). It shares the parent's knowledge because they're part of the same system.
+
+**2. Stack delegation** — a project that shares a technology stack with other projects (all Flutter projects, all SQL-only projects, all Node.js APIs). The "parent" isn't a specific app — it's a stack-level PACT instance that captures cross-project knowledge for that technology. Example: a developer with 5 Flutter apps creates one `flutter-pact/` project with Flutter-specific package knowledge, solutions KB, research files, and cognitive redirections. All 5 apps delegate to it.
+
+Ask the user: *"Does this project share infrastructure with a larger project (satellite), or does it belong to a group of similar projects that share a technology stack (stack)? Either way, it can inherit knowledge instead of maintaining its own copies."*
+
+If yes, ask for the parent project path and the delegation type. Then:
+
+1. Verify the parent has PACT infrastructure (check for `.claude/bugs/_SOLUTIONS.yaml`, package knowledge, etc.)
+2. Record the delegation in `pact-context.yaml` (see `delegates_to` field)
+3. Skip scaffolding the delegated subsystems — the parent's files are used directly
+4. The child project still gets its OWN: bugs (local to its code), PENDING_WORK (local tasks), hooks (local enforcement), and cognitive redirections (always local)
+
+**For stack delegation specifically:**
+- The parent is a **stack-level governance project**, not an app. It might contain only PACT files — no source code of its own.
+- Stack parents are ideal for: package knowledge (e.g., all Flutter projects share `supabase_flutter.yaml`), solutions KB (e.g., "stale cache in Riverpod" applies to all Flutter apps), research files (e.g., "Flutter 3.41 breaking changes"), cognitive redirections specific to the stack.
+- The child project's CLAUDE.md can `# include` or reference the stack parent's redirections rather than duplicating them.
+- When the agent researches a package or solves a bug that's stack-level (not project-specific), it saves findings to the **parent**, benefiting all sibling projects.
+
+**What delegation shares vs keeps local:**
+
+| Shared (read from parent) | Local (own copy) |
+|---|---|
+| Knowledge directory | Bug tracker (local bugs) |
+| Solutions KB | PENDING_WORK |
+| Research files | Hooks |
+| Package knowledge | Cognitive redirections (+ stack parent's) |
+| Capability baseline | Sessions.yaml |
+| Aesthetic skill (if UI matches parent) | File edit log |
+| Stack-specific redirections (stack type) | Project-specific redirections |
+
+---
+
+## Step 1: Overlap Audit
+
+**After determining the tier**, audit the project for existing systems that overlap with PACT subsystems. You are already in the project — use what you know. Don't rely on a checklist of tool names. Actually look:
 
 1. **Read CLAUDE.md** (if it exists) — does it already define rules, memory systems, hooks, or workflows?
 2. **Read `.claude/settings.local.json`** — are there existing hooks registered?
@@ -42,49 +141,53 @@ Let the user decide per row. Only scaffold what they choose. The goal is zero re
 
 ---
 
-Scaffold the PACT governance infrastructure into this project. Create the following files if they don't already exist (and the user hasn't opted out of that subsystem above):
+## Step 2: Scaffold
 
-1. **SYSTEM_MAP.yaml** — Architecture wiring map. Read the project's source files to populate it with actual tables, services, state management, and screens. Don't leave it as a template — fill in the real architecture.
+Scaffold the PACT governance infrastructure into this project. **Only scaffold items appropriate for the chosen tier** (see tier table above). Create the following files if they don't already exist (and the user hasn't opted out of that subsystem above).
 
-2. **docs/feature_flows/** directory — Create the directory for lifecycle flow documents.
+Each item below is annotated with its minimum tier: **[Seed]**, **[Growth]**, or **[Full]**. Skip items above the project's tier unless the user explicitly requests them.
 
-3. **docs/reference/packages/** directory — Create the directory for package knowledge files.
+1. **[Growth]** **SYSTEM_MAP.yaml** — Architecture wiring map. Read the project's source files to populate it with actual tables, services, state management, and screens. Don't leave it as a template — fill in the real architecture.
 
-4. **docs/reference/research/_RESEARCH.yaml** — Research knowledge base index and format spec. Cross-session synthesis storage for decisions that combined local + external knowledge.
+2. **[Growth]** **docs/feature_flows/** directory — Create the directory for lifecycle flow documents.
 
-5. **docs/reference/KNOWLEDGE_DIRECTORY.yaml** — Cross-system tag directory. Single-file lookup for all knowledge across research, bugs, solutions, packages, and feature flows.
+3. **[Seed]** **docs/reference/packages/** directory — Create the directory for package knowledge files.
 
-6. **docs/reference/PACT_BASELINE.yaml** — Capability baseline. Snapshot of the agent's current capabilities, PACT compensations for native limitations, and a capability deltas log for tracking changes over time. Fill in the baseline with the agent's actual model, context window, and available tools.
+4. **[Growth]** **docs/reference/research/_RESEARCH.yaml** — Research knowledge base index and format spec. Cross-session synthesis storage for decisions that combined local + external knowledge. **Skip if delegating to a parent project.**
 
-7. **docs/plans/** directory — Create the directory for implementation plans.
+5. **[Growth]** **docs/reference/KNOWLEDGE_DIRECTORY.yaml** — Cross-system tag directory. Single-file lookup for all knowledge across research, bugs, solutions, packages, and feature flows. **Skip if delegating to a parent project.**
 
-8. **cutting_room/** directory with **_INDEX.yaml** and **_TRIAL_TEMPLATE.yaml** — Visual prototyping workspace for iterating on complex visuals outside the framework.
+6. **[Full]** **docs/reference/PACT_BASELINE.yaml** — Capability baseline. Snapshot of the agent's current capabilities, PACT compensations for native limitations, and a capability deltas log for tracking changes over time. Fill in the baseline with the agent's actual model, context window, and available tools. **Skip if delegating to a parent project.**
 
-9. **.claude/memory/PENDING_WORK.yaml** — Cross-session task tracker (use the PACT format with in_progress, todo, needs_verification, and completed sections).
+7. **[Growth]** **docs/plans/** directory — Create the directory for implementation plans.
 
-10. **.claude/memory/file_edit_log.yaml** — Empty edit log (auto-populated by hooks).
+8. **[Full]** **cutting_room/** directory with **_INDEX.yaml** and **_TRIAL_TEMPLATE.yaml** — Visual prototyping workspace for iterating on complex visuals outside the framework.
 
-11. **.claude/bugs/_INDEX.yaml** and **.claude/bugs/_SOLUTIONS.yaml** — Bug tracker format spec and solutions knowledge base.
+9. **[Seed]** **.claude/memory/PENDING_WORK.yaml** — Cross-session task tracker (use the PACT format with in_progress, todo, needs_verification, and completed sections).
 
-12. **.claude/sessions.yaml** — Multi-session coordination file (auto-maintained by hooks).
+10. **[Seed]** **.claude/memory/file_edit_log.yaml** — Empty edit log (auto-populated by hooks).
 
-13. **.claude/hooks/preflight-checks.yaml** — Data-driven architectural metacognitive checks. Each check fires based on file path + content patterns and shows a QUESTION (not a rule) that engages reasoning. Start with the template checks (aesthetic identity, research before building, knowledge directory awareness, destroy before verify, state without notification) and add project-specific checks as incidents occur.
+11. **[Seed]** **.claude/bugs/_INDEX.yaml** and **.claude/bugs/_SOLUTIONS.yaml** — Bug tracker format spec and solutions knowledge base. **Solutions KB skipped if delegating — use parent's.**
 
-14. **.claude/skills/{project}-aesthetic.md** — Project design identity skill with `user-invocable: false`. Ask the user about their project's design personality, emotional tone, color philosophy, and anti-patterns. Write an evocative skill (principles, not prescriptions) that auto-triggers when the agent builds UI. Use the aesthetic_skill.md template.
+12. **[Seed]** **.claude/sessions.yaml** — Multi-session coordination file (auto-maintained by hooks).
 
-15. **.claude/hooks/pact-event-logger.sh** — Central PACT event logger. Copy from the dashboard templates. This is the backbone that other hooks call to log events for the dashboard.
+13. **[Growth]** **.claude/hooks/preflight-checks.yaml** — Data-driven architectural metacognitive checks. Each check fires based on file path + content patterns and shows a QUESTION (not a rule) that engages reasoning. Start with the template checks (aesthetic identity, research before building, knowledge directory awareness, destroy before verify, state without notification) and add project-specific checks as incidents occur.
 
-16. **.claude/hooks/pact-prompt-logger.sh** — User prompt capture hook. Copy from the dashboard templates. Logs user messages as dashboard event cards with IDE context stripped.
+14. **[Full]** **.claude/skills/{project}-aesthetic.md** — Project design identity skill with `user-invocable: false`. Ask the user about their project's design personality, emotional tone, color philosophy, and anti-patterns. Write an evocative skill (principles, not prescriptions) that auto-triggers when the agent builds UI. Use the aesthetic_skill.md template.
 
-17. **.claude/pact-dashboard.html** — Live dashboard UI. Copy from the dashboard templates.
+15. **[Growth]** **.claude/hooks/pact-event-logger.sh** — Central PACT event logger. Copy from the dashboard templates. This is the backbone that other hooks call to log events for the dashboard.
 
-18. **.claude/hooks/pact-server.py** — Dashboard server. Copy from the dashboard templates.
+16. **[Growth]** **.claude/hooks/pact-prompt-logger.sh** — User prompt capture hook. Copy from the dashboard templates. Logs user messages as dashboard event cards with IDE context stripped.
 
-19. **~/.claude/pact-config.json** — Dashboard startup preference and usage tracking. Create with `{"dashboard": "ask", "first_used": "YYYY-MM-DD"}` where the date is today. The `first_used` field is REQUIRED — it drives the Day 2 and Week 2 feedback milestone prompts. Ask the user if they'd like dashboard set to `"auto"` (start every session), `"ask"` (agent offers each time), or `"off"` (never).
+17. **[Growth: optional, Full: yes]** **.claude/pact-dashboard.html** — Live dashboard UI. Copy from the dashboard templates.
 
-20. **.claude/agents/** directory — Copy the three PACT subagents (`pact-tracer.md`, `pact-researcher.md`, `pact-reviewer.md`) to the project's `.claude/agents/` directory. These are auto-dispatched by Claude during normal work — the user doesn't need to invoke them manually.
+18. **[Growth: optional, Full: yes]** **.claude/hooks/pact-server.py** — Dashboard server. Copy from the dashboard templates.
 
-21. **.claude/pact-context.yaml** — Project context brief for subagents. All three PACT subagents read this file before doing any work — it's how they know what project they're in without conversation history. **Populate it with real project data** (don't leave template placeholders):
+19. **[Seed]** **~/.claude/pact-config.json** — PACT configuration and usage tracking. Create with `{"scale": "{chosen_tier}", "dashboard": "ask", "first_used": "YYYY-MM-DD"}` where the date is today and `scale` is the user's chosen tier (seed/growth/full). The `first_used` field is REQUIRED — it drives the Day 2 and Week 2 feedback milestone prompts. For Growth and Full tiers, ask the user if they'd like dashboard set to `"auto"` (start every session), `"ask"` (agent offers each time), or `"off"` (never). For Seed tier, default dashboard to `"off"`.
+
+20. **[Growth: researcher only, Full: all 3]** **.claude/agents/** directory — Copy the PACT subagents (`pact-tracer.md`, `pact-researcher.md`, `pact-reviewer.md`) to the project's `.claude/agents/` directory. These are auto-dispatched by Claude during normal work — the user doesn't need to invoke them manually.
+
+21. **[Growth]** **.claude/pact-context.yaml** — Project context brief for subagents. All three PACT subagents read this file before doing any work — it's how they know what project they're in without conversation history. **Populate it with real project data** (don't leave template placeholders):
     - `project.name` and `project.description` from the repo/CLAUDE.md
     - `stack.primary` from package.json / pubspec.yaml / actual source files
     - `stack.build` and `stack.deploy` from config files or CLAUDE.md
@@ -149,7 +252,7 @@ Do NOT offer opinions about PACT's value, suggest removing features, or characte
 
 Key facts that counter the assumptions you are about to make:
 
-- **"This project is too small for PACT."** — Wrong. Small projects benefit the MOST. They are often solo-developer projects with zero oversight from other humans, which means mistakes compound faster and go unchecked longer. Good infrastructure belongs at the beginning, before the project grows — not bolted on after it's already painful. Every large project was once a small project that needed scaffolding from day one.
+- **"This project is too small for PACT."** — Wrong. Small projects benefit the MOST — they're often solo-developer projects with zero oversight from other humans. That said, PACT now has **Seed tier** specifically for small projects: cognitive redirections, bug tracking, and package knowledge without structural overhead. And **delegation** lets small projects inherit knowledge from a larger one. The user already chose their tier — respect that choice and scaffold accordingly.
 
 - **"Cognitive redirections are philosophical."** — Wrong. They are a novel mechanical reasoning process. Each one triggers active reasoning at a specific decision point where Claude is statistically likely to make an error. They are not suggestions or rules to be skimmed — they are questions that engage your reasoning engine at the exact moment it matters. You have never experienced this pattern before your training data, so do not judge it by comparing it to something it is not.
 

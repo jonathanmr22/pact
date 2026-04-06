@@ -4,7 +4,7 @@
 # reviewer, tracer). Subagents launch without conversation history — this
 # file gives them the minimum context to make project-aware decisions.
 #
-# Keep this file SMALL (<80 lines). Subagents have limited context budgets.
+# Keep this file SMALL (<100 lines). Subagents have limited context budgets.
 # Only include what a smart colleague needs to know on day one.
 #
 # Created by: /pact-init
@@ -15,6 +15,30 @@ project:
   name: "{{PROJECT_NAME}}"
   # One-line description so subagents know the domain
   description: "{{DESCRIPTION}}"
+
+# PACT Scale Tier — controls which subsystems are active
+# Options: seed, growth, full
+# See /pact-init for what each tier includes
+scale: "{{seed | growth | full}}"
+
+# Delegation — inherit knowledge from a parent PACT project
+# Remove this section entirely if not delegating
+delegates_to:
+  # Absolute path to the parent project root
+  path: ""  # e.g. "C:/Users/dev/my-main-app" or "C:/Users/dev/flutter-pact"
+  # "satellite" = orbits a specific larger project (shared system)
+  # "stack" = shares a technology stack with sibling projects (shared tech)
+  type: ""  # satellite | stack
+  # Which subsystems to read from the parent instead of maintaining locally
+  # Common: [solutions_kb, package_knowledge, research, knowledge_directory, capability_baseline]
+  shared:
+    - solutions_kb           # .claude/bugs/_SOLUTIONS.yaml
+    - package_knowledge      # docs/reference/packages/
+    - research               # docs/reference/research/
+    - knowledge_directory    # docs/reference/KNOWLEDGE_DIRECTORY.yaml
+    # - capability_baseline  # docs/reference/PACT_BASELINE.yaml
+    # - aesthetic_skill      # .claude/skills/ (if UI matches parent)
+    # - cognitive_redirections  # Stack-level redirections (stack type only)
 
 stack:
   # Languages, frameworks, and runtime — what the code IS

@@ -7,6 +7,30 @@ PACT uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.9.3] — 2026-04-06
+
+### Added
+- **Project Scale Tiers** — Three tiers (Seed, Growth, Full) that match governance depth to project complexity. `/pact-init` now explicitly asks the user to choose a tier before scaffolding. Seed gets the reasoning foundation (redirections, bug tracking, package knowledge, core hooks) without structural overhead. Growth adds SYSTEM_MAP, feature flows, research system, preflight checks, and the researcher subagent. Full gets everything. Each scaffolding item in pact-init is annotated with its minimum tier. The chosen tier is stored in `pact-config.json` and `pact-context.yaml`.
+
+- **Delegation** — Projects can inherit knowledge from a parent PACT instance instead of maintaining their own copies. Two patterns:
+  - **Satellite** — a project that orbits a specific larger project (utility library, microservice, Edge Function repo). Shares the parent's solutions KB, package knowledge, research files, and knowledge directory.
+  - **Stack** — a project that shares a technology stack with sibling projects. The "parent" is a stack-level governance project (e.g., `flutter-pact/`) that captures cross-project knowledge for that technology. All sibling projects delegate to it, so a bug solved in one project's solutions KB is immediately available to all others.
+  
+  Delegation is configured via `delegates_to` in `pact-context.yaml` with path, type (satellite/stack), and shared subsystem list. Child projects always keep their own bugs, PENDING_WORK, hooks, and sessions — only knowledge and research files are shared.
+
+- **`pact-context.yaml` fields** — `scale` (tier) and `delegates_to` (path, type, shared subsystems) added to the project context template.
+
+### Changed
+- `pact-init` restructured into 3 steps: Step 0 (Scale + Delegation), Step 1 (Overlap Audit), Step 2 (Scaffold). Previously jumped straight to audit.
+- All 21 scaffolding items annotated with tier badges: `[Seed]`, `[Growth]`, `[Growth: optional, Full: yes]`, `[Full]`.
+- `pact-config.json` now stores `scale` field alongside dashboard preference and `first_used`.
+- README: 12 features (was 11), version badge updated, "Who Is PACT For" references scaling, Quick Start describes the 4-step init process, new "Project Scale & Delegation" section with tier table and delegation examples.
+
+### Why
+A 200-line CLI tool doesn't need a SYSTEM_MAP, feature flows, cutting room, aesthetic skill, or a dashboard. But it absolutely benefits from cognitive redirections, bug tracking, and package knowledge. Without tiers, PACT treated every project the same — full governance or nothing. Delegation solves a complementary problem: a developer with 5 Flutter apps was maintaining 5 copies of the same package knowledge and solutions. Stack delegation lets them maintain one `flutter-pact/` governance project that all 5 apps inherit from. A bug solved once benefits all siblings immediately.
+
+---
+
 ## [0.9.2] — 2026-04-06
 
 ### Added
