@@ -97,6 +97,21 @@ if echo "$NEW_STRING" | grep -qE '(execute|rawQuery|customSelect|customStatement
 fi
 
 # ============================================================================
+# AUTO-MEMORY BLOCK — prevent Claude from creating memory files
+# The auto-memory system prompt tells Claude to create files in
+# ~/.claude/projects/.../memory/. This conflicts with PACT's governance
+# model where all knowledge routes to CLAUDE.md, docs/reference/, or
+# inline MEMORY.md entries. Only MEMORY.md itself is writable.
+# ============================================================================
+if echo "$FILE_PATH" | grep -qiE '\.claude[/\\]projects[/\\].*[/\\]memory[/\\]'; then
+  BASENAME=$(basename "$FILE_PATH")
+  if [[ "$BASENAME" != "MEMORY.md" ]]; then
+    echo "BLOCKED: Do not create auto-memory files. Add feedback/rules to CLAUDE.md or as inline entries in MEMORY.md." >&2
+    exit 1
+  fi
+fi
+
+# ============================================================================
 # PROJECT-SPECIFIC RULES
 # Uncomment and customize. Each rule should explain WHY it's forbidden.
 # ============================================================================
