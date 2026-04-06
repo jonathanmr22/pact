@@ -37,6 +37,8 @@ Small project? Good. That's when infrastructure matters most. PACT's subsystems 
 
 PACT is a modular governance framework for AI coding agents (Claude Code, Cursor, Copilot Workspace, etc.). Use all of it or just the parts that fill gaps in your existing setup — if you already have a memory layer, a task manager, or a workflow orchestrator, PACT detects that and only scaffolds what's missing.
 
+> **Every recommendation in Anthropic's [Claude Prompting Best Practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) guide is addressed by PACT** — clear instructions, context with rationale, structured XML, role-setting, examples, anti-hallucination guards, investigation-before-answering mandates, state management, subagent orchestration, autonomy/safety balancing, and anti-overengineering. PACT was built from production failures before these were published as best practices.
+
 PACT has eleven features. Take what you need:
 
 1. **Mechanical Enforcement** — Shell hooks that block violations before they land
