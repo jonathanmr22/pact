@@ -1359,9 +1359,30 @@ function startRename(sid, folder) {
   input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); input.blur(); } if (e.key === 'Escape') { input.value = folder; input.blur(); } });
 }
 
+function shouldAutoArchive(sid, evt) {
+  const now = Date.now();
+  const THREE_DAYS = 3 * 24 * 60 * 60 * 1000;
+  // Parse timestamp from session ID (format: 2026-04-06T04:04:11Z_xxxx)
+  const tsStr = sid.replace(/_[^_]+$/, '');
+  const sessionTs = new Date(tsStr).getTime();
+  if (isNaN(sessionTs)) return false;
+  return (now - sessionTs) > THREE_DAYS;
+}
+
 function getSession(sid, evt) {
   // Skip archived/deleted sessions
   if (isSessionHidden(sid)) return null;
+
+  // Auto-archive sessions older than 3 days before creating a lane
+  if (!sessions[sid] && shouldAutoArchive(sid, evt)) {
+    const archived = JSON.parse(localStorage.getItem('pact-archived') || '[]');
+    if (!archived.includes(sid)) {
+      archived.push(sid);
+      localStorage.setItem('pact-archived', JSON.stringify(archived));
+      updateArchivedCount();
+    }
+    return null;
+  }
 
   if (sessions[sid]) {
     // Retroactively set project name if a later event carries it
@@ -1428,7 +1449,7 @@ function getSession(sid, evt) {
 
   // Wire up rename click
   if (folder) {
-    const pnameEl = div.querySelector('#pname-' + sid);
+    const pnameEl = document.getElementById('pname-' + sid);
     if (pnameEl) pnameEl.addEventListener('click', e => { e.stopPropagation(); startRename(sid, folder); });
   }
 
@@ -2246,6 +2267,62 @@ function restoreSession(sid) {
   if (archived.length > 0) toggleArchived(); // reopen if still has items
 }
 
+// ── Auto-archive stale sessions ──
+// A session is stale if:
+//   - Older than 3 days, OR
+//   - No activity in the last 30 minutes (dead session from earlier today)
+// Ghost sessions (≤2 events) from dead-fire bugs are also archived.
+function autoArchiveOldSessions() {
+  const now = Date.now();
+  const THREE_DAYS = 3 * 24 * 60 * 60 * 1000;
+  const THIRTY_MIN = 30 * 60 * 1000;
+  const archived = JSON.parse(localStorage.getItem('pact-archived') || '[]');
+  let changed = false;
+
+  Object.keys(sessions).forEach(sid => {
+    if (archived.includes(sid)) return;
+    const session = sessions[sid];
+    if (!session) return;
+
+    const sessionAge = now - (session.startTs?.getTime() || now);
+    const lastActivityAge = now - (session.lastTs?.getTime() || now);
+    const isOld = sessionAge > THREE_DAYS;
+    const isDead = lastActivityAge > THIRTY_MIN;
+    const isGhost = session.n <= 2 && sessionAge > 60000;
+
+    if (isOld || isDead || isGhost) {
+      session.el.style.display = 'none';
+      const chip = document.getElementById('chip-' + sid);
+      if (chip) chip.style.display = 'none';
+      delete sessions[sid];
+      archived.push(sid);
+      changed = true;
+    }
+  });
+
+  if (changed) {
+    localStorage.setItem('pact-archived', JSON.stringify(archived));
+    updateArchivedCount();
+    updateSessionCount();
+  }
+}
+
+// ── Sort session lanes: newest first ──
+function sortSessionLanes() {
+  const lanes = document.getElementById('lanes');
+  const sessionEls = Array.from(lanes.querySelectorAll(':scope > .session'));
+
+  sessionEls.sort((a, b) => {
+    const sidA = a.id.replace('s-', '');
+    const sidB = b.id.replace('s-', '');
+    const tsA = sessions[sidA]?.startTs?.getTime() || 0;
+    const tsB = sessions[sidB]?.startTs?.getTime() || 0;
+    return tsB - tsA; // newest first
+  });
+
+  sessionEls.forEach(el => lanes.appendChild(el));
+}
+
 // ── Diagnosis ──
 // PACT subsystems that SHOULD fire during a well-governed session
 const SUBSYSTEMS = [
@@ -2532,6 +2609,8 @@ async function poll() {
         await renderCompletedTasks();
         restoreTask();
         distributeInitialEvents();
+        autoArchiveOldSessions();
+        sortSessionLanes();
         clearLatestAnimation();
       }
     }
@@ -2542,6 +2621,8 @@ async function poll() {
     await renderCompletedTasks();
     restoreTask();
     distributeInitialEvents();
+    autoArchiveOldSessions();
+    sortSessionLanes();
     clearLatestAnimation();
   }
   setTimeout(poll, 600);

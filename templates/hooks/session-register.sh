@@ -12,21 +12,26 @@
 PROJECT_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo ".")
 SESSION_FILE="${PROJECT_ROOT}/.claude/sessions.yaml"
 
-# ── Dedup guard: skip if this script already ran within the last 5 seconds ──
-# Prevents duplicate session entries when the IDE fires SessionStart once per
-# workspace root (e.g. multi-root VS Code workspaces).
-LOCKFILE="${TEMP:-/tmp}/pact_session_register.lock"
-if [ -f "$LOCKFILE" ]; then
-  LOCK_AGE=$(( $(date +%s) - $(cat "$LOCKFILE" 2>/dev/null || echo 0) ))
-  if [ "$LOCK_AGE" -lt 5 ]; then
-    # Already registered within the last 5 seconds — reuse that session ID
+# ── Dedup guard: reuse existing session if one was registered recently ──
+# The IDE fires SessionStart multiple times: once per workspace root, and
+# again when settings.json changes (which triggers an extension restart).
+# Instead of creating a new session each time, reuse the existing one if
+# it was created within the last 30 minutes.
+SESSION_ID_FILE="${TEMP:-/tmp}/pact_session_id.txt"
+SESSION_TS_FILE="${TEMP:-/tmp}/pact_session_ts.txt"
+
+if [ -f "$SESSION_ID_FILE" ] && [ -f "$SESSION_TS_FILE" ]; then
+  EXISTING_TS=$(cat "$SESSION_TS_FILE" 2>/dev/null || echo 0)
+  SESSION_AGE=$(( $(date +%s) - EXISTING_TS ))
+  if [ "$SESSION_AGE" -lt 1800 ]; then
+    # Session is less than 30 minutes old — reuse it, skip re-registration
     exit 0
   fi
 fi
-date +%s > "$LOCKFILE"
 
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 SESSION_ID="${TIMESTAMP}_$(head -c 2 /dev/urandom | od -An -tx1 | tr -d ' \n')"
+date +%s > "$SESSION_TS_FILE"
 
 # Detect which agent is running
 if [ -n "$GEMINI_API_KEY" ] || [ -n "$GEMINI_PROJECT_DIR" ] || [ -n "$GOOGLE_GENAI_USE_VERTEXAI" ]; then
