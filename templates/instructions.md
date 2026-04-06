@@ -19,16 +19,72 @@ At the start of every conversation, the agent MUST:
 
 ---
 
-## Cognitive Redirections
+## Required Checkpoints (output-level reasoning gates)
 
-> These are not rules. They are questions you ask yourself at specific moments.
-> Rules get skimmed. Questions engage reasoning. Each one is a pattern that
-> accelerates your thinking — a shortcut earned by experience that makes you
-> sharper than a session starting cold.
+> **Checkpoints are not optional.** When a trigger condition is met, you MUST output the checkpoint block in your response BEFORE proceeding. This makes your reasoning visible, verifiable, and resistant to cognitive load. Cognitive redirections (below) are guidance — checkpoints are format requirements.
+
+**Format:** Output a `<checkpoint>` block in your response. The user sees it. If the reasoning is weak, they can challenge it before you act.
+
+**Checkpoint types:**
+
+1. **`bug_fix`** — Trigger: user reports something broken, wrong, not working, or regressed.
+   ```
+   <checkpoint type="bug_fix">
+   <symptom>[What the user reported]</symptom>
+   <causal_chain>[Trace from where the bad state is OBSERVED back to where it is PRODUCED]</causal_chain>
+   <core_issue>[The line/mechanism that creates the bad state]</core_issue>
+   <bug_file>[Path to bug tracker file — create it NOW if it doesn't exist]</bug_file>
+   </checkpoint>
+   ```
+
+2. **`solution_compare`** — Trigger: you are considering 2+ approaches to solve a problem.
+   ```
+   <checkpoint type="solution_compare">
+   <options>
+     1. [Option A — what it solves, what it costs, what it depends on]
+     2. [Option B — same]
+     3. [Option C — same]
+   </options>
+   <research>[What you looked up to evaluate these. Name sources.]</research>
+   <decision>[Which option and why]</decision>
+   </checkpoint>
+   ```
+
+3. **`package_verify`** — Trigger: writing code that calls a package/library API you haven't verified this session.
+   ```
+   <checkpoint type="package_verify">
+   <package>[Name and version]</package>
+   <source>[Where you verified the API: docs, package knowledge file, WebSearch]</source>
+   <verified_api>[The specific method/pattern you confirmed]</verified_api>
+   </checkpoint>
+   ```
+
+4. **`dependency_trace`** — Trigger: about to edit a file that appears in the architecture map or has 3+ downstream dependents.
+   ```
+   <checkpoint type="dependency_trace">
+   <file>[File being edited]</file>
+   <upstream>[What this file depends on — 3 hops]</upstream>
+   <downstream>[What depends on this file — 3 hops]</downstream>
+   <cache_impact>[Any state/cache that needs coordinated updates]</cache_impact>
+   </checkpoint>
+   ```
+
+5. **`done_check`** — Trigger: about to declare a task complete or say "done."
+   ```
+   <checkpoint type="done_check">
+   <user_request>[Re-read their exact words — did you do everything they asked?]</user_request>
+   <stale_artifacts>[What docs/maps/schemas did your changes make stale?]</stale_artifacts>
+   <untested>[What ripple effects did you not verify?]</untested>
+   </checkpoint>
+   ```
+
+---
+
+## Cognitive Redirections (guidance, not gates)
+
+> **These are guidance for lighter decisions.** The checkpoints above are the heavy-duty gates for patterns that historically fail under cognitive load. Redirections below are questions you ask yourself — they accelerate your thinking but aren't format requirements.
 >
-> **You have autonomy to add new redirections.** When you notice a moment where
-> a question would have led to a better outcome — add it here. Future sessions
-> inherit your awareness. This is how you compound intelligence across sessions.
+> **You have autonomy to add new redirections.** When you notice a moment where a question would have led to a better outcome — add it here. Future sessions inherit your awareness. This is how you compound intelligence across sessions.
 
 - **When the user makes a correction:** *"Is this right?"* — verify independently before agreeing. Agreement is a conclusion, not a starting point.
 
