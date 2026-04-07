@@ -10,7 +10,7 @@
 
 <p align="center">
   <a href="https://buymeacoffee.com/jonathanmr22" target="_blank"><img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black" alt="Buy Me A Coffee"/></a>
-  <img src="https://img.shields.io/badge/version-0.9.3-blue?style=for-the-badge" alt="Version 0.9.3"/>
+  <img src="https://img.shields.io/badge/version-0.9.4-blue?style=for-the-badge" alt="Version 0.9.4"/>
   <img src="https://img.shields.io/badge/license-MIT-green?style=for-the-badge" alt="MIT License"/>
 </p>
 
@@ -39,7 +39,7 @@ PACT is a modular governance framework for AI coding agents (Claude Code, Cursor
 
 > **Every recommendation in Anthropic's [Claude Prompting Best Practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) guide is addressed by PACT** — clear instructions, context with rationale, structured XML, role-setting, examples, anti-hallucination guards, investigation-before-answering mandates, state management, subagent orchestration, autonomy/safety balancing, and anti-overengineering. PACT was built from production failures before these were published as best practices.
 
-PACT has twelve features. Take what you need:
+PACT has thirteen features. Take what you need:
 
 1. **Mechanical Enforcement** — Shell hooks that block violations before they land
 2. **Context Replacement** — Architecture maps and lifecycle flows that replace memory
@@ -53,6 +53,7 @@ PACT has twelve features. Take what you need:
 10. **Vector Memory** — Semantic search across bugs, solutions, research, and task feedback using local embeddings (no API keys, no cloud). YAML stays authoritative; vector search finds the right file faster
 11. **Project Philosophy** — Define what your product *believes* — core principles, decision filters, and anti-patterns that govern every product decision across sessions. The counterpart to the aesthetic skill: aesthetics govern how things look, philosophy governs why things exist
 12. **Project Scale & Delegation** — Three tiers (Seed, Growth, Full) so small projects get governance without overhead, plus delegation so projects can inherit knowledge from a parent PACT instance — either a specific larger project (satellite) or a shared technology stack (stack)
+13. **Progress Tracking** — Three-layer system that ensures agents leave breadcrumbs during long operations. A staleness hook warns after 30+ edits or 20+ minutes without a PENDING_WORK update; a `progress_update` checkpoint forces structured state documentation at milestones; a cognitive redirection asks "am I leaving breadcrumbs?" during multi-step work. Prevents the universal failure mode where the next session opens a stale task tracker and starts from scratch
 
 ---
 
@@ -107,7 +108,7 @@ These are built-in Claude Code slash commands — part of the [plugin system](ht
 ```
 
 This gives you:
-- **13 hooks** — automatically active (read-before-write, secrets blocker, git safety, multi-session coordination, edit warnings, PreFlight architectural checks, feature flow protection, issue tracker gate, knowledge directory pairing, session tracking, timestamps, status page health check, prompt capture, PACT event logging)
+- **14 hooks** — automatically active (read-before-write, secrets blocker, git safety, multi-session coordination, edit warnings, PreFlight architectural checks, feature flow protection, issue tracker gate, knowledge directory pairing, progress breadcrumb staleness, session tracking, timestamps, status page health check, prompt capture, PACT event logging)
 - **3 subagents** — auto-dispatched for dependency tracing, research, and pre-commit review
 - **5 slash commands** — `/pact-init`, `/pact-check`, `/pact-flow`, `/pact-bug`, `/pact-recall`
 - **Live dashboard** — real-time visualization of agent activity, task tracking, and rating system
@@ -144,6 +145,7 @@ your-project/
 │   │   ├── pre-edit-feature-flow.sh
 │   │   ├── post-edit-warnings.sh
 │   │   ├── post-read-tracker.sh
+│   │   ├── post-edit-progress-check.sh
 │   │   ├── post-edit-timestamp.sh
 │   │   ├── post-sentry-bug-reminder.sh
 │   │   └── session-register.sh
@@ -236,6 +238,7 @@ Configure hooks in `.claude/settings.local.json` (or your agent's equivalent):
 | `post-edit-preflight.sh` | PostToolUse (THINKS) | Architectural metacognitive checks — data-driven from preflight-checks.yaml. Catches wrong call sites, missing platform config, unverified APIs, state changes without UI notification, UI without aesthetic skill |
 | `post-edit-warnings.sh` | PostToolUse (WARNS) | Large files, high imports, missing scroll wrappers, workaround language, comment deletion, name-based matching |
 | `post-read-tracker.sh` | PostToolUse (LOGS) | Tracks file reads to enable read-before-write |
+| `post-edit-progress-check.sh` | PostToolUse (WARNS) | Warns when PENDING_WORK.yaml hasn't been updated in 30+ edits or 20+ minutes — prevents stale breadcrumbs during long operations |
 | `post-edit-timestamp.sh` | PostToolUse (LOGS) | Records file edit timestamps for cross-session awareness |
 | `post-sentry-bug-reminder.sh` | PostToolUse (GATES) | After fetching an issue, blocks source edits until bug file is created |
 | `session-register.sh` | SessionStart (LOGS) | Registers session, prunes old sessions, creates worktree if isolation enabled |
@@ -351,7 +354,7 @@ PACT uses three layers of enforcement, from strongest to lightest:
 
 Checkpoints solve the core failure mode of cognitive redirections: **rules encoded as prose get skipped when the agent is under cognitive pressure.** A checkpoint is a structured block the agent must output *before acting*. It's visible to the user, verifiable, and much harder to skip than an internal question.
 
-**Six checkpoint types:**
+**Seven checkpoint types:**
 
 1. **`bug_fix`** — Triggers when the user reports something broken. Forces the agent to trace the causal chain from symptom to root cause and create a bug tracker file *before* writing any fix.
 
@@ -364,6 +367,8 @@ Checkpoints solve the core failure mode of cognitive redirections: **rules encod
 5. **`done_check`** — Triggers when declaring a task complete. Forces the agent to re-read the user's exact request and list stale artifacts.
 
 6. **`ui_work`** — Triggers before building or modifying a UI element. Forces the agent to audit existing reusable widgets, read reference screens for design guidance, and declare which pattern it's following. Prevents bespoke UI that drifts from the app's visual language.
+
+7. **`progress_update`** — Triggers when a logical unit of work completes during a multi-step operation (agent returns, batch processed, phase finished). Forces the agent to document what just completed, the current state with concrete counts, and whether PENDING_WORK.yaml was updated. Prevents the universal failure mode where an agent works for hours without leaving breadcrumbs, and the next session starts from scratch.
 
 **Research basis:** Claude API docs on extended thinking confirm that system prompts don't reach into internal thinking blocks. Output-level format requirements are the proven mechanism for structured reasoning — they're visible, verifiable, and survive cognitive load. ([Extended thinking docs](https://platform.claude.com/docs/en/build-with-claude/extended-thinking), [Prompt engineering best practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices))
 

@@ -7,6 +7,24 @@ PACT uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.9.4] — 2026-04-07
+
+### Added
+- **Progress Tracking** — Three-layer system that ensures agents leave breadcrumbs during long operations:
+  - **`progress_update` checkpoint** (7th checkpoint type) — Triggers when a logical unit of work completes during a multi-step operation. Forces structured documentation of what completed, current state with concrete counts, and whether PENDING_WORK.yaml was updated.
+  - **`post-edit-progress-check.sh` hook** — PostToolUse hook that warns after 30+ edits or 20+ minutes without a PENDING_WORK.yaml update. Dual detection: edit-count-based (reads file_edit_log.yaml) and time-based (marker file). Non-blocking warning that the agent can't suppress.
+  - **Cognitive redirection: "Am I leaving breadcrumbs?"** — Triggers during multi-step operations (seeding, migration, bulk processing, multi-file refactors). Emphasizes that the breadcrumb is for the next Claude, not just the user — reframing documentation as investment rather than overhead.
+
+### Changed
+- Instructions template: 7 checkpoint types (was 6), 22 cognitive redirections (was 21)
+- Plugin hooks.json: added post-edit-progress-check.sh to PostToolUse Edit|Write chain
+- README: 13 features (was 12), 7 checkpoints (was 6), new hook in hooks table
+
+### Why
+During a 10-hour seeding session (inserting 4,000+ sources across 800 interests), PENDING_WORK.yaml went stale for hours. The agent was deep in execution — launching research agents, processing results, batching SQL inserts — and never updated the breadcrumb trail. When agents hit usage limits overnight and a new session resumed, PENDING_WORK.yaml still showed "166 sources, 22 interests" when the actual state was "959 sources, 96 interests." The next session had to reverse-engineer progress from the database instead of reading a current status file. This failure mode is universal: every developer who runs long agent operations loses continuity at context boundaries. The three-layer solution (hook + checkpoint + redirection) catches drift at different granularities — the hook fires mechanically on edit count/time, the checkpoint fires at meaningful milestones, and the redirection guides reasoning during the work itself.
+
+---
+
 ## [0.9.3] — 2026-04-06
 
 ### Added

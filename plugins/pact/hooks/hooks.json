@@ -34,6 +34,14 @@
         {
           "type": "command",
           "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/post-edit-timestamp.sh"
+        },
+        {
+          "type": "command",
+          "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/post-edit-checkpoint-audit.sh"
+        },
+        {
+          "type": "command",
+          "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/post-edit-progress-check.sh"
         }
       ]
     },

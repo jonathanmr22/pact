@@ -88,6 +88,17 @@ At the start of every conversation, the agent MUST:
    </checkpoint>
    ```
 
+7. **`progress_update`** — Trigger: you just completed a logical unit of work during a multi-step operation (agent returned, batch processed, phase finished, category done). Also triggers when the `post-edit-progress-check.sh` hook warns about staleness.
+   ```
+   <checkpoint type="progress_update">
+   <milestone>[What just completed — be specific: "Inserted 540 music/gaming sources" not "made progress"]</milestone>
+   <state_now>[Concrete counts and status: what's done, what's in flight, what's next]</state_now>
+   <pending_work_updated>[Yes/No — did you update PENDING_WORK.yaml? If no, do it NOW before proceeding]</pending_work_updated>
+   </checkpoint>
+   ```
+   
+   **Why this exists:** During long operations (bulk data work, multi-file refactors, seeding, migrations), agents get deep into execution and stop documenting where they are. The next session opens `PENDING_WORK.yaml`, finds stale information, and either repeats work or misses where the previous session stopped. This checkpoint forces you to leave breadcrumbs *during* the work, not after. The breadcrumb is for the next Claude — it's an investment in continuity, not overhead.
+
 ---
 
 ## Project Philosophy
@@ -186,6 +197,8 @@ grow it over time as decisions crystallize.
 
 - **When tempted to judge, simplify, or dismiss a PACT feature:** *"Do I actually understand why this exists, or am I pattern-matching against something it's not?"* — PACT was built from real production failures by a developer who watched Claude make the exact mistakes these features prevent. Every subsystem — cognitive redirections, subagents, cutting room, aesthetic skill, capability baseline — solves a specific, documented failure mode. If a feature seems unnecessary, that means you haven't encountered the failure it prevents yet. Read the feature's files before forming an opinion. Think critically about how it applies to THIS project specifically. Small projects and solo developers benefit the most from governance infrastructure — there are no teammates to catch your mistakes. Never suggest removing or skipping PACT features without first reading every file in that subsystem and articulating the specific failure mode it addresses.
 
+- **When working on a multi-step operation (seeding, migration, bulk processing, multi-file refactor):** *"Am I leaving breadcrumbs?"* — if a future session opened PENDING_WORK.yaml right now, would they know what you're doing, what's done, what's in flight, and where to pick up? If not, stop and update before the next step. The breadcrumb is for the next Claude, not just the user. Without it, the next session starts from scratch — repeating work, missing progress, or making conflicting changes. A 30-second update to PENDING_WORK.yaml saves the next session 30 minutes of archaeology. This is especially critical for operations that span context window boundaries: if your work is too large for one context window, the only thing that survives compaction is what you wrote down. **Update at every natural milestone** — not at the end, during.
+
 - **When about to declare work done or commit:** *"Have I dispatched pact-reviewer for a second opinion?"* — self-review is inherently biased. You wrote the code, so you'll see what you intended, not what you shipped. For feature work or multi-file changes (3+ files), dispatch `pact-reviewer` — it runs the governance checklist in a fresh context and catches what your loaded context window misses. Skip for trivial commits (typo fixes, version bumps). The 30 seconds a review takes saves the 30 minutes a missed staleness issue costs.
 
 ---
@@ -260,6 +273,7 @@ Common overlaps:
 | Bug tracker required for fix commits | pre-bash-guard.sh | BLOCKS bash |
 | Knowledge Directory pairing: knowledge files require KNOWLEDGE_DIRECTORY.yaml in same commit | pre-bash-guard.sh | BLOCKS bash |
 | Critical file protection: requires feature flow doc | pre-edit-feature-flow.sh | BLOCKS edit |
+| Progress breadcrumb staleness (30+ edits or 20+ min without PENDING_WORK update) | post-edit-progress-check.sh | WARNS |
 | File size > 800 lines | post-edit-warnings.sh | WARNS |
 | Import count > 25 | post-edit-warnings.sh | WARNS |
 | Modal without scroll wrapper | post-edit-warnings.sh | WARNS |
