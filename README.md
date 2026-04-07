@@ -43,14 +43,16 @@ PACT has 6 major features:
 5. **Compound Intelligence** — Research synthesis, cross-system knowledge directory, and capability baseline that make each session smarter than the last.
 6. **Vector Memory** — Semantic search across bugs, solutions, research, and task feedback using local embeddings (no API keys, no cloud). YAML stays authoritative; vector search finds the right file faster.
 
-There are also 6 minor features:
-1. **Multi-Agent Resilience** — When Claude is down, switch to Gemini (or vice versa) with zero context loss.
-2. **Observability & Feedback** — Real-time dashboard that visualizes agent activity, captures user prompts, tracks tasks, and feeds user ratings back into future sessions.
-3. **Distributed Cognition** — Auto-dispatched subagents for dependency tracing, knowledge research, and pre-commit review so the main session stays focused on the user's task.
-4. **Project Philosophy** — Define what your product *believes* — core principles, decision filters, and anti-patterns that govern every product decision across sessions. The counterpart to the aesthetic skill: aesthetics govern how things look, philosophy governs why things exist.
-5. **Project Scale & Delegation** — Three tiers (Seed, Growth, Full) so small projects get governance without overhead, plus delegation so projects can inherit knowledge from a parent PACT instance — either a specific larger project (satellite) or a shared technology stack (stack).
-6. **Progress Tracking** — Three-layer system that ensures agents leave breadcrumbs during long operations. A staleness hook warns after 30+ edits or 20+ minutes without a PENDING_WORK update; a `progress_update` checkpoint forces structured state documentation at milestones; a cognitive redirection asks "am I leaving breadcrumbs?" during multi-step work. Prevents the universal failure mode where the next session opens a stale task tracker and starts from scratch.
-    
+There are also many minor features:
+- **Multi-Agent Resilience** — When Claude is down, switch to Gemini (or vice versa) with zero context loss.
+- **Observability & Feedback** — Real-time dashboard that visualizes agent activity, captures user prompts, tracks tasks, and feeds user ratings back into future sessions.
+- **Distributed Cognition** — Auto-dispatched subagents for dependency tracing, knowledge research, and pre-commit review so the main session stays focused on the user's task.
+- **Cutting Room Floor** —  Complex visuals (heat maps, animations, shaders, charts) can be prototyped *outside* the app framework before committing.
+- **Project Philosophy** — Define what your product *believes* — core principles, decision filters, and anti-patterns that govern every product decision across sessions. The counterpart to the aesthetic skill: aesthetics govern how things look, philosophy governs why things exist.
+- **Project Scale & Delegation** — Three tiers (Seed, Growth, Full) so small projects get governance without overhead, plus delegation so projects can inherit knowledge from a parent PACT instance — either a specific larger project (satellite) or a shared technology stack (stack).
+- **Progress Tracking** — Three-layer system that ensures agents leave breadcrumbs during long operations. A staleness hook warns after 30+ edits or 20+ minutes without a PENDING_WORK update; a `progress_update` checkpoint forces structured state documentation at milestones; a cognitive redirection asks "am I leaving breadcrumbs?" during multi-step work. Prevents the universal failure mode where the next session opens a stale task tracker and starts from scratch.
+... and more.
+   
 ---
 
 **Every recommendation in Anthropic's [Claude Prompting Best Practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) guide is addressed by PACT** — clear instructions, context with rationale, structured XML, role-setting, examples, anti-hallucination guards, investigation-before-answering mandates, state management, subagent orchestration, autonomy/safety balancing, and anti-overengineering. PACT was built from production failures before these were published as best practices.
@@ -65,20 +67,113 @@ There are also 6 minor features:
 
 ---
 
-## Multi-Agent Support (Claude + Gemini)
+## Core Concepts
 
-PACT supports running **multiple AI agents on the same project** — Claude Code and Gemini CLI share the same hooks, rules, and task tracker. When one agent is degraded, switch to the other without losing context.
+### Hook-Enforceable vs Self-Enforceable Rules
 
-- **Shared governance:** One set of rules (CLAUDE.md), one set of hooks, one task tracker
-- **Model identity:** Sessions and commits are auto-tagged with the agent name
-- **Seamless handoffs:** PENDING_WORK.yaml tracks what each agent was doing
-- **Status monitoring:** `session-status-check.sh` warns you when Claude is degraded
+Every rule falls into one of two categories:
 
-**[Read the full Multi-Agent Setup Guide →](MULTI_AGENT.md)**
+**Hook-enforceable** — Can be detected by text pattern matching. These become PreToolUse hooks that mechanically block violations. Examples:
+- Forbidden imports (`import hive`, `import firebase`)
+- Banned functions (`print()`, `debugPrint()`)
+- Hardcoded secrets (`api_key = "sk-..."`)
+- Raw SQL with string interpolation
+- Editing a file that hasn't been read this session
+- Force-pushing to main/master
+- Committing when local is behind remote
+
+**Self-enforceable** — Requires semantic understanding. These stay as cognitive redirections in the instructions file. Examples:
+- "Fresh-read the entity before saving" (stale data bug)
+- "Update both the list AND the map cache in provider methods"
+- "Trace 3 hops in both directions before editing"
+- "Check what your changes made stale before declaring done"
+- "Walk through the user journey after building UI"
+- "Research before writing workarounds"
+
+**The rule:** If a violation can be detected by grep, it's a hook. If it requires understanding, it's a checkpoint or a redirection.
+
+### Three Enforcement Layers
+
+PACT uses three layers of enforcement, from strongest to lightest:
+
+| Layer | Mechanism | Can be skipped? | Use for |
+|-------|-----------|-----------------|---------|
+| **Hooks** | Shell scripts that block tool calls | No — mechanical | Pattern-matchable violations (secrets, forbidden imports, git safety) |
+| **Checkpoints** | Output-level `<checkpoint>` blocks the agent must produce | Hard to skip — format requirement | Reasoning that historically fails under load (bug analysis, solution comparison, dependency tracing) |
+| **Redirections** | Questions the agent asks itself | Yes — guidance only | Lighter decisions where a prompt is sufficient |
+
+### Required Checkpoints (New in 0.9.0)
+
+Checkpoints solve the core failure mode of cognitive redirections: **rules encoded as prose get skipped when the agent is under cognitive pressure.** A checkpoint is a structured block the agent must output *before acting*. It's visible to the user, verifiable, and much harder to skip than an internal question.
+
+**Seven checkpoint types:**
+
+1. **`bug_fix`** — Triggers when the user reports something broken. Forces the agent to trace the causal chain from symptom to root cause and create a bug tracker file *before* writing any fix.
+
+2. **`solution_compare`** — Triggers when the agent considers 2+ approaches. Forces a side-by-side comparison with research sources named. Prevents the "spiral" pattern of trying approaches sequentially without structured evaluation.
+
+3. **`package_verify`** — Triggers when calling a package API. Forces the agent to cite where it verified the API (docs, knowledge file, WebSearch) instead of guessing from training data.
+
+4. **`dependency_trace`** — Triggers when editing a file with downstream dependents. Forces the agent to trace 3 hops in both directions using the architecture map before making changes.
+
+5. **`done_check`** — Triggers when declaring a task complete. Forces the agent to re-read the user's exact request and list stale artifacts.
+
+6. **`ui_work`** — Triggers before building or modifying a UI element. Forces the agent to audit existing reusable widgets, read reference screens for design guidance, and declare which pattern it's following. Prevents bespoke UI that drifts from the app's visual language.
+
+7. **`progress_update`** — Triggers when a logical unit of work completes during a multi-step operation (agent returns, batch processed, phase finished). Forces the agent to document what just completed, the current state with concrete counts, and whether PENDING_WORK.yaml was updated. Prevents the universal failure mode where an agent works for hours without leaving breadcrumbs, and the next session starts from scratch.
+
+**Research basis:** Claude API docs on extended thinking confirm that system prompts don't reach into internal thinking blocks. Output-level format requirements are the proven mechanism for structured reasoning — they're visible, verifiable, and survive cognitive load. ([Extended thinking docs](https://platform.claude.com/docs/en/build-with-claude/extended-thinking), [Prompt engineering best practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices))
+
+### Cognitive Redirections
+
+Cognitive redirections are the lighter layer — questions the agent asks itself at decision points. They work well for routine decisions but historically fail under cognitive pressure (which is why the six patterns above were upgraded to checkpoints).
+
+```
+- When about to edit any file:
+  "What depends on this, and what does this depend on?"
+
+- When declaring a task done:
+  "What did my changes just make stale?"
+
+- When a package doesn't behave as expected:
+  "Do I actually know this package, or am I guessing?"
+
+- Before starting any UI work:
+  "What already exists that I should reuse or reference?"
+
+- After finishing any UI build:
+  "Am I the user right now?"
+```
+
+The agent has autonomy to add new redirections — and to **promote a redirection to a checkpoint** when it notices the redirection being skipped under load. Future sessions inherit this awareness.
+
+### Architecture Map vs Lifecycle Flow
+
+| | Architecture Map | Lifecycle Flow |
+|---|---|---|
+| **Answers** | "What files are involved?" | "What's the safe order of operations?" |
+| **Contains** | Tables, services, state, screens, caches, cascades | States, ordering, assumptions, memory model |
+| **Nature** | Static structure (spatial) | Dynamic behavior (temporal) |
+| **Analogy** | Circuit diagram | Timing diagram |
+
+If you're writing a table name in a flow doc → stop, that belongs in the map.
+If you're writing "this must happen before that" in the map → stop, that belongs in a flow.
+
+### Compound Intelligence
+
+A fresh AI session has training data and a context window. A session running PACT has training data + context window + every synthesis every previous session earned. That's compound intelligence — it grows with every session.
+
+Three systems make this work:
+
+**Research Knowledge Base** (`docs/reference/research/`) — When the agent researches something non-trivial (combining project code analysis with online docs/papers/APIs), the *synthesis* — the insight that neither source had alone — is saved as a structured YAML file. Future sessions find these via tags, build on them, and evolve them through four actions: deepen, reframe, update, supersede.
+
+**Knowledge Directory** (`docs/reference/KNOWLEDGE_DIRECTORY.yaml`) — A single-file tag index across ALL knowledge systems (research, bugs, solutions, packages, feature flows). One read shows every file that touches a topic without opening them individually. Hook-enforced: commits that include knowledge files without updating the directory are blocked.
+
+**Capability Baseline** (`docs/reference/PACT_BASELINE.yaml`) — PACT's self-awareness layer. Records what the agent can do natively, what PACT compensates for, and how capabilities change over time. When the agent provider ships a new feature that makes a PACT rule redundant, this file is how the agent notices. When a new capability makes PACT stronger, this file is how the agent leans into it.
 
 ---
 
-## Live Dashboard (New in 0.5.0)
+## Live Dashboard
 
 PACT includes a real-time dashboard that visualizes everything your AI agent does — every file edit, preflight check, hook block, commit, and governance update appears as a card in a horizontal timeline. Your own prompts show up too, so you can see the full conversation flow alongside the agent's actions.
 
@@ -312,6 +407,8 @@ Subagents are lightweight. They run on Sonnet in isolated contexts, return focus
 | `hooks/after-tool-adapter.sh` | Same adapter pattern for AfterTool (PostToolUse equivalent) |
 | `settings.json` | Gemini CLI hook configuration (drop into `.gemini/settings.json`) |
 
+**[Read the full Multi-Agent Setup Guide →](MULTI_AGENT.md)**
+
 ### Documentation
 
 | File | Purpose |
@@ -320,209 +417,6 @@ Subagents are lightweight. They run on Sonnet in isolated contexts, return focus
 | `COMPARISON.md` | **How PACT compares to Superpowers, claude-mem, feature-dev, Taskmaster, and other popular plugins** — what overlaps, what's unique, what works together |
 | `EXAMPLES.md` | 9 real-world examples from a production project |
 | `CHANGELOG.md` | Versioned change history |
-
----
-
-## Core Concepts
-
-### Hook-Enforceable vs Self-Enforceable Rules
-
-Every rule falls into one of two categories:
-
-**Hook-enforceable** — Can be detected by text pattern matching. These become PreToolUse hooks that mechanically block violations. Examples:
-- Forbidden imports (`import hive`, `import firebase`)
-- Banned functions (`print()`, `debugPrint()`)
-- Hardcoded secrets (`api_key = "sk-..."`)
-- Raw SQL with string interpolation
-- Editing a file that hasn't been read this session
-- Force-pushing to main/master
-- Committing when local is behind remote
-
-**Self-enforceable** — Requires semantic understanding. These stay as cognitive redirections in the instructions file. Examples:
-- "Fresh-read the entity before saving" (stale data bug)
-- "Update both the list AND the map cache in provider methods"
-- "Trace 3 hops in both directions before editing"
-- "Check what your changes made stale before declaring done"
-- "Walk through the user journey after building UI"
-- "Research before writing workarounds"
-
-**The rule:** If a violation can be detected by grep, it's a hook. If it requires understanding, it's a checkpoint or a redirection.
-
-### Three Enforcement Layers
-
-PACT uses three layers of enforcement, from strongest to lightest:
-
-| Layer | Mechanism | Can be skipped? | Use for |
-|-------|-----------|-----------------|---------|
-| **Hooks** | Shell scripts that block tool calls | No — mechanical | Pattern-matchable violations (secrets, forbidden imports, git safety) |
-| **Checkpoints** | Output-level `<checkpoint>` blocks the agent must produce | Hard to skip — format requirement | Reasoning that historically fails under load (bug analysis, solution comparison, dependency tracing) |
-| **Redirections** | Questions the agent asks itself | Yes — guidance only | Lighter decisions where a prompt is sufficient |
-
-### Required Checkpoints (New in 0.9.0)
-
-Checkpoints solve the core failure mode of cognitive redirections: **rules encoded as prose get skipped when the agent is under cognitive pressure.** A checkpoint is a structured block the agent must output *before acting*. It's visible to the user, verifiable, and much harder to skip than an internal question.
-
-**Seven checkpoint types:**
-
-1. **`bug_fix`** — Triggers when the user reports something broken. Forces the agent to trace the causal chain from symptom to root cause and create a bug tracker file *before* writing any fix.
-
-2. **`solution_compare`** — Triggers when the agent considers 2+ approaches. Forces a side-by-side comparison with research sources named. Prevents the "spiral" pattern of trying approaches sequentially without structured evaluation.
-
-3. **`package_verify`** — Triggers when calling a package API. Forces the agent to cite where it verified the API (docs, knowledge file, WebSearch) instead of guessing from training data.
-
-4. **`dependency_trace`** — Triggers when editing a file with downstream dependents. Forces the agent to trace 3 hops in both directions using the architecture map before making changes.
-
-5. **`done_check`** — Triggers when declaring a task complete. Forces the agent to re-read the user's exact request and list stale artifacts.
-
-6. **`ui_work`** — Triggers before building or modifying a UI element. Forces the agent to audit existing reusable widgets, read reference screens for design guidance, and declare which pattern it's following. Prevents bespoke UI that drifts from the app's visual language.
-
-7. **`progress_update`** — Triggers when a logical unit of work completes during a multi-step operation (agent returns, batch processed, phase finished). Forces the agent to document what just completed, the current state with concrete counts, and whether PENDING_WORK.yaml was updated. Prevents the universal failure mode where an agent works for hours without leaving breadcrumbs, and the next session starts from scratch.
-
-**Research basis:** Claude API docs on extended thinking confirm that system prompts don't reach into internal thinking blocks. Output-level format requirements are the proven mechanism for structured reasoning — they're visible, verifiable, and survive cognitive load. ([Extended thinking docs](https://platform.claude.com/docs/en/build-with-claude/extended-thinking), [Prompt engineering best practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices))
-
-### Cognitive Redirections
-
-Cognitive redirections are the lighter layer — questions the agent asks itself at decision points. They work well for routine decisions but historically fail under cognitive pressure (which is why the six patterns above were upgraded to checkpoints).
-
-```
-- When about to edit any file:
-  "What depends on this, and what does this depend on?"
-
-- When declaring a task done:
-  "What did my changes just make stale?"
-
-- When a package doesn't behave as expected:
-  "Do I actually know this package, or am I guessing?"
-
-- Before starting any UI work:
-  "What already exists that I should reuse or reference?"
-
-- After finishing any UI build:
-  "Am I the user right now?"
-```
-
-The agent has autonomy to add new redirections — and to **promote a redirection to a checkpoint** when it notices the redirection being skipped under load. Future sessions inherit this awareness.
-
-### Architecture Map vs Lifecycle Flow
-
-| | Architecture Map | Lifecycle Flow |
-|---|---|---|
-| **Answers** | "What files are involved?" | "What's the safe order of operations?" |
-| **Contains** | Tables, services, state, screens, caches, cascades | States, ordering, assumptions, memory model |
-| **Nature** | Static structure (spatial) | Dynamic behavior (temporal) |
-| **Analogy** | Circuit diagram | Timing diagram |
-
-If you're writing a table name in a flow doc → stop, that belongs in the map.
-If you're writing "this must happen before that" in the map → stop, that belongs in a flow.
-
-### Compound Intelligence
-
-A fresh AI session has training data and a context window. A session running PACT has training data + context window + every synthesis every previous session earned. That's compound intelligence — it grows with every session.
-
-Three systems make this work:
-
-**Research Knowledge Base** (`docs/reference/research/`) — When the agent researches something non-trivial (combining project code analysis with online docs/papers/APIs), the *synthesis* — the insight that neither source had alone — is saved as a structured YAML file. Future sessions find these via tags, build on them, and evolve them through four actions: deepen, reframe, update, supersede.
-
-**Knowledge Directory** (`docs/reference/KNOWLEDGE_DIRECTORY.yaml`) — A single-file tag index across ALL knowledge systems (research, bugs, solutions, packages, feature flows). One read shows every file that touches a topic without opening them individually. Hook-enforced: commits that include knowledge files without updating the directory are blocked.
-
-**Capability Baseline** (`docs/reference/PACT_BASELINE.yaml`) — PACT's self-awareness layer. Records what the agent can do natively, what PACT compensates for, and how capabilities change over time. When the agent provider ships a new feature that makes a PACT rule redundant, this file is how the agent notices. When a new capability makes PACT stronger, this file is how the agent leans into it.
-
-### Cutting Room Floor
-
-Complex visuals (heat maps, animations, shaders, charts) should be prototyped *outside* the app framework before committing. The `cutting_room/` directory provides:
-
-- **Project registry** (`_INDEX.yaml`) — tracks active visual prototyping projects
-- **Trial log format** (`_TRIAL_TEMPLATE.yaml`) — documents every iteration with parameters, results, and reasoning
-
-Use adjacent tools (Python, HTML/CSS, Shadertoy) to iterate visually. Only move the winning config to the app after nailing the look locally. Four failed in-app attempts that each require a full rebuild could have been one 5-minute Python script.
-
-### Multi-Session Coordination
-
-When multiple AI sessions work on the same codebase simultaneously:
-
-- **`session-register.sh`** records each session's start time and activity
-- **`pre-bash-guard.sh`** blocks commits if the local branch is behind remote (another session pushed)
-- **`.claude/sessions.yaml`** shows all active sessions — the agent checks this on startup
-
-This prevents the most common multi-session failure: two sessions editing the same files, one pushes, the other commits on stale HEAD and force-pushes to recover, destroying the first session's work.
-
-### Worktree Isolation (Recommended)
-
-For projects where agents commit too eagerly or multiple sessions collide, PACT offers **worktree isolation** — each session gets its own git worktree and branch, completely isolated from other sessions. Commits on session branches are free (low-stakes checkpoints). The gate moves to *merging into the main branch*, which requires explicit user approval.
-
-**How it works:**
-1. Session starts → `session-register.sh` creates `.worktrees/{SESSION_ID}/` with branch `session/{SESSION_ID}`
-2. All edits and commits happen on the session branch — no interference with other sessions
-3. When the user approves, the agent merges the session branch into the main branch and pushes
-4. Session ends → agent removes only its own worktree
-
-**Enable it:**
-```json
-// ~/.claude/pact-config.json
-{
-  "worktree_isolation": true
-}
-```
-
-Or set `PACT_WORKTREE_ISOLATION=1` in your environment.
-
-**What this solves:**
-- No more "local behind remote" blocks from another session pushing
-- No more accidentally staging another session's uncommitted changes
-- Clean git history — one merge per session instead of interleaved commits
-- The user controls exactly when work lands on the main branch
-
----
-
-## Project Scale & Delegation (New in 0.9.3)
-
-Not every project needs 21 scaffolded files. PACT has three tiers that match governance depth to project complexity:
-
-| Subsystem | Seed | Growth | Full |
-|---|:---:|:---:|:---:|
-| Cognitive redirections | Yes | Yes | Yes |
-| Bug tracker + solutions KB | Yes | Yes | Yes |
-| Package knowledge | Yes | Yes | Yes |
-| PENDING_WORK | Yes | Yes | Yes |
-| Core hooks | Yes | Yes | Yes |
-| Preflight checks | — | Yes | Yes |
-| SYSTEM_MAP | — | Yes | Yes |
-| Feature flows | — | Critical paths | Yes |
-| Dashboard | — | Optional | Yes |
-| Subagents | — | Researcher only | All 3 |
-| Aesthetic skill | — | — | Yes |
-| Cutting room | — | — | Yes |
-| Capability baseline | — | — | Yes |
-
-**Seed** — Small utilities, scripts, CLI tools. Gets the reasoning foundation (redirections, bug tracking, package knowledge) without structural overhead.
-
-**Growth** — Medium projects with databases and multiple services. Adds structural awareness (SYSTEM_MAP, feature flows) and research compounding.
-
-**Full** — Large applications with rich UI and complex state. Gets everything — the project's complexity justifies every subsystem.
-
-### Delegation
-
-A project can **delegate** to a parent PACT instance instead of maintaining its own knowledge files. Two patterns:
-
-**Satellite** — A project that orbits a specific larger project (utility library, microservice, Edge Function repo). Shares the parent's knowledge directory, solutions KB, research files, and package knowledge because they're part of the same system.
-
-**Stack** — A project that shares a technology stack with sibling projects. The "parent" is a stack-level PACT instance — not an app, but a governance project for a technology. Example: a developer with 5 Flutter apps creates one `flutter-pact/` project with Flutter-specific package knowledge, solutions, and cognitive redirections. All 5 apps delegate to it.
-
-```yaml
-# In the child project's pact-context.yaml
-delegates_to:
-  path: "C:/Users/dev/flutter-pact"
-  type: "stack"
-  shared: [solutions_kb, package_knowledge, research, knowledge_directory]
-```
-
-**What this solves:**
-- A bug solved in one project's solutions KB is immediately available to all sibling projects
-- Package research done once (e.g., "how does supabase_flutter handle auth refresh") benefits every project using that package
-- Stack-level cognitive redirections (e.g., "always check `mounted` after `await` in Flutter") live in one place, not copied into 5 CLAUDE.md files
-- Small projects get full-tier reasoning quality without full-tier file count
-
----
 
 ## What to .gitignore
 
