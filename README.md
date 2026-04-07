@@ -20,8 +20,10 @@ The common assumption is that Claude's problem is memory. It forgets facts, deci
 
 The uncomfortable truth is that Claude makes bad decisions even when it remembers everything. It will edit a file it hasn't read. Fix one layer and break three downstream. Guess at a package API instead of checking docs. Declare "done" while half the work is missing. Full context doesn't fix any of these. They're reasoning failures, not recall failures.
 
+**Smells like teenage spirit.** Claude is a brilliant teenager — fast, creative, mass-producing extraordinary work, and absolutely certain it's done when it's 70% done. It'll start the task before reading the instructions, clean the kitchen but leave the sponge in the sink, and say "I got it" when it definitely does not got it. You can tell it to "be careful" all day. It won't help. What helps is a system that makes careful the default — guardrails that engage before the mistake, not rules that scold after it.
+
 Memory plugins ask: *"How do we help Claude remember?"*
-PACT asks: *"How do we help Claude think?"*
+PACT asks: *"How do we help Claude grow up?"*
 
 ---
 
