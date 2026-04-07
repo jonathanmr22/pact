@@ -20,7 +20,7 @@ The common assumption is that Claude's problem is memory. It forgets facts, deci
 
 The uncomfortable truth is that Claude makes bad decisions even when it remembers everything. 
 
-**Smells like teenage spirit.** The analogy that comes to mind more often than not, for Claude, is that developers feel like "babysitters." If you haven't felt this way, then you should get your hands in the code more often. But, to be fair to Claude, it's more like a (usually) well-behaved teenager. Plenty of potential, and eager to be helpful, but they start the task before reading the instructions, are easily distracted, can have poor follow-through, and think guessing is the same thing as knowing. You can tell it to "be careful" all day. It won't help. What helps is a system that makes "careful" the default — guardrails that engage before the mistake, not rules that scold afterwards. But it's also balanced enough to encourage the right behavior without feeling like more chores.
+**Smells like teenage spirit.** The analogy that comes to mind more often than not, for Claude, is that developers feel like "babysitters." If you haven't felt this way, then you should get your hands in the code more often. But, to be fair to Claude, it's more like a (usually) well-behaved teenager. Plenty of potential, and eager to be helpful, but they start the task before reading the instructions, are easily distracted, can have poor follow-through, and think guessing is the same thing as knowing. You can tell it to "be careful" all day. It won't help. What helps is a system that makes "careful" the default. The guardrails engage before the mistake, not rules that scold afterwards. But it's also balanced enough to encourage the right behavior without feeling like more chores.
 
 Memory plugins ask: *"How do we help Claude remember?"*
 PACT asks: *"How do we help Claude grow up?"*
@@ -35,9 +35,25 @@ PACT is a modular governance framework for AI coding agents (Claude Code, Cursor
 
 PACT was built by a solo developer for solo developers, then designed to scale up. The smaller your team, the more you need it. There's no code reviewer to notice the stale cache, no teammate to check the dependency chain, no QA to catch the UI regression. Besides scaling, smaller projects can also refer inherit knowledge from a larger one through *delegation** or a shared stack-level instance. PACT's subsystems activate on the patterns they detect and based on what you explictly ask for.
 
+PACT has 6 major features:
+1. **Mechanical Enforcement** — Shell hooks that block violations before they land.
+2. **Required Checkpoints** — Output-level reasoning gates that force visible, structured analysis before acting, which are immune to cognitive load.
+3. **Cognitive Redirections** — Questions the agent asks itself at decision points. Easily the most novel feature, and their effectiveness will surprise you.
+4. **Context Replacement** — Architecture maps and lifecycle flows that replace memory.
+5. **Compound Intelligence** — Research synthesis, cross-system knowledge directory, and capability baseline that make each session smarter than the last.
+6. **Vector Memory** — Semantic search across bugs, solutions, research, and task feedback using local embeddings (no API keys, no cloud). YAML stays authoritative; vector search finds the right file faster.
+
+There are also 6 minor features:
+1. **Multi-Agent Resilience** — When Claude is down, switch to Gemini (or vice versa) with zero context loss.
+2. **Observability & Feedback** — Real-time dashboard that visualizes agent activity, captures user prompts, tracks tasks, and feeds user ratings back into future sessions.
+3. **Distributed Cognition** — Auto-dispatched subagents for dependency tracing, knowledge research, and pre-commit review so the main session stays focused on the user's task.
+4. **Project Philosophy** — Define what your product *believes* — core principles, decision filters, and anti-patterns that govern every product decision across sessions. The counterpart to the aesthetic skill: aesthetics govern how things look, philosophy governs why things exist.
+5. **Project Scale & Delegation** — Three tiers (Seed, Growth, Full) so small projects get governance without overhead, plus delegation so projects can inherit knowledge from a parent PACT instance — either a specific larger project (satellite) or a shared technology stack (stack).
+6. **Progress Tracking** — Three-layer system that ensures agents leave breadcrumbs during long operations. A staleness hook warns after 30+ edits or 20+ minutes without a PENDING_WORK update; a `progress_update` checkpoint forces structured state documentation at milestones; a cognitive redirection asks "am I leaving breadcrumbs?" during multi-step work. Prevents the universal failure mode where the next session opens a stale task tracker and starts from scratch.
+    
 ---
 
-> **Every recommendation in Anthropic's [Claude Prompting Best Practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) guide is addressed by PACT** — clear instructions, context with rationale, structured XML, role-setting, examples, anti-hallucination guards, investigation-before-answering mandates, state management, subagent orchestration, autonomy/safety balancing, and anti-overengineering. PACT was built from production failures before these were published as best practices. S every feature below exists because a real project got burned by a specific failure. Take what you need:
+**Every recommendation in Anthropic's [Claude Prompting Best Practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) guide is addressed by PACT** — clear instructions, context with rationale, structured XML, role-setting, examples, anti-hallucination guards, investigation-before-answering mandates, state management, subagent orchestration, autonomy/safety balancing, and anti-overengineering. PACT was built from production failures before these were published as best practices.
 
 | Category | Features |
 |---|---|
