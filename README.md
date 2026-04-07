@@ -53,17 +53,7 @@ There are also many minor features:
 - **Progress Tracking** — Three-layer system that ensures agents leave breadcrumbs during long operations. A staleness hook warns after 30+ edits or 20+ minutes without a PENDING_WORK update; a `progress_update` checkpoint forces structured state documentation at milestones; a cognitive redirection asks "am I leaving breadcrumbs?" during multi-step work. Prevents the universal failure mode where the next session opens a stale task tracker and starts from scratch.
 ... and more.
    
----
-
 **Every recommendation in Anthropic's [Claude Prompting Best Practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) guide is addressed by PACT** — clear instructions, context with rationale, structured XML, role-setting, examples, anti-hallucination guards, investigation-before-answering mandates, state management, subagent orchestration, autonomy/safety balancing, and anti-overengineering. PACT was built from production failures before these were published as best practices.
-
-| Category | Features |
-|---|---|
-| **Guardrails** | Shell hooks that block mistakes before they land. Checkpoints that force visible reasoning at critical moments. Self-evolving questions the agent asks itself at decision points. |
-| **Memory & Continuity** | Architecture maps and lifecycle flows that replace what the agent forgets between sessions. Compound intelligence that makes each session smarter than the last. Vector search across bugs, solutions, and research — local, no API keys. Progress tracking that ensures breadcrumbs survive long operations. |
-| **Quality & Identity** | Project philosophy that defines what the product believes. Structure/behavior separation so the agent knows both what exists (wiring) and how it behaves (lifecycle). |
-| **Scale & Resilience** | Multi-agent support (Claude + Gemini, zero context loss). Distributed cognition via subagents for dependency tracing, research, and review. Project scale tiers (Seed/Growth/Full) with cross-project delegation. |
-| **Observability** | Real-time dashboard with session lanes, task tracking, and user ratings that feed back into future behavior. |
 
 ---
 
