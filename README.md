@@ -39,21 +39,19 @@ PACT is a modular governance framework for AI coding agents (Claude Code, Cursor
 
 > **Every recommendation in Anthropic's [Claude Prompting Best Practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) guide is addressed by PACT** — clear instructions, context with rationale, structured XML, role-setting, examples, anti-hallucination guards, investigation-before-answering mandates, state management, subagent orchestration, autonomy/safety balancing, and anti-overengineering. PACT was built from production failures before these were published as best practices.
 
-PACT has thirteen features. Take what you need:
+Think of Claude as a brilliant contractor who shows up every morning with no memory of yesterday. They can build anything — but they don't remember where they left the ladder, which walls are load-bearing, or that the client hates open floor plans. They'll wire the electricity before the plumbing is in, declare the kitchen done while the sink is missing, and move on to the next room without updating the blueprint.
 
-1. **Mechanical Enforcement** — Shell hooks that block violations before they land
-2. **Context Replacement** — Architecture maps and lifecycle flows that replace memory
-3. **Required Checkpoints** — Output-level reasoning gates that force visible, structured analysis before acting — immune to cognitive load
-4. **Self-Evolving Reasoning** — Questions the agent asks itself at decision points
-5. **Structure/Behavior Separation** — Static wiring maps vs dynamic lifecycle flows
-6. **Multi-Agent Resilience** — When Claude is down, switch to Gemini (or vice versa) with zero context loss
-7. **Compound Intelligence** — Research synthesis, cross-system knowledge directory, and capability baseline that make each session smarter than the last
-8. **Observability & Feedback** — Real-time dashboard that visualizes agent activity, captures user prompts, tracks tasks, and feeds user ratings back into future sessions
-9. **Distributed Cognition** — Auto-dispatched subagents for dependency tracing, knowledge research, and pre-commit review so the main session stays focused on the user's task
-10. **Vector Memory** — Semantic search across bugs, solutions, research, and task feedback using local embeddings (no API keys, no cloud). YAML stays authoritative; vector search finds the right file faster
-11. **Project Philosophy** — Define what your product *believes* — core principles, decision filters, and anti-patterns that govern every product decision across sessions. The counterpart to the aesthetic skill: aesthetics govern how things look, philosophy governs why things exist
-12. **Project Scale & Delegation** — Three tiers (Seed, Growth, Full) so small projects get governance without overhead, plus delegation so projects can inherit knowledge from a parent PACT instance — either a specific larger project (satellite) or a shared technology stack (stack)
-13. **Progress Tracking** — Three-layer system that ensures agents leave breadcrumbs during long operations. A staleness hook warns after 30+ edits or 20+ minutes without a PENDING_WORK update; a `progress_update` checkpoint forces structured state documentation at milestones; a cognitive redirection asks "am I leaving breadcrumbs?" during multi-step work. Prevents the universal failure mode where the next session opens a stale task tracker and starts from scratch
+PACT is the job site. The safety rails, the updated blueprints, the inspection checklist, the material manifest that tells today's crew exactly where yesterday's crew left off. The contractor is just as talented with or without it — but the *building* is only as good as the system around them.
+
+Every feature below exists because a real project got burned by a specific failure. Take what you need:
+
+| Category | Features |
+|---|---|
+| **Guardrails** | Shell hooks that block mistakes before they land. Checkpoints that force visible reasoning at critical moments. Self-evolving questions the agent asks itself at decision points. |
+| **Memory & Continuity** | Architecture maps and lifecycle flows that replace what the agent forgets between sessions. Compound intelligence that makes each session smarter than the last. Vector search across bugs, solutions, and research — local, no API keys. Progress tracking that ensures breadcrumbs survive long operations. |
+| **Quality & Identity** | Project philosophy that defines what the product believes. Structure/behavior separation so the agent knows both what exists (wiring) and how it behaves (lifecycle). |
+| **Scale & Resilience** | Multi-agent support (Claude + Gemini, zero context loss). Distributed cognition via subagents for dependency tracing, research, and review. Project scale tiers (Seed/Growth/Full) with cross-project delegation. |
+| **Observability** | Real-time dashboard with session lanes, task tracking, and user ratings that feed back into future behavior. |
 
 ---
 
