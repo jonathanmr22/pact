@@ -18,34 +18,26 @@
 
 The common assumption is that Claude's problem is memory. It forgets facts, decisions, and other nuances between sessions, so the go-to "solution" is to make it remember more by applying bandaids like session logs or plans in endless markdown files, classic databases, spawning dozens of subagents to argue it out with little context, and attempting marathon sessions to prove you've avoided compaction; that last one is actually nightmare fuel, not an accomplishment. I'll take "context rot" for $500, Alex.
 
-The uncomfortable truth is that Claude makes bad decisions even when it remembers everything. It will edit a file it hasn't read. Fix one layer and break three downstream. Guess at a package API instead of checking docs. Declare "done" while half the work is missing. Full context doesn't fix any of these. They're reasoning failures, not recall failures.
+The uncomfortable truth is that Claude makes bad decisions even when it remembers everything. 
 
 **Smells like teenage spirit.** The analogy that comes to mind more often than not, for Claude, is that developers feel like "babysitters." If you haven't felt this way, then you should get your hands in the code more often. But, to be fair to Claude, it's more like a (usually) well-behaved teenager. Plenty of potential, and eager to be helpful, but they start the task before reading the instructions, are easily distracted, can have poor follow-through, and think guessing is the same thing as knowing. You can tell it to "be careful" all day. It won't help. What helps is a system that makes "careful" the default — guardrails that engage before the mistake, not rules that scold afterwards. But it's also balanced enough to encourage the right behavior without feeling like more chores.
 
 Memory plugins ask: *"How do we help Claude remember?"*
 PACT asks: *"How do we help Claude grow up?"*
 
----
-
-## Who Is PACT For?
-
-Solo developers and small teams. PACT was built by a solo developer for solo developers, then designed to scale up. The smaller your team, the more you need it. There's no code reviewer to notice the stale cache, no teammate to check the dependency chain, no QA to catch the UI regression. Large teams have humans for that. You have PACT.
-
-Small project? Good. PACT scales down with you — the **Seed** tier gives you reasoning quality without structural overhead, and **delegation** lets small projects inherit knowledge from a larger one or a shared stack-level instance. PACT's subsystems activate on the patterns they detect, not on project size.
+If you've ever witnessed Claude editing a file it hasn't read, fix one layer and break three downstream, guess at a package API instead of checking docs, deeclare "done" while half the work is missing, or worse, then install PACT. Full context doesn't fix any of these. They're reasoning failures, not recall failures.
 
 ---
 
-## What Is PACT?
+## What is PACT, & Who Is It For?
 
 PACT is a modular governance framework for AI coding agents (Claude Code, Cursor, Copilot Workspace, etc.). Use all of it or just the parts that fill gaps in your existing setup — if you already have a memory layer, a task manager, or a workflow orchestrator, PACT detects that and only scaffolds what's missing.
 
-> **Every recommendation in Anthropic's [Claude Prompting Best Practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) guide is addressed by PACT** — clear instructions, context with rationale, structured XML, role-setting, examples, anti-hallucination guards, investigation-before-answering mandates, state management, subagent orchestration, autonomy/safety balancing, and anti-overengineering. PACT was built from production failures before these were published as best practices.
+PACT was built by a solo developer for solo developers, then designed to scale up. The smaller your team, the more you need it. There's no code reviewer to notice the stale cache, no teammate to check the dependency chain, no QA to catch the UI regression. Besides scaling, smaller projects can also refer inherit knowledge from a larger one through *delegation** or a shared stack-level instance. PACT's subsystems activate on the patterns they detect and based on what you explictly ask for.
 
-Think of Claude as a brilliant contractor who shows up every morning with no memory of yesterday. They can build anything — but they don't remember where they left the ladder, which walls are load-bearing, or that the client hates open floor plans. They'll wire the electricity before the plumbing is in, declare the kitchen done while the sink is missing, and move on to the next room without updating the blueprint.
+---
 
-PACT is the job site. The safety rails, the updated blueprints, the inspection checklist, the material manifest that tells today's crew exactly where yesterday's crew left off. The contractor is just as talented with or without it — but the *building* is only as good as the system around them.
-
-Every feature below exists because a real project got burned by a specific failure. Take what you need:
+> **Every recommendation in Anthropic's [Claude Prompting Best Practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices) guide is addressed by PACT** — clear instructions, context with rationale, structured XML, role-setting, examples, anti-hallucination guards, investigation-before-answering mandates, state management, subagent orchestration, autonomy/safety balancing, and anti-overengineering. PACT was built from production failures before these were published as best practices. S every feature below exists because a real project got burned by a specific failure. Take what you need:
 
 | Category | Features |
 |---|---|
