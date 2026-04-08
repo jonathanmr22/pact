@@ -322,108 +322,71 @@ Configure hooks in `.claude/settings.local.json` (or your agent's equivalent):
 
 ## What You Get
 
-### Hooks (automatic, no action needed)
+### Hooks — 14 shell scripts, automatic, no action needed
 
-| Hook | Type | What It Does |
-|------|------|-------------|
-| `pre-edit-rules.sh` | PreToolUse (BLOCKS) | Stops hardcoded secrets, enforces read-before-write, gates source edits after issue fetch |
-| `pre-bash-guard.sh` | PreToolUse (BLOCKS) | Git safety (no force push, no --no-verify, no reset --hard), multi-session coordination, worktree merge/push gate (opt-in), bug tracker on fix commits, knowledge directory pairing |
-| `pre-edit-feature-flow.sh` | PreToolUse (BLOCKS) | Requires feature flow doc before editing critical system files (auth, encryption, backup, sync) |
-| `post-edit-preflight.sh` | PostToolUse (THINKS) | Architectural metacognitive checks — data-driven from preflight-checks.yaml. Catches wrong call sites, missing platform config, unverified APIs, state changes without UI notification, UI without aesthetic skill |
-| `post-edit-warnings.sh` | PostToolUse (WARNS) | Large files, high imports, missing scroll wrappers, workaround language, comment deletion, name-based matching |
-| `post-read-tracker.sh` | PostToolUse (LOGS) | Tracks file reads to enable read-before-write |
-| `post-edit-progress-check.sh` | PostToolUse (WARNS) | Warns when PENDING_WORK.yaml hasn't been updated in 30+ edits or 20+ minutes — prevents stale breadcrumbs during long operations |
-| `post-edit-timestamp.sh` | PostToolUse (LOGS) | Records file edit timestamps for cross-session awareness |
-| `post-sentry-bug-reminder.sh` | PostToolUse (GATES) | After fetching an issue, blocks source edits until bug file is created |
-| `session-register.sh` | SessionStart (LOGS) | Registers session, prunes old sessions, creates worktree if isolation enabled |
-| `session-status-check.sh` | SessionStart (WARNS) | Checks status.claude.com for major/critical incidents affecting Claude Code or API — warns user at session start, silent when healthy |
-| `pact-event-logger.sh` | Utility (LOGS) | Appends structured events to central JSONL for dashboard visualization — called by other hooks |
-| `pact-prompt-logger.sh` | UserPromptSubmit (LOGS) | Captures user messages as dashboard event cards with IDE context stripped |
-| `pact-server.py` | SessionStart (SERVES) | Dashboard server on port 7246 — serves HTML, events, ratings, scorecard, and config endpoints |
+3 PreToolUse hooks that **block** violations (secrets, git safety, critical files without flow docs). 8 PostToolUse hooks that **warn** or **log** (file size, workaround language, progress staleness, edit timestamps, read tracking, preflight architectural checks). 3 SessionStart hooks that **coordinate** (session registration, status page monitoring, dashboard startup).
 
-### Subagents (auto-dispatched)
+**[Full hook reference with patterns and thresholds →](docs/hooks.md)**
 
-Subagents are lightweight. They run on Sonnet in isolated contexts, return focused results, and free the main session to stay on-task. The overhead of dispatching a subagent is seconds; the overhead of NOT dispatching one — editing without tracing dependencies, coding without verifying package behavior, self-reviewing your own work — is measured in hours of rework. These are not expensive bureaucracy. They are the cheapest insurance in your workflow.
+### Checkpoints — 7 structured reasoning gates
 
-| Agent | Model | What It Does |
-|-------|-------|-------------|
-| `pact-tracer` | Sonnet | Traces dependency chains from SYSTEM_MAP before edits — returns an impact report so the main session edits with full awareness |
-| `pact-researcher` | Sonnet | Checks existing PACT knowledge, researches packages/APIs/patterns if needed, saves synthesis back for future sessions |
-| `pact-reviewer` | Sonnet | Pre-commit governance review in a fresh context — staleness audit, dependency check, cognitive redirection sweep |
+Output-level `<checkpoint>` blocks the agent must produce before acting. Bug fix tracing, solution comparison, package verification, dependency tracing, completion check, UI audit, progress documentation. Visible to the user, verifiable, resistant to cognitive load.
+
+**[Checkpoint types and format reference →](docs/checkpoints.md)**
+
+### Cognitive Redirections — 15+ self-check questions
+
+Questions the agent asks itself at decision points. The lightest enforcement layer — guidance, not gates. "What depends on this?" "Do I actually know this package?" "Can I delegate this?" The agent can add new redirections and promote them to checkpoints when they're consistently skipped.
+
+**[Full redirections catalog →](docs/redirections.md)**
+
+### Multi-Model Delegation — Route tasks to specialized workers
+
+Claude orchestrates; cheaper models execute research (Trinity, $0.90/M) and boilerplate code (M2.5, $0.99/M). Gemini takes over as orchestrator when Claude is down. `pact-delegate` CLI routes tasks, logs token usage, and tracks quality. Swap models by editing one line.
+
+**[Delegation guide with CLI reference →](docs/delegation.md)**
+
+### Dashboard — Real-time observability + task rating
+
+Live visualization of every file edit, hook block, preflight check, and commit as a horizontal timeline. Task rating system (1-5) feeds a scorecard the agent reads at session start. Diagnosis panels show which PACT subsystems were exercised.
+
+**[Dashboard setup and features →](docs/dashboard.md)**
+
+### Vector Memory — Semantic search across knowledge
+
+Local embeddings (no API keys) index bugs, solutions, research, and feedback. Query with natural language instead of grepping filenames. `/pact-recall` slash command for inline search. Auto-indexed when knowledge files are created.
+
+**[Vector memory setup and CLI →](docs/vector-memory.md)**
+
+### Compound Intelligence — Knowledge that grows
+
+Research synthesis, knowledge directory, capability baseline, package knowledge, bug tracking with reusable solutions. Every session's work enriches future sessions. No knowledge dies when a context window closes.
+
+**[Compound intelligence deep dive →](docs/compound-intelligence.md)**
+
+### Subagents — 3 auto-dispatched specialists
+
+| Agent | What It Does |
+|-------|-------------|
+| `pact-tracer` | Traces dependency chains before edits — returns impact report |
+| `pact-researcher` | Checks existing knowledge, researches if needed, saves synthesis |
+| `pact-reviewer` | Pre-commit governance review — staleness audit, dependency check |
 
 ### Slash Commands
 
 | Command | What It Does |
 |---------|-------------|
-| `/pact-init` | Scaffolds governance files into your project (architecture map, flow docs, bug tracker, cognitive redirections, cutting room, session coordination) |
-| `/pact-check` | Runs cognitive redirections against your session's changes (staleness audit, dependency trace, cache check) |
-| `/pact-flow` | Generates a lifecycle flow document for a feature |
-| `/pact-bug` | Creates/updates structured bug investigation files |
-| `/pact-recall` | Semantic search across PACT vector memory (bugs, solutions, research, feedback) |
+| `/pact-init` | Scaffold governance files (tier-aware, overlap-detecting) |
+| `/pact-check` | Run cognitive redirections against current changes |
+| `/pact-flow` | Generate a lifecycle flow document |
+| `/pact-bug` | Create/update structured bug investigation files |
+| `/pact-recall` | Semantic search across PACT vector memory |
 
-### Templates (used by `/pact-init`)
+### Multi-Agent Resilience
 
-| Template | Purpose |
-|----------|---------|
-| `architecture_map.yaml` | SYSTEM_MAP wiring map (tables → services → state → UI) |
-| `feature_flow.yaml` | Lifecycle state machine (what happens across app states) |
-| `instructions.md` | CLAUDE.md with 19 cognitive redirections, semantic safety rules, workflow rules |
-| `package_knowledge.yaml` | Per-package research file (verified API knowledge, not guessing) |
-| `research/_RESEARCH.yaml` | Cross-session research synthesis (format spec, depth levels, evolution actions) |
-| `knowledge_directory.yaml` | Cross-system tag index (single-file lookup across all knowledge systems) |
-| `capability_baseline.yaml` | Agent capability baseline (self-awareness, PACT compensations, capability deltas) |
-| `pending_work.yaml` | Cross-session task tracker |
-| `bugs/_INDEX.yaml` | Bug tracker format specification (30+ standardized tags) |
-| `bugs/_SOLUTIONS.yaml` | Reusable solutions knowledge base (4 starter patterns) |
-| `hooks/preflight-checks.yaml` | Data-driven architectural checks (add YAML, not code) |
-| `aesthetic_skill.md` | Project design identity template (evocative, not prescriptive) |
-| `cutting_room/_INDEX.yaml` | Visual prototyping workspace registry |
-| `cutting_room/_TRIAL_TEMPLATE.yaml` | Trial log format for visual iteration |
-| `dashboard/pact-dashboard.html` | Live dashboard UI — session lanes, task sub-rows, rating overlay, diagnosis, activity timeline |
-| `dashboard/pact-server.py` | Dashboard server — events, ratings, scorecard generation, config management |
-| `dashboard/pact-event-logger.sh` | Event logger — central JSONL writer with project detection, called by all hooks |
-| `dashboard/pact-prompt-logger.sh` | Prompt capture — logs user messages with IDE context stripping |
-| `agents/pact-tracer.md` | Dependency impact subagent — traces upstream/downstream before edits |
-| `agents/pact-researcher.md` | Knowledge compound subagent — checks existing knowledge, researches if needed, saves synthesis |
-| `agents/pact-reviewer.md` | Pre-commit governance subagent — staleness audit, dependency check, redirection sweep |
-| `memory/pact-memory.py` | Vector store manager — embed, store, query across all PACT knowledge systems |
-| `memory/pact-migrate.py` | One-time migration script — indexes existing YAML into vector search |
+Claude + Gemini share the same hooks, same rules, same task tracker. When one is down, switch to the other with zero context loss. Adapter scripts translate between hook formats. Auto-detection banner when Claude is degraded.
 
-### Multi-Model Delegation (templates/delegation/)
-
-| Template | Purpose |
-|----------|---------|
-| `model_roster.yaml` | Model config — orchestrators (Claude + Gemini fallback), workers (Trinity + M2.5). Swap models by editing one `model_id` line. |
-| `pact-delegate` | CLI tool — routes tasks to workers via OpenRouter. Task types: research, code, classify, plan, document. Logs every call with token counts. |
-| `pact-orchestrate` | Launches Gemini as fallback orchestrator inside your terminal — same rules, same hooks, same worker delegation. |
-| `generate_roster_cards.py` | Generates Tekken-style character cards for each model in the roster (Pillow). |
-| `prompts/research.md` | System prompt for research workers (doc summarization, changelog extraction). |
-| `prompts/code.md` | System prompt for code workers (includes condensed project style guide). |
-| `prompts/classify.md` | System prompt for classification tasks (taxonomy, maturity, content moderation). |
-| `prompts/plan.md` | System prompt for plan drafting (YAML implementation plans). |
-| `prompts/document.md` | System prompt for documentation writing. |
-
-**[Read the full Multi-Agent & Delegation Guide →](MULTI_AGENT.md)**
-
-### Gemini Integration (templates/gemini/)
-
-| Template | Purpose |
-|----------|---------|
-| `GEMINI.md` | Project context file for Gemini CLI (points to CLAUDE.md for shared rules) |
-| `hooks/before-tool-adapter.sh` | Translates Gemini's JSON hook format → PACT env vars, delegates to `.claude/hooks/` |
-| `hooks/after-tool-adapter.sh` | Same adapter pattern for AfterTool (PostToolUse equivalent) |
-| `settings.json` | Gemini CLI hook configuration (drop into `.gemini/settings.json`) |
-
-**[Read the full Multi-Agent Setup Guide →](MULTI_AGENT.md)**
-
-### Documentation
-
-| File | Purpose |
-|------|---------|
-| `MULTI_AGENT.md` | **Complete guide to running Claude + Gemini on the same project** — installation, hook architecture, task handoffs, parallel sessions |
-| `COMPARISON.md` | **How PACT compares to Superpowers, claude-mem, feature-dev, Taskmaster, and other popular plugins** — what overlaps, what's unique, what works together |
-| `EXAMPLES.md` | 9 real-world examples from a production project |
-| `CHANGELOG.md` | Versioned change history |
+**[Multi-agent setup guide →](MULTI_AGENT.md)** | **[Comparison with other plugins →](COMPARISON.md)** | **[Real-world examples →](EXAMPLES.md)**
 
 ## What to .gitignore
 
