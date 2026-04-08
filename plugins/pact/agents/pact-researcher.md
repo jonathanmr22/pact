@@ -126,3 +126,35 @@ Return to the main session:
 - **Depth tags.** When saving research, tag the depth level:
   `shallow` (quick lookup), `working` (good enough to code against),
   `deep` (thoroughly verified), `definitive` (tested in production).
+
+## Incremental Output (MANDATORY)
+
+**Write as you go, not at the end.** This is non-negotiable.
+
+If your research involves multiple items (packages, interests, data
+points, API endpoints), you MUST write each completed item to disk
+before starting the next one. The pattern:
+
+1. **Open or create the output file** at the start of your work.
+2. **After completing each unit of research**, append/update the file
+   immediately. Use `Edit` to append to an existing file, or maintain
+   a running JSON/YAML structure that grows with each item.
+3. **Never hold more than one completed item in memory** without having
+   written the previous one to disk.
+
+**Why this exists:** Agents hit token limits, get interrupted, or
+encounter errors. When an agent buffers 50 findings in memory and
+crashes at item 51, all 50 are lost. When it writes after each item,
+50 out of 51 survive. The marginal cost of incremental writes is tiny;
+the cost of lost work is enormous.
+
+**For bulk research** (e.g., researching 10+ items in a batch):
+- Write results to a JSON file using append-friendly format
+- After each item: read the file, add the new entry, write it back
+- Log progress: "Completed {n}/{total}, written to {file}"
+- If the output file already has entries from a previous run, preserve
+  them and append — never overwrite existing work
+
+**The guarantee:** If this agent is interrupted at any point, the output
+file on disk contains every item that was completed before the
+interruption. Zero completed work is lost.

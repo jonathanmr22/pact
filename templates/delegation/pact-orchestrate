@@ -1,0 +1,168 @@
+#!/usr/bin/env bash
+# ============================================================================
+# pact-orchestrate — Gemini fallback orchestrator for Claude Code
+# ============================================================================
+#
+# When Claude is unavailable (usage cap, outage, degraded), run this in
+# your VS Code terminal to get Gemini as orchestrator — same project,
+# same governance, same worker delegation.
+#
+# Usage:
+#   pact-orchestrate                    # Interactive Gemini session
+#   pact-orchestrate "do the task"      # Headless single-task mode
+#   pact-orchestrate --status           # Check who's available
+#
+# What this does:
+#   1. Injects PACT governance context (CLAUDE.md rules, pending work)
+#   2. Launches Gemini CLI with delegation awareness
+#   3. Gemini follows the same session start protocol as Claude
+#   4. Gemini can invoke pact-delegate for worker models
+#
+# Requirements:
+#   - Gemini CLI installed: npm install -g @google/gemini-cli
+#   - Authenticated: run `gemini` once and sign in with Google
+#   - OPENROUTER_API_KEY set (for worker model delegation)
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
+# ── Colors ──────────────────────────────────────────────────────────────────
+BLUE='\033[0;34m'
+GOLD='\033[1;33m'
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+DIM='\033[2m'
+BOLD='\033[1m'
+NC='\033[0m'
+
+# ── Status Check ────────────────────────────────────────────────────────────
+if [[ "${1:-}" == "--status" ]]; then
+  echo ""
+  echo -e "${BOLD}PACT Orchestrator Status${NC}"
+  echo ""
+
+  # Check Claude
+  if curl -s --max-time 5 "https://status.anthropic.com/api/v2/status.json" 2>/dev/null | python3 -c "
+import json, sys
+try:
+    data = json.load(sys.stdin)
+    status = data['status']['indicator']
+    desc = data['status']['description']
+    if status == 'none':
+        print(f'  Claude:  ✓ operational ({desc})')
+    else:
+        print(f'  Claude:  ⚠ {status} ({desc})')
+except:
+    print('  Claude:  ? (could not check)')
+" 2>/dev/null; then true; else
+    echo -e "  Claude:  ? (could not check status)"
+  fi
+
+  # Check Gemini
+  if command -v gemini &>/dev/null; then
+    echo -e "  Gemini:  ${GREEN}✓${NC} installed ($(gemini --version 2>/dev/null || echo 'unknown'))"
+  else
+    echo -e "  Gemini:  ${RED}✗${NC} not installed (npm install -g @google/gemini-cli)"
+  fi
+
+  # Check OpenRouter (for workers)
+  _OR_KEY="${OPENROUTER_API_KEY:-$(powershell -Command "[Environment]::GetEnvironmentVariable('OPENROUTER_API_KEY', 'User')" 2>/dev/null || echo '')}"
+  if [[ -n "$_OR_KEY" ]]; then
+    echo -e "  Workers: ${GREEN}✓${NC} OPENROUTER_API_KEY set (Trinity + M2.5 available)"
+  else
+    echo -e "  Workers: ${RED}✗${NC} OPENROUTER_API_KEY not set (workers unavailable)"
+  fi
+
+  echo ""
+  exit 0
+fi
+
+# ── Preflight ───────────────────────────────────────────────────────────────
+if ! command -v gemini &>/dev/null; then
+  echo -e "${RED}ERROR: Gemini CLI not installed.${NC}" >&2
+  echo "Install: npm install -g @google/gemini-cli" >&2
+  echo "Then run 'gemini' once to authenticate with Google." >&2
+  exit 1
+fi
+
+# ── Load OPENROUTER_API_KEY if not in shell ─────────────────────────────────
+if [[ -z "${OPENROUTER_API_KEY:-}" ]]; then
+  _OR_KEY=$(powershell -Command "[Environment]::GetEnvironmentVariable('OPENROUTER_API_KEY', 'User')" 2>/dev/null || echo '')
+  if [[ -n "$_OR_KEY" ]]; then
+    export OPENROUTER_API_KEY="$_OR_KEY"
+  fi
+fi
+
+# ── Build Orchestration Prompt ──────────────────────────────────────────────
+# This gives Gemini enough context to act as orchestrator
+ORCHESTRATION_PROMPT="You are Gemini, acting as PACT orchestrator for this project.
+
+Claude is unavailable. You are now the session commander. Follow the same rules as Claude:
+
+## Your Identity
+- You are Gemini, the fallback orchestrator
+- Tag all commits: Co-Authored-By: Gemini <noreply@google.com>
+- Tag PENDING_WORK entries with agent: gemini
+- Register in .claude/sessions.yaml with model: gemini
+
+## Session Start Protocol
+1. Read CLAUDE.md for all project rules
+2. Read .claude/memory/PENDING_WORK.yaml for current tasks
+3. Read .claude/sessions.yaml for active sessions
+4. Run git pull if another session pushed recently
+
+## Worker Model Delegation
+You can delegate tasks to cheaper worker models via pact-delegate:
+
+  # Research tasks → Trinity (\$0.90/M tokens)
+  bash .claude/tools/pact-delegate research \"<question>\"
+
+  # Code tasks → M2.5 (\$0.99/M tokens)
+  bash .claude/tools/pact-delegate code \"<task>\" --context-file <pattern.dart>
+
+  # View the full roster
+  bash .claude/tools/pact-delegate --roster
+
+## Delegation Decision Tree
+1. Needs {{PROJECT_NAME}} architecture knowledge? → You do it
+2. Primarily reading/summarizing external content? → Delegate to Trinity
+3. Writing code from an existing pattern? → Delegate to M2.5 with pattern file
+4. Security, schema changes, bug fixes? → You do it
+5. Novel code without a pattern? → You do it
+
+## What You NEVER Do
+- Edit security, encryption, or auth code
+- Change PACT governance files (CLAUDE.md, SYSTEM_MAP, hooks)
+- Force push or merge to master without user approval
+- Skip the hooks — they enforce rules on your edits too
+
+## Current State
+Check PENDING_WORK.yaml for what needs doing. The user will tell you what to work on."
+
+# ── Launch ──────────────────────────────────────────────────────────────────
+echo ""
+echo -e "${BOLD}${BLUE}  ╔══════════════════════════════════════════════════════╗${NC}"
+echo -e "${BOLD}${BLUE}  ║       G E M I N I   O R C H E S T R A T O R        ║${NC}"
+echo -e "${BOLD}${BLUE}  ╚══════════════════════════════════════════════════════╝${NC}"
+echo ""
+echo -e "${DIM}  Claude is unavailable. Gemini is your orchestrator.${NC}"
+echo -e "${DIM}  Same project. Same rules. Same worker models.${NC}"
+echo -e "${DIM}  Gemini can delegate to Trinity (research) and M2.5 (code).${NC}"
+echo ""
+
+cd "$PROJECT_ROOT"
+
+if [[ -n "${1:-}" ]]; then
+  # Headless mode — single task
+  echo -e "${DIM}[pact-orchestrate] Running task in headless mode...${NC}"
+  gemini --prompt "$ORCHESTRATION_PROMPT
+
+The user's task: $1" --output-format text
+else
+  # Interactive mode — full session
+  gemini --prompt-interactive "$ORCHESTRATION_PROMPT
+
+Start by reading PENDING_WORK.yaml and telling the user what's available to work on."
+fi

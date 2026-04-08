@@ -1,0 +1,151 @@
+# PACT Multi-Model Delegation — Model Roster Template
+#
+# Customize this file for your project. Models can be swapped by editing
+# a single model_id line. The pact-delegate CLI reads this config at runtime.
+#
+# API keys are NEVER stored here. They come from environment variables.
+# Required env vars:
+#   OPENROUTER_API_KEY — for worker models (get from openrouter.ai/keys)
+#   GEMINI_API_KEY     — for Gemini orchestrator fallback (optional, free tier available)
+
+# --------------------------------------------------------------------------
+# ORCHESTRATORS — Claude is primary, Gemini is fallback
+# --------------------------------------------------------------------------
+orchestrators:
+
+  primary:
+    name: Claude
+    full_name: "Claude Opus 4.6"
+    provider: Anthropic
+    model_id: "claude-opus-4-6"
+    role: orchestrator
+    tagline: "The Architect"
+    description: >
+      Primary session commander. Makes architecture decisions, reviews all code,
+      commits every change. The only model trusted with security, encryption,
+      schema changes, and governance files.
+    color: "#D4A843"
+    accent: "#1A1A2E"
+    stats:
+      reasoning: 99
+      speed: 60
+      cost_efficiency: 30
+      context_window: 95
+      code_quality: 98
+    strengths:
+      - "Architecture & system design"
+      - "Complex debugging & causal tracing"
+      - "Security & encryption"
+      - "Code review & final authority"
+      - "Multi-hop dependency analysis"
+    never_delegates:
+      - "Security, encryption, or auth code"
+      - "Architecture decisions or schema changes"
+      - "PACT governance (CLAUDE.md, SYSTEM_MAP, hooks)"
+      - "Bug fixes (causal chain tracing)"
+      - "Final code review before commit"
+    card_image: "delegation/roster/claude.png"
+
+  fallback:
+    name: Gemini
+    full_name: "Gemini 2.5 Pro"
+    provider: Google
+    model_id: "gemini-2.5-pro"
+    role: orchestrator
+    tagline: "The Commander"
+    description: >
+      Fallback orchestrator. When Claude is unavailable (outage, quota, degraded),
+      Gemini takes over as session commander — inheriting the same rules, the same
+      hooks, and the same task tracker. Also manages worker model delegation
+      when acting as orchestrator. Free tier: 1,000 req/day.
+    color: "#4285F4"
+    accent: "#1A1A2E"
+    stats:
+      reasoning: 90
+      speed: 80
+      cost_efficiency: 85
+      context_window: 95
+      code_quality: 85
+    strengths:
+      - "Built-in Google Search (no WebSearch tool needed)"
+      - "Free tier — zero cost for full sessions"
+      - "Strong code generation"
+      - "Shares all PACT governance with Claude"
+      - "Can orchestrate worker models via pact-delegate"
+    when_active: >
+      Gemini becomes orchestrator when: (1) Claude is down/degraded,
+      (2) session-status-check.sh reports Claude incident, (3) user
+      explicitly starts a Gemini session. When orchestrating, Gemini
+      follows the same delegation decision tree as Claude and can invoke
+      pact-delegate to route tasks to Trinity/M2.5.
+    card_image: "delegation/roster/gemini.png"
+
+# --------------------------------------------------------------------------
+# WORKER MODELS — routable via pact-delegate
+# --------------------------------------------------------------------------
+workers:
+
+  research:
+    name: Trinity
+    full_name: "Arcee Trinity-Large-Thinking"
+    provider: OpenRouter
+    model_id: "arcee-ai/trinity-large-thinking"
+    role: research
+    tagline: "The Scholar"
+    description: >
+      Deep research specialist. Reads documentation, summarizes changelogs,
+      drafts plans and feature flows, classifies content. 96% cheaper than Claude.
+    color: "#6C63FF"
+    accent: "#1B1B3A"
+    cost_per_million_output: 0.90
+    context_window_tokens: 262000
+    stats:
+      reasoning: 78
+      speed: 85
+      cost_efficiency: 96
+      context_window: 75
+      code_quality: 55
+    strengths:
+      - "Web research & doc summarization"
+      - "Plan & feature flow drafting"
+      - "Content classification"
+      - "Changelog & API pattern extraction"
+      - "Large context synthesis (262K)"
+    delegated_tasks:
+      - research
+      - classify
+      - plan
+      - document
+    card_image: "delegation/roster/trinity.png"
+
+  code:
+    name: M2.5
+    full_name: "MiniMax M2.5"
+    provider: OpenRouter
+    model_id: "minimax/minimax-m2.5"
+    role: code
+    tagline: "The Coder"
+    description: >
+      Boilerplate code machine. Generates tests, CRUD methods, seed data,
+      and scaffolds files from existing patterns. SWE-bench 80.2%.
+    color: "#00E676"
+    accent: "#0D1B0F"
+    cost_per_million_output: 0.99
+    context_window_tokens: 197000
+    stats:
+      reasoning: 72
+      speed: 90
+      cost_efficiency: 96
+      context_window: 65
+      code_quality: 80
+    strengths:
+      - "Boilerplate & CRUD generation"
+      - "Test file scaffolding"
+      - "Pattern replication from examples"
+      - "Bulk data processing scripts"
+      - "SWE-bench verified: 80.2%"
+    delegated_tasks:
+      - code
+      - refactor
+      - seed_data
+    card_image: "delegation/roster/m25.png"

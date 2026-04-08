@@ -161,6 +161,58 @@ This is the same context a human coworker would need. PACT just makes it machine
 
 ---
 
+## Multi-Model Delegation — The Model Roster
+
+Beyond failover, PACT supports **multi-model delegation** — routing tasks to
+specialized worker models via OpenRouter, orchestrated by whichever agent
+(Claude or Gemini) is currently active.
+
+### The Roster
+
+| Model | Role | Cost | Best At |
+|-------|------|------|---------|
+| **Claude** (Opus 4.6) | Primary Orchestrator | $15-25/M | Architecture, security, debugging, review |
+| **Gemini** (2.5 Pro) | Fallback Orchestrator | Free-$7/M | Takes over when Claude is down; manages workers |
+| **Trinity** (Arcee) | Research Worker | $0.90/M | Web research, doc summary, classification, plans |
+| **M2.5** (MiniMax) | Code Worker | $0.99/M | Boilerplate, tests, CRUD, pattern replication |
+
+### How It Works
+
+1. The active orchestrator (Claude or Gemini) evaluates each task
+2. Tasks that don't need frontier reasoning get delegated to workers via `pact-delegate`
+3. Workers return output → orchestrator reviews, fixes, integrates
+4. Hooks verify ALL code regardless of which model wrote it
+
+**When Gemini is orchestrator**, it follows the same delegation decision tree as
+Claude and invokes `pact-delegate` to route tasks to Trinity/M2.5. The workers
+don't know or care which orchestrator is managing them — they receive a prompt
+and return a response.
+
+### Setup
+
+```bash
+# Copy delegation templates to your project
+cp -r templates/delegation/ .claude/tools/
+
+# Set your OpenRouter API key (for worker models)
+export OPENROUTER_API_KEY="your-key-from-openrouter.ai"
+
+# View the roster
+bash .claude/tools/pact-delegate --roster
+
+# Delegate a research task to Trinity
+bash .claude/tools/pact-delegate research "Summarize the Flutter 3.41 changelog"
+
+# Delegate a coding task to M2.5 with pattern context
+bash .claude/tools/pact-delegate code "Generate unit tests" \
+  --context-file lib/services/my_service.dart
+```
+
+See `templates/delegation/model_roster.yaml` for the full roster config.
+Swap models by changing one `model_id` line. Add new models by adding entries.
+
+---
+
 ## Cooperative Mode — Agents Working Together
 
 Beyond failover, PACT supports **cooperative delegation** — one agent dispatching
