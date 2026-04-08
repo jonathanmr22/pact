@@ -78,7 +78,22 @@ At the start of every conversation, the agent MUST:
    </checkpoint>
    ```
 
-6. **`ui_work`** — Trigger: about to build or significantly modify a UI element (widget, screen, modal, sheet, overlay, card).
+6. **`delegation_check`** — Trigger: about to start a task that involves web research, doc reading, changelog summarization, boilerplate code generation, test scaffolding, seed data creation, or content classification.
+   ```
+   <checkpoint type="delegation_check">
+   <task>[What you're about to do]</task>
+   <token_estimate>[Rough token cost if orchestrator does it: low (<1K), medium (1-5K), high (5K+)]</token_estimate>
+   <decision_tree>
+     1. Needs project architecture knowledge? [yes/no]
+     2. Primarily reading/summarizing external content? [yes/no]
+     3. Writing code from an existing pattern? [yes/no]
+     4. Security, schema, or bug fix? [yes/no]
+   </decision_tree>
+   <delegation>[DELEGATE to Trinity/M2.5 because X | KEEP because Y]</delegation>
+   </checkpoint>
+   ```
+
+7. **`ui_work`** — Trigger: about to build or significantly modify a UI element (widget, screen, modal, sheet, overlay, card).
    ```
    <checkpoint type="ui_work">
    <task>[What UI element you're building or modifying]</task>
@@ -88,7 +103,7 @@ At the start of every conversation, the agent MUST:
    </checkpoint>
    ```
 
-7. **`progress_update`** — Trigger: you just completed a logical unit of work during a multi-step operation (agent returned, batch processed, phase finished, category done). Also triggers when the `post-edit-progress-check.sh` hook warns about staleness.
+8. **`progress_update`** — Trigger: you just completed a logical unit of work during a multi-step operation (agent returned, batch processed, phase finished, category done). Also triggers when the `post-edit-progress-check.sh` hook warns about staleness.
    ```
    <checkpoint type="progress_update">
    <milestone>[What just completed — be specific: "Inserted 540 music/gaming sources" not "made progress"]</milestone>
