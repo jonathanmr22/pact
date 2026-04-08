@@ -20,7 +20,7 @@ The common assumption is that Claude's problem is memory. It forgets facts, deci
 
 The uncomfortable truth is that Claude makes bad decisions even when it remembers everything. 
 
-**Smells like teenage spirit.** The analogy that comes to mind more often than not, for Claude, is that developers feel like "babysitters." If you haven't felt this way, then you should get your hands in the code more often. But, to be fair to Claude, it's more like a (usually) well-behaved teenager. Plenty of potential, and eager to be helpful, but they start the task before reading the instructions, are easily distracted, can have poor follow-through, and think guessing is the same thing as knowing. You can tell it to "be careful" all day. It won't help. What helps is a system that makes "careful" the default. The guardrails engage before the mistake, not rules that scold afterwards. But it's also balanced enough to encourage the right behavior without feeling like more chores.
+**Smells like teen spirit.** The analogy that comes to mind more often than not, for Claude, is that developers feel like "babysitters." If you haven't felt this way, then you should get your hands in the code more often. But, to be fair to Claude, it's more like a (usually) well-behaved teenager. Plenty of potential, and eager to be helpful, but they start the task before reading the instructions, are easily distracted, can have poor follow-through, and think guessing is the same thing as knowing. You can tell it to "be careful" all day. It won't help. What helps is a system that makes "careful" the default. The guardrails engage before the mistake, not rules that scold afterwards. But it's also balanced enough to encourage the right behavior without feeling like more chores.
 
 Memory plugins ask: *"How do we help Claude remember?"*
 PACT asks: *"How do we help Claude grow up?"*
@@ -44,7 +44,8 @@ PACT has 6 major features:
 6. **Vector Memory** — Semantic search across bugs, solutions, research, and task feedback using local embeddings (no API keys, no cloud). YAML stays authoritative; vector search finds the right file faster.
 
 There are also many minor features:
-- **Multi-Agent Resilience** — When Claude is down, switch to Gemini (or vice versa) with zero context loss.
+- **Multi-Agent Resilience** — When Claude is down, switch to Gemini (or vice versa) with zero context loss. An auto-detection banner fires on Claude degradation with exact instructions to continue working.
+- **Multi-Model Delegation** — Route tasks to cheaper, specialized worker models via `pact-delegate`. Claude orchestrates; workers execute research (Arcee Trinity, $0.90/M tokens) and boilerplate code (MiniMax M2.5, $0.99/M tokens). Hooks verify all output regardless of which model wrote it. When Claude is unavailable, Gemini takes over as orchestrator and manages the same workers via the same CLI. Swap models by editing one line in `model_roster.yaml`.
 - **Observability & Feedback** — Real-time dashboard that visualizes agent activity, captures user prompts, tracks tasks, and feeds user ratings back into future sessions.
 - **Distributed Cognition** — Auto-dispatched subagents for dependency tracing, knowledge research, and pre-commit review so the main session stays focused on the user's task.
 - **Cutting Room Floor** —  Complex visuals (heat maps, animations, shaders, charts) can be prototyped *outside* the app framework before committing.
@@ -387,6 +388,22 @@ Subagents are lightweight. They run on Sonnet in isolated contexts, return focus
 | `agents/pact-reviewer.md` | Pre-commit governance subagent — staleness audit, dependency check, redirection sweep |
 | `memory/pact-memory.py` | Vector store manager — embed, store, query across all PACT knowledge systems |
 | `memory/pact-migrate.py` | One-time migration script — indexes existing YAML into vector search |
+
+### Multi-Model Delegation (templates/delegation/)
+
+| Template | Purpose |
+|----------|---------|
+| `model_roster.yaml` | Model config — orchestrators (Claude + Gemini fallback), workers (Trinity + M2.5). Swap models by editing one `model_id` line. |
+| `pact-delegate` | CLI tool — routes tasks to workers via OpenRouter. Task types: research, code, classify, plan, document. Logs every call with token counts. |
+| `pact-orchestrate` | Launches Gemini as fallback orchestrator inside your terminal — same rules, same hooks, same worker delegation. |
+| `generate_roster_cards.py` | Generates Tekken-style character cards for each model in the roster (Pillow). |
+| `prompts/research.md` | System prompt for research workers (doc summarization, changelog extraction). |
+| `prompts/code.md` | System prompt for code workers (includes condensed project style guide). |
+| `prompts/classify.md` | System prompt for classification tasks (taxonomy, maturity, content moderation). |
+| `prompts/plan.md` | System prompt for plan drafting (YAML implementation plans). |
+| `prompts/document.md` | System prompt for documentation writing. |
+
+**[Read the full Multi-Agent & Delegation Guide →](MULTI_AGENT.md)**
 
 ### Gemini Integration (templates/gemini/)
 
