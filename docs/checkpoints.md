@@ -103,7 +103,27 @@ Checkpoints are structured blocks the agent must output *before acting*. They're
 
 **Why this matters:** Every screen should feel like it belongs to the same family. The failure mode: building a bespoke widget from scratch that looks subtly different from the rest of the app, or reinventing something that already exists.
 
-### 7. progress_update
+### 7. delegation_check
+
+**Trigger:** About to start a task involving web research, doc reading, changelog summarization, boilerplate code generation, test scaffolding, seed data creation, or content classification.
+
+```xml
+<checkpoint type="delegation_check">
+<task>[What you're about to do]</task>
+<token_estimate>[Rough cost if orchestrator does it: low (<1K), medium (1-5K), high (5K+)]</token_estimate>
+<decision_tree>
+  1. Needs project architecture knowledge? [yes/no]
+  2. Primarily reading/summarizing external content? [yes/no]
+  3. Writing code from an existing pattern? [yes/no]
+  4. Security, schema, or bug fix? [yes/no]
+</decision_tree>
+<delegation>[DELEGATE to Trinity/M2.5 because X | KEEP because Y]</delegation>
+</checkpoint>
+```
+
+**Why this matters:** The orchestrator's natural tendency is to do everything itself — research, write boilerplate, classify content. Each of those tasks consumes frontier-priced tokens ($75/M output) on work that a $0.90/M model handles adequately. This checkpoint makes the delegation decision visible and accountable. If the decision tree says "no architecture knowledge needed, primarily external content" and the decision is KEEP, the user can challenge it. The delegation log provides an audit trail: sessions with zero delegations but lots of research and boilerplate are sessions where this checkpoint was skipped or overridden.
+
+### 8. progress_update
 
 **Trigger:** Completing a logical unit of work during a multi-step operation.
 

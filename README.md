@@ -97,7 +97,7 @@ PACT uses three layers of enforcement, from strongest to lightest:
 
 Checkpoints solve the core failure mode of cognitive redirections: **rules encoded as prose get skipped when the agent is under cognitive pressure.** A checkpoint is a structured block the agent must output *before acting*. It's visible to the user, verifiable, and much harder to skip than an internal question.
 
-**Seven checkpoint types:**
+**Eight checkpoint types:**
 
 1. **`bug_fix`** — Triggers when the user reports something broken. Forces the agent to trace the causal chain from symptom to root cause and create a bug tracker file *before* writing any fix.
 
@@ -111,7 +111,9 @@ Checkpoints solve the core failure mode of cognitive redirections: **rules encod
 
 6. **`ui_work`** — Triggers before building or modifying a UI element. Forces the agent to audit existing reusable widgets, read reference screens for design guidance, and declare which pattern it's following. Prevents bespoke UI that drifts from the app's visual language.
 
-7. **`progress_update`** — Triggers when a logical unit of work completes during a multi-step operation (agent returns, batch processed, phase finished). Forces the agent to document what just completed, the current state with concrete counts, and whether PENDING_WORK.yaml was updated. Prevents the universal failure mode where an agent works for hours without leaving breadcrumbs, and the next session starts from scratch.
+7. **`delegation_check`** — Triggers before starting web research, doc reading, boilerplate code generation, test scaffolding, or content classification. Forces the agent to run the delegation decision tree and justify whether to delegate to a worker model or keep the task. Makes the cost trade-off visible: "This is a $75/M task that a $0.90/M model handles."
+
+8. **`progress_update`** — Triggers when a logical unit of work completes during a multi-step operation (agent returns, batch processed, phase finished). Forces the agent to document what just completed, the current state with concrete counts, and whether PENDING_WORK.yaml was updated. Prevents the universal failure mode where an agent works for hours without leaving breadcrumbs, and the next session starts from scratch.
 
 **Research basis:** Claude API docs on extended thinking confirm that system prompts don't reach into internal thinking blocks. Output-level format requirements are the proven mechanism for structured reasoning — they're visible, verifiable, and survive cognitive load. ([Extended thinking docs](https://platform.claude.com/docs/en/build-with-claude/extended-thinking), [Prompt engineering best practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices))
 
@@ -330,7 +332,7 @@ Configure hooks in `.claude/settings.local.json` (or your agent's equivalent):
 
 ### Checkpoints — 7 structured reasoning gates
 
-Output-level `<checkpoint>` blocks the agent must produce before acting. Bug fix tracing, solution comparison, package verification, dependency tracing, completion check, UI audit, progress documentation. Visible to the user, verifiable, resistant to cognitive load.
+Output-level `<checkpoint>` blocks the agent must produce before acting. Bug fix tracing, solution comparison, package verification, dependency tracing, completion check, UI audit, delegation justification, progress documentation. Visible to the user, verifiable, resistant to cognitive load.
 
 **[Checkpoint types and format reference →](docs/checkpoints.md)**
 
