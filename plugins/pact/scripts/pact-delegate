@@ -241,8 +241,12 @@ if [[ "$WEB_SEARCH" == "true" || ${#SEARCH_QUERIES[@]} -gt 0 ]]; then
     SEARCH_RESULTS=""
     for query in "${SEARCH_QUERIES[@]}"; do
       echo -e "${DIM}  🔍 Searching: $query${NC}" >&2
-      TAVILY_RESP=$(python3 -c "
-import json, sys, urllib.request, urllib.error
+      TAVILY_RESP=$(python -c "
+import json, sys, urllib.request, urllib.error, io
+
+# Force UTF-8 output on Windows (cp1252 can't handle Unicode search results)
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
 query = sys.argv[1]
 api_key = sys.argv[2]
@@ -275,7 +279,7 @@ try:
         print('\n'.join(out))
 except urllib.error.URLError as e:
     print(f'Search failed: {e}', file=sys.stderr)
-" "$query" "$TAVILY_KEY" 2>&1)
+" "$query" "$TAVILY_API_KEY" 2>&1)
 
       if [[ -n "$TAVILY_RESP" ]]; then
         SEARCH_RESULTS="$SEARCH_RESULTS
@@ -300,12 +304,12 @@ fi
 
 # ── Call OpenRouter ─────────────────────────────────────────────────────────
 # Use Python to create temp files (handles Windows/Unix path differences)
-_PY_TMPDIR=$(python3 -c "import tempfile; print(tempfile.gettempdir())")
+_PY_TMPDIR=$(python -c "import tempfile; print(tempfile.gettempdir())")
 TMPFILE="$_PY_TMPDIR/pact_delegate_payload_$$.json"
 SYSTEM_TMP="$_PY_TMPDIR/pact_delegate_system_$$.txt"
 PROMPT_TMP="$_PY_TMPDIR/pact_delegate_prompt_$$.txt"
 _cleanup() {
-  python3 -c "
+  python -c "
 import os, glob
 for f in glob.glob(os.path.join(r'$_PY_TMPDIR', 'pact_delegate_*_$$.???')):
     try: os.remove(f)
@@ -315,20 +319,23 @@ for f in glob.glob(os.path.join(r'$_PY_TMPDIR', 'pact_delegate_*_$$.???')):
 trap _cleanup EXIT
 
 # Write prompts to files via Python (avoids bash path translation issues)
-python3 -c "
-import sys
-with open(r'$SYSTEM_TMP', 'w', encoding='utf-8') as f:
+# errors='surrogatepass' handles malformed Unicode from search results
+python -c "
+import sys, io
+sys.stdin = io.TextIOWrapper(sys.stdin.buffer, encoding='utf-8', errors='surrogateescape')
+with open(r'$SYSTEM_TMP', 'w', encoding='utf-8', errors='replace') as f:
     f.write(sys.stdin.read())
 " <<< "$SYSTEM_PROMPT"
 
-python3 -c "
-import sys
-with open(r'$PROMPT_TMP', 'w', encoding='utf-8') as f:
+python -c "
+import sys, io
+sys.stdin = io.TextIOWrapper(sys.stdin.buffer, encoding='utf-8', errors='surrogateescape')
+with open(r'$PROMPT_TMP', 'w', encoding='utf-8', errors='replace') as f:
     f.write(sys.stdin.read())
 " <<< "$FULL_PROMPT"
 
 # Build JSON payload using Python reading from files (safe for any content)
-python3 -c "
+python -c "
 import json
 model = '$MODEL'
 max_tokens = $MAX_TOKENS
@@ -362,7 +369,7 @@ echo -e "${_MODEL_COLOR}│  ${BOLD}DELEGATING TO ${MODEL_NAME}${NC}${_MODEL_COL
 echo -e "${_MODEL_COLOR}│${NC}  ${DIM}$(echo "$PROMPT" | head -c 49)${NC}${_MODEL_COLOR}$(printf '%*s' $((51 - $(echo "$PROMPT" | head -c 49 | wc -c))) '')│${NC}" >&2
 echo -e "${_MODEL_COLOR}└─────────────────────────────────────────────────────┘${NC}" >&2
 
-START_TIME=$(date +%s%N 2>/dev/null || python3 -c "import time; print(int(time.time()*1e9))")
+START_TIME=$(date +%s%N 2>/dev/null || python -c "import time; print(int(time.time()*1e9))")
 
 RESPONSE=$(curl -s "https://openrouter.ai/api/v1/chat/completions" \
   -H "Authorization: Bearer $OPENROUTER_API_KEY" \
@@ -371,7 +378,7 @@ RESPONSE=$(curl -s "https://openrouter.ai/api/v1/chat/completions" \
   -H "X-Title: PACT Delegation" \
   -d @"$TMPFILE")
 
-END_TIME=$(date +%s%N 2>/dev/null || python3 -c "import time; print(int(time.time()*1e9))")
+END_TIME=$(date +%s%N 2>/dev/null || python -c "import time; print(int(time.time()*1e9))")
 
 # ── Extract Response ────────────────────────────────────────────────────────
 if [[ "$RAW" == "true" ]]; then
@@ -437,9 +444,9 @@ except Exception as e:
     sys.exit(1)
 PYEOF
 
-CONTENT=$(echo "$RESPONSE" | python3 "$_EXTRACT_SCRIPT")
+CONTENT=$(echo "$RESPONSE" | python "$_EXTRACT_SCRIPT")
 
-USAGE=$(echo "$RESPONSE" | python3 -c "
+USAGE=$(echo "$RESPONSE" | python -c "
 import json, sys
 try:
     r = json.load(sys.stdin)
@@ -465,7 +472,7 @@ if [[ "$VERIFY" == "true" && "$TASK_TYPE" == "code" ]]; then
 fi
 
 # ── Log Delegation ─────────────────────────────────────────────────────────
-TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || python3 -c "from datetime import datetime,timezone; print(datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'))")
+TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || python -c "from datetime import datetime,timezone; print(datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'))")
 PROMPT_SUMMARY=$(echo "$PROMPT" | head -c 80)
 
 # Ensure log file exists
@@ -489,8 +496,8 @@ EOF
 # ── Estimate cost ───────────────────────────────────────────────────────────
 _COST=""
 case "$MODEL_NAME" in
-  Trinity) _COST=$(python3 -c "print(f'{(int(\"$OUTPUT_TOKENS\") * 0.90 / 1000000):.4f}')" 2>/dev/null) ;;
-  M2.5)   _COST=$(python3 -c "print(f'{(int(\"$OUTPUT_TOKENS\") * 0.99 / 1000000):.4f}')" 2>/dev/null) ;;
+  Trinity) _COST=$(python -c "print(f'{(int(\"$OUTPUT_TOKENS\") * 0.90 / 1000000):.4f}')" 2>/dev/null) ;;
+  M2.5)   _COST=$(python -c "print(f'{(int(\"$OUTPUT_TOKENS\") * 0.99 / 1000000):.4f}')" 2>/dev/null) ;;
 esac
 
 # ── Model-branded response banner ──────────────────────────────────────────
