@@ -45,7 +45,7 @@ PACT has 6 major features:
 
 There are also many minor features:
 - **Multi-Agent Resilience** — When Claude is down, switch to Gemini (or vice versa) with zero context loss. An auto-detection banner fires on Claude degradation with exact instructions to continue working.
-- **Multi-Model Delegation** — Route tasks to cheaper, specialized worker models via `pact-delegate`. Claude orchestrates; workers execute research (Arcee Trinity, $0.90/M tokens) and boilerplate code (MiniMax M2.5, $0.99/M tokens). Hooks verify all output regardless of which model wrote it. When Claude is unavailable, Gemini takes over as orchestrator and manages the same workers via the same CLI. Swap models by editing one line in `model_roster.yaml`.
+- **Multi-Model Delegation** — Claude Opus costs $15/M input and $75/M output tokens. That's the right price for architecture and security decisions, but overkill for reading a changelog or generating boilerplate tests. `pact-delegate` routes those tasks to specialized worker models: research to Arcee Trinity ($0.90/M output — 98% cheaper) and boilerplate code to MiniMax M2.5 ($0.99/M output — 99% cheaper). Claude orchestrates, reviews, and commits. Workers execute. Hooks verify all output regardless of which model wrote it. When Claude is unavailable, Gemini (free tier available) takes over as orchestrator and manages the same workers. Swap models by editing one line in `model_roster.yaml`.
 - **Observability & Feedback** — Real-time dashboard that visualizes agent activity, captures user prompts, tracks tasks, and feeds user ratings back into future sessions.
 - **Distributed Cognition** — Auto-dispatched subagents for dependency tracing, knowledge research, and pre-commit review so the main session stays focused on the user's task.
 - **Cutting Room Floor** —  Complex visuals (heat maps, animations, shaders, charts) can be prototyped *outside* the app framework before committing.
@@ -342,7 +342,7 @@ Questions the agent asks itself at decision points. The lightest enforcement lay
 
 ### Multi-Model Delegation — Route tasks to specialized workers
 
-Claude orchestrates; cheaper models execute research (Trinity, $0.90/M) and boilerplate code (M2.5, $0.99/M). Gemini takes over as orchestrator when Claude is down. `pact-delegate` CLI routes tasks, logs token usage, and tracks quality. Swap models by editing one line.
+Claude Opus ($75/M output) orchestrates and reviews. Trinity ($0.90/M — 98% cheaper) handles research. M2.5 ($0.99/M — 99% cheaper) generates boilerplate code. Gemini (free tier) takes over as orchestrator when Claude is down. `pact-delegate` CLI routes tasks, logs token usage, and tracks quality. Every delegation is visible in the terminal and logged with actual costs.
 
 **[Delegation guide with CLI reference →](docs/delegation.md)**
 
