@@ -82,14 +82,36 @@ pact-delegate research "test query" --raw
 pact-delegate code "generate a function" --verify
 ```
 
+### Web Search (Tavily integration)
+
+Worker models can search the web before reasoning. Tavily runs the search,
+results are injected into the prompt, and the worker synthesizes.
+
+```bash
+# Auto-search from the prompt (Tavily extracts queries)
+pact-delegate research "What changed in Flutter 3.41?" --web-search
+
+# Explicit search queries (more targeted, repeatable)
+pact-delegate research "Find the best kayaking YouTube channel and podcast" \
+  --search "best kayaking YouTube channel" \
+  --search "best kayaking podcast"
+```
+
+This gives Trinity web-informed research at 98% less cost than Claude subagents
+with WebSearch. Tavily's free tier provides 1,000 searches/month.
+
 **Options:**
 - `--context-file <path>` — Include file contents as context (repeatable)
 - `--max-tokens <n>` — Max response tokens (default: 2000)
 - `--verify` — Run project analyzer on code output before returning
 - `--raw` — Output raw JSON response
 - `--model <id>` — Override the routed model
+- `--web-search` — Auto-search the web (Tavily) and inject results into prompt
+- `--search "<query>"` — Explicit search query (repeatable, implies web search)
 
-**Environment:** Requires `OPENROUTER_API_KEY` (get from openrouter.ai/keys).
+**Environment variables:**
+- `OPENROUTER_API_KEY` — Required. Get from [openrouter.ai/keys](https://openrouter.ai/keys)
+- `TAVILY_API_KEY` — Optional (for `--web-search`/`--search`). Get from [tavily.com](https://www.tavily.com) — free tier: 1,000 searches/month, no credit card required
 
 ---
 

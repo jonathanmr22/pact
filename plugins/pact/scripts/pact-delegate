@@ -1,0 +1,503 @@
+#!/usr/bin/env bash
+# ============================================================================
+# pact-delegate — Route tasks to worker models via OpenRouter
+# ============================================================================
+#
+# Usage:
+#   pact-delegate <task_type> "<prompt>" [options]
+#
+# Task types: research, code, classify, plan, document
+#
+# Options:
+#   --context-file <path>   Include file contents as context (repeatable)
+#   --max-tokens <n>        Max response tokens (default: 2000)
+#   --verify                Run dart analyze on code output (code tasks only)
+#   --raw                   Output raw JSON response (for debugging)
+#   --model <id>            Override model (e.g. "google/gemini-2.5-pro")
+#   --web-search            Auto-search the web (Tavily) and inject results
+#   --search "<query>"      Explicit search query (repeatable, implies --web-search)
+#   --roster                Display the model roster and exit
+#
+# Environment:
+#   OPENROUTER_API_KEY      Required. Get from openrouter.ai
+#
+# Examples:
+#   pact-delegate research "Summarize the ble_peripheral v2.0 changelog"
+#   pact-delegate code "Generate unit tests for SeedPlaceService" \
+#     --context-file lib/services/seed_place_service.dart --max-tokens 4000
+#   pact-delegate classify "Shibari rope bondage" \
+#     --context-file .claude/tools/prompts/interest_classifier.txt
+#   pact-delegate research "Best kayaking YouTube channels and podcasts" --web-search
+#   pact-delegate research "Find sources for bouldering" \
+#     --search "best bouldering YouTube channel" --search "best bouldering podcast"
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROSTER_FILE="$SCRIPT_DIR/model_roster.yaml"
+LOG_FILE="$SCRIPT_DIR/../../docs/reference/delegation_log.yaml"
+PROMPTS_DIR="$SCRIPT_DIR/prompts"
+
+# ── Colors ──────────────────────────────────────────────────────────────────
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+PURPLE='\033[0;35m'
+CYAN='\033[0;36m'
+GOLD='\033[1;33m'
+NC='\033[0m' # No Color
+BOLD='\033[1m'
+DIM='\033[2m'
+
+# ── Parse Args ──────────────────────────────────────────────────────────────
+TASK_TYPE="${1:-}"
+PROMPT="${2:-}"
+MAX_TOKENS=2000
+CONTEXT_FILES=()
+VERIFY=false
+RAW=false
+MODEL_OVERRIDE=""
+WEB_SEARCH=false
+SEARCH_QUERIES=()
+
+if [[ "$TASK_TYPE" == "--roster" ]]; then
+  _show_roster() {
+    echo ""
+    echo -e "${BOLD}${GOLD}  ╔══════════════════════════════════════════════════════╗${NC}"
+    echo -e "${BOLD}${GOLD}  ║           P A C T   M O D E L   R O S T E R         ║${NC}"
+    echo -e "${BOLD}${GOLD}  ╚══════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    echo -e "  ${GOLD}★ CLAUDE OPUS 4.6${NC}  ${DIM}— The Architect${NC}"
+    echo -e "  ${DIM}  Provider: Anthropic  |  Role: Orchestrator${NC}"
+    echo -e "  ${GOLD}  ████████████████████${NC} Reasoning  99"
+    echo -e "  ${GOLD}  ████████████░░░░░░░░${NC} Speed      60"
+    echo -e "  ${GOLD}  ██████░░░░░░░░░░░░░░${NC} Cost Eff.  30"
+    echo -e "  ${GOLD}  ███████████████████░░${NC} Context    95"
+    echo -e "  ${GOLD}  ████████████████████${NC} Code Qual. 98"
+    echo ""
+    echo -e "  ${BLUE}★ GEMINI 2.5 PRO${NC}  ${DIM}— The Commander (fallback orchestrator)${NC}"
+    echo -e "  ${DIM}  Provider: Google  |  Role: Orchestrator (when Claude unavailable)${NC}"
+    echo -e "  ${BLUE}  ██████████████████░░${NC} Reasoning  90"
+    echo -e "  ${BLUE}  ████████████████░░░░${NC} Speed      80"
+    echo -e "  ${BLUE}  █████████████████░░░${NC} Cost Eff.  85"
+    echo -e "  ${BLUE}  ███████████████████░░${NC} Context    95"
+    echo -e "  ${BLUE}  █████████████████░░░${NC} Code Qual. 85"
+    echo ""
+    echo -e "  ${PURPLE}◆ TRINITY${NC}  ${DIM}— The Scholar${NC}"
+    echo -e "  ${DIM}  Provider: OpenRouter (Arcee AI)  |  Role: Research${NC}"
+    echo -e "  ${PURPLE}  ████████████████░░░░${NC} Reasoning  78"
+    echo -e "  ${PURPLE}  █████████████████░░░${NC} Speed      85"
+    echo -e "  ${PURPLE}  ███████████████████░${NC} Cost Eff.  96"
+    echo -e "  ${PURPLE}  ███████████████░░░░░${NC} Context    75"
+    echo -e "  ${PURPLE}  ███████████░░░░░░░░░${NC} Code Qual. 55"
+    echo ""
+    echo -e "  ${GREEN}◆ M2.5${NC}  ${DIM}— The Coder${NC}"
+    echo -e "  ${DIM}  Provider: OpenRouter (MiniMax)  |  Role: Code${NC}"
+    echo -e "  ${GREEN}  ██████████████░░░░░░${NC} Reasoning  72"
+    echo -e "  ${GREEN}  ██████████████████░░${NC} Speed      90"
+    echo -e "  ${GREEN}  ███████████████████░${NC} Cost Eff.  96"
+    echo -e "  ${GREEN}  █████████████░░░░░░░${NC} Context    65"
+    echo -e "  ${GREEN}  ████████████████░░░░${NC} Code Qual. 80"
+    echo ""
+    echo -e "  ${DIM}Task routing: research/classify/plan/document → Trinity${NC}"
+    echo -e "  ${DIM}             code/refactor/seed_data → M2.5${NC}"
+    echo -e "  ${DIM}             everything else → Claude (orchestrator)${NC}"
+    echo ""
+  }
+  _show_roster
+
+  # Open the roster lineup image in the default viewer
+  ROSTER_IMG="$SCRIPT_DIR/roster/roster_lineup.png"
+  if [[ -f "$ROSTER_IMG" ]]; then
+    case "$(uname -s)" in
+      MINGW*|MSYS*|CYGWIN*) start "" "$ROSTER_IMG" ;;
+      Darwin) open "$ROSTER_IMG" ;;
+      *) xdg-open "$ROSTER_IMG" 2>/dev/null ;;
+    esac
+  fi
+
+  exit 0
+fi
+
+shift 2 2>/dev/null || true
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --context-file)
+      CONTEXT_FILES+=("$2")
+      shift 2
+      ;;
+    --max-tokens)
+      MAX_TOKENS="$2"
+      shift 2
+      ;;
+    --verify)
+      VERIFY=true
+      shift
+      ;;
+    --raw)
+      RAW=true
+      shift
+      ;;
+    --model)
+      MODEL_OVERRIDE="$2"
+      shift 2
+      ;;
+    --web-search)
+      WEB_SEARCH=true
+      shift
+      ;;
+    --search)
+      SEARCH_QUERIES+=("$2")
+      shift 2
+      ;;
+    *)
+      echo "Unknown option: $1" >&2
+      exit 1
+      ;;
+  esac
+done
+
+# ── Validate ────────────────────────────────────────────────────────────────
+if [[ -z "$TASK_TYPE" || -z "$PROMPT" ]]; then
+  echo "Usage: pact-delegate <task_type> \"<prompt>\" [options]" >&2
+  echo "Task types: research, code, classify, plan, document" >&2
+  echo "Use --roster to display the model lineup" >&2
+  exit 1
+fi
+
+if [[ -z "${OPENROUTER_API_KEY:-}" ]]; then
+  echo "ERROR: OPENROUTER_API_KEY environment variable is not set." >&2
+  echo "Get your key at https://openrouter.ai/keys" >&2
+  exit 1
+fi
+
+# ── Route to Model ──────────────────────────────────────────────────────────
+if [[ -n "$MODEL_OVERRIDE" ]]; then
+  MODEL="$MODEL_OVERRIDE"
+  MODEL_NAME="custom"
+else
+  case "$TASK_TYPE" in
+    research|classify|plan|document)
+      MODEL="arcee-ai/trinity-large-thinking"
+      MODEL_NAME="Trinity"
+      ;;
+    code|refactor|seed_data)
+      MODEL="minimax/minimax-m2.5"
+      MODEL_NAME="M2.5"
+      ;;
+    *)
+      echo "Unknown task type: $TASK_TYPE" >&2
+      echo "Valid types: research, code, classify, plan, document, refactor, seed_data" >&2
+      exit 1
+      ;;
+  esac
+fi
+
+# ── Load System Prompt ──────────────────────────────────────────────────────
+SYSTEM_PROMPT_FILE="$PROMPTS_DIR/$TASK_TYPE.md"
+if [[ ! -f "$SYSTEM_PROMPT_FILE" ]]; then
+  # Fall back to research prompt for unknown types
+  SYSTEM_PROMPT_FILE="$PROMPTS_DIR/research.md"
+fi
+SYSTEM_PROMPT=$(cat "$SYSTEM_PROMPT_FILE")
+
+# ── Build Context ───────────────────────────────────────────────────────────
+FULL_PROMPT="$PROMPT"
+
+if [[ ${#CONTEXT_FILES[@]} -gt 0 ]]; then
+  FULL_PROMPT="$PROMPT
+
+---
+## Context Files
+"
+  for ctx_file in "${CONTEXT_FILES[@]}"; do
+    if [[ -f "$ctx_file" ]]; then
+      FULL_PROMPT="$FULL_PROMPT
+### File: $ctx_file
+\`\`\`
+$(cat "$ctx_file")
+\`\`\`
+"
+    else
+      echo "WARNING: Context file not found: $ctx_file" >&2
+    fi
+  done
+fi
+
+# ── Web Search via Tavily (if --web-search or --search) ────────────────────
+if [[ "$WEB_SEARCH" == "true" || ${#SEARCH_QUERIES[@]} -gt 0 ]]; then
+  TAVILY_KEY="${TAVILY_API_KEY:-}"
+  if [[ -z "$TAVILY_KEY" ]]; then
+    echo -e "${YELLOW}WARNING: TAVILY_API_KEY not set — skipping web search${NC}" >&2
+  else
+    # If no explicit --search queries, auto-generate from the prompt
+    if [[ ${#SEARCH_QUERIES[@]} -eq 0 ]]; then
+      # Use first 80 chars of prompt as search query
+      SEARCH_QUERIES+=("$(echo "$PROMPT" | head -c 80)")
+    fi
+
+    SEARCH_RESULTS=""
+    for query in "${SEARCH_QUERIES[@]}"; do
+      echo -e "${DIM}  🔍 Searching: $query${NC}" >&2
+      TAVILY_RESP=$(python3 -c "
+import json, sys, urllib.request, urllib.error
+
+query = sys.argv[1]
+api_key = sys.argv[2]
+
+payload = json.dumps({
+    'query': query,
+    'search_depth': 'basic',
+    'max_results': 5,
+    'include_answer': True
+}).encode('utf-8')
+
+req = urllib.request.Request(
+    'https://api.tavily.com/search',
+    data=payload,
+    headers={
+        'Content-Type': 'application/json',
+        'Authorization': f'Bearer {api_key}'
+    }
+)
+
+try:
+    with urllib.request.urlopen(req, timeout=10) as resp:
+        data = json.loads(resp.read())
+        # Format results concisely
+        out = []
+        if data.get('answer'):
+            out.append(f'Summary: {data[\"answer\"]}')
+        for r in data.get('results', [])[:5]:
+            out.append(f'- [{r[\"title\"]}]({r[\"url\"]}): {r.get(\"content\",\"\")[:200]}')
+        print('\n'.join(out))
+except urllib.error.URLError as e:
+    print(f'Search failed: {e}', file=sys.stderr)
+" "$query" "$TAVILY_KEY" 2>&1)
+
+      if [[ -n "$TAVILY_RESP" ]]; then
+        SEARCH_RESULTS="$SEARCH_RESULTS
+
+### Search: $query
+$TAVILY_RESP
+"
+      fi
+    done
+
+    # Inject search results into the prompt
+    if [[ -n "$SEARCH_RESULTS" ]]; then
+      FULL_PROMPT="$FULL_PROMPT
+
+---
+## Web Search Results (from Tavily)
+$SEARCH_RESULTS"
+      echo -e "${DIM}  ✓ ${#SEARCH_QUERIES[@]} search(es) completed, results injected into prompt${NC}" >&2
+    fi
+  fi
+fi
+
+# ── Call OpenRouter ─────────────────────────────────────────────────────────
+# Use Python to create temp files (handles Windows/Unix path differences)
+_PY_TMPDIR=$(python3 -c "import tempfile; print(tempfile.gettempdir())")
+TMPFILE="$_PY_TMPDIR/pact_delegate_payload_$$.json"
+SYSTEM_TMP="$_PY_TMPDIR/pact_delegate_system_$$.txt"
+PROMPT_TMP="$_PY_TMPDIR/pact_delegate_prompt_$$.txt"
+_cleanup() {
+  python3 -c "
+import os, glob
+for f in glob.glob(os.path.join(r'$_PY_TMPDIR', 'pact_delegate_*_$$.???')):
+    try: os.remove(f)
+    except: pass
+"
+}
+trap _cleanup EXIT
+
+# Write prompts to files via Python (avoids bash path translation issues)
+python3 -c "
+import sys
+with open(r'$SYSTEM_TMP', 'w', encoding='utf-8') as f:
+    f.write(sys.stdin.read())
+" <<< "$SYSTEM_PROMPT"
+
+python3 -c "
+import sys
+with open(r'$PROMPT_TMP', 'w', encoding='utf-8') as f:
+    f.write(sys.stdin.read())
+" <<< "$FULL_PROMPT"
+
+# Build JSON payload using Python reading from files (safe for any content)
+python3 -c "
+import json
+model = '$MODEL'
+max_tokens = $MAX_TOKENS
+with open(r'$SYSTEM_TMP', 'r', encoding='utf-8') as f:
+    system = f.read()
+with open(r'$PROMPT_TMP', 'r', encoding='utf-8') as f:
+    user = f.read()
+payload = {
+    'model': model,
+    'messages': [
+        {'role': 'system', 'content': system},
+        {'role': 'user', 'content': user}
+    ],
+    'max_tokens': max_tokens
+}
+with open(r'$TMPFILE', 'w', encoding='utf-8') as f:
+    json.dump(payload, f)
+"
+
+# ── Model-branded delegation banner ─────────────────────────────────────────
+_MODEL_COLOR="$NC"
+case "$MODEL_NAME" in
+  Trinity) _MODEL_COLOR="$PURPLE" ;;
+  M2.5)   _MODEL_COLOR="$GREEN" ;;
+  custom)  _MODEL_COLOR="$CYAN" ;;
+esac
+
+echo "" >&2
+echo -e "${_MODEL_COLOR}┌─────────────────────────────────────────────────────┐${NC}" >&2
+echo -e "${_MODEL_COLOR}│  ${BOLD}DELEGATING TO ${MODEL_NAME}${NC}${_MODEL_COLOR}  ($TASK_TYPE)$(printf '%*s' $((28 - ${#MODEL_NAME} - ${#TASK_TYPE})) '')│${NC}" >&2
+echo -e "${_MODEL_COLOR}│${NC}  ${DIM}$(echo "$PROMPT" | head -c 49)${NC}${_MODEL_COLOR}$(printf '%*s' $((51 - $(echo "$PROMPT" | head -c 49 | wc -c))) '')│${NC}" >&2
+echo -e "${_MODEL_COLOR}└─────────────────────────────────────────────────────┘${NC}" >&2
+
+START_TIME=$(date +%s%N 2>/dev/null || python3 -c "import time; print(int(time.time()*1e9))")
+
+RESPONSE=$(curl -s "https://openrouter.ai/api/v1/chat/completions" \
+  -H "Authorization: Bearer $OPENROUTER_API_KEY" \
+  -H "Content-Type: application/json" \
+  -H "HTTP-Referer: https://kensic.app" \
+  -H "X-Title: PACT Delegation" \
+  -d @"$TMPFILE")
+
+END_TIME=$(date +%s%N 2>/dev/null || python3 -c "import time; print(int(time.time()*1e9))")
+
+# ── Extract Response ────────────────────────────────────────────────────────
+if [[ "$RAW" == "true" ]]; then
+  echo "$RESPONSE"
+  exit 0
+fi
+
+# Extract content and usage from response
+# Use a Python script file to avoid bash escaping issues with regex
+_EXTRACT_SCRIPT="$_PY_TMPDIR/pact_delegate_extract_$$.py"
+cat > "$_EXTRACT_SCRIPT" << 'PYEOF'
+import json, sys, re
+
+try:
+    r = json.load(sys.stdin)
+    if 'choices' in r and len(r['choices']) > 0:
+        msg = r['choices'][0]['message']
+        content = msg.get('content')
+        reasoning = msg.get('reasoning')
+        if content:
+            print(content)
+        elif reasoning:
+            # Thinking model — extract final answer, strip reasoning chain
+            # Strategy 1: Look for explicit draft/answer markers
+            markers = [
+                r"(?:Let's draft|Final answer|Here's the|Here is the)[:\s]*\n",
+                r"\n---\n",
+            ]
+            for marker in markers:
+                parts = re.split(marker, reasoning, flags=re.IGNORECASE)
+                if len(parts) > 1:
+                    print(parts[-1].strip())
+                    sys.exit(0)
+            # Strategy 2: Strip meta-reasoning lines (starts with "Hmm,", "I recall",
+            # "The user", "I'll ", "I need", "This is", "The key", "The sentence",
+            # "Let me", "So ", "We need", "We'll", "Probably")
+            lines = reasoning.strip().split('\n')
+            meta_prefixes = (
+                'hmm', 'i recall', 'the user', "i'll", 'i need', 'this is',
+                'the key', 'the sentence', 'let me', 'so ', 'we need',
+                "we'll", 'probably', 'i think', 'okay', 'alright',
+                'now ', 'first', 'wait', "i'm ", 'they want', 'my answer',
+            )
+            clean = [l for l in lines if not l.strip().lower().startswith(meta_prefixes)]
+            if clean:
+                print('\n'.join(clean).strip())
+            else:
+                # Everything was meta — return last paragraph as best guess
+                paragraphs = [p.strip() for p in reasoning.split('\n\n') if p.strip()]
+                print(paragraphs[-1] if paragraphs else reasoning)
+        else:
+            print('ERROR: Empty response from model', file=sys.stderr)
+            sys.exit(1)
+    elif 'error' in r:
+        print(f"ERROR: {r['error'].get('message', 'Unknown error')}", file=sys.stderr)
+        sys.exit(1)
+    else:
+        print('ERROR: Unexpected response format', file=sys.stderr)
+        print(json.dumps(r, indent=2), file=sys.stderr)
+        sys.exit(1)
+except Exception as e:
+    print(f'ERROR: {e}', file=sys.stderr)
+    sys.exit(1)
+PYEOF
+
+CONTENT=$(echo "$RESPONSE" | python3 "$_EXTRACT_SCRIPT")
+
+USAGE=$(echo "$RESPONSE" | python3 -c "
+import json, sys
+try:
+    r = json.load(sys.stdin)
+    u = r.get('usage', {})
+    print(f\"{u.get('prompt_tokens', 0)}:{u.get('completion_tokens', 0)}\")
+except:
+    print('0:0')
+" 2>/dev/null || echo "0:0")
+
+INPUT_TOKENS=$(echo "$USAGE" | cut -d: -f1)
+OUTPUT_TOKENS=$(echo "$USAGE" | cut -d: -f2)
+
+# ── Verify (code tasks only) ───────────────────────────────────────────────
+if [[ "$VERIFY" == "true" && "$TASK_TYPE" == "code" ]]; then
+  VERIFY_TMP=$(mktemp --suffix=.dart)
+  echo "$CONTENT" > "$VERIFY_TMP"
+  if dart analyze "$VERIFY_TMP" 2>&1 | grep -q "error"; then
+    echo -e "${RED}[pact-delegate] WARNING: dart analyze found errors in generated code${NC}" >&2
+  else
+    echo -e "${GREEN}[pact-delegate] dart analyze: clean${NC}" >&2
+  fi
+  rm -f "$VERIFY_TMP"
+fi
+
+# ── Log Delegation ─────────────────────────────────────────────────────────
+TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || python3 -c "from datetime import datetime,timezone; print(datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'))")
+PROMPT_SUMMARY=$(echo "$PROMPT" | head -c 80)
+
+# Ensure log file exists
+mkdir -p "$(dirname "$LOG_FILE")"
+if [[ ! -f "$LOG_FILE" ]]; then
+  echo "# PACT Delegation Log — auto-maintained by pact-delegate" > "$LOG_FILE"
+  echo "delegations:" >> "$LOG_FILE"
+fi
+
+cat >> "$LOG_FILE" << EOF
+  - timestamp: "$TIMESTAMP"
+    task_type: $TASK_TYPE
+    model: "$MODEL"
+    model_name: "$MODEL_NAME"
+    prompt_summary: "$(echo "$PROMPT_SUMMARY" | sed 's/"/\\"/g')"
+    input_tokens: $INPUT_TOKENS
+    output_tokens: $OUTPUT_TOKENS
+    quality: "pending_review"
+EOF
+
+# ── Estimate cost ───────────────────────────────────────────────────────────
+_COST=""
+case "$MODEL_NAME" in
+  Trinity) _COST=$(python3 -c "print(f'{(int(\"$OUTPUT_TOKENS\") * 0.90 / 1000000):.4f}')" 2>/dev/null) ;;
+  M2.5)   _COST=$(python3 -c "print(f'{(int(\"$OUTPUT_TOKENS\") * 0.99 / 1000000):.4f}')" 2>/dev/null) ;;
+esac
+
+# ── Model-branded response banner ──────────────────────────────────────────
+echo "" >&2
+echo -e "${_MODEL_COLOR}┌─────────────────────────────────────────────────────┐${NC}" >&2
+echo -e "${_MODEL_COLOR}│  ${BOLD}${MODEL_NAME} RESPONDED${NC}${_MODEL_COLOR}  ${OUTPUT_TOKENS} tokens${_COST:+  ~\$${_COST}}$(printf '%*s' $((30 - ${#OUTPUT_TOKENS} - ${#_COST})) '')│${NC}" >&2
+echo -e "${_MODEL_COLOR}└─────────────────────────────────────────────────────┘${NC}" >&2
+
+# ── Output ──────────────────────────────────────────────────────────────────
+echo "$CONTENT"
