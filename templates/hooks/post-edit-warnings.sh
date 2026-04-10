@@ -204,6 +204,45 @@ fi
 #   WARNINGS="${WARNINGS}WARNING: $HARDCODED_GAPS hardcoded gaps — use design system spacing constants.\n"
 # fi
 
+# ── Warning: async method without reentrancy guard ──
+# The #1 race condition pattern: async method called by callbacks (GPS, timers,
+# UI events) without a guard preventing concurrent execution. LLMs create this
+# pattern constantly because they reason about the happy path, not interleavings.
+if grep -qE 'Future.*async' "$FILE_PATH" 2>/dev/null; then
+  UNGUARDED_ASYNC=$(python3 -c "
+import re
+with open('$FILE_PATH', 'r', encoding='utf-8', errors='replace') as f:
+    content = f.read()
+lines = content.split('\n')
+count = 0
+in_async = False
+has_guard = False
+has_await = False
+for line in lines:
+    s = line.strip()
+    m = re.match(r'(static\s+)?Future.*\b(\w+)\s*\(.*\)\s*async\s*\{', s)
+    if m:
+        if in_async and has_await and not has_guard:
+            count += 1
+        in_async = True
+        has_guard = False
+        has_await = False
+        continue
+    if in_async:
+        if 'await ' in s:
+            has_await = True
+        if re.search(r'if\s*\(\s*_\w*(ing|ting|ding|sing|ized|cessing)\b', s) and 'return' in s:
+            has_guard = True
+if in_async and has_await and not has_guard:
+    count += 1
+print(count)
+" 2>/dev/null)
+  UNGUARDED_ASYNC=${UNGUARDED_ASYNC:-0}
+  if [ "$UNGUARDED_ASYNC" -gt 0 ] && [ "$UNGUARDED_ASYNC" != "0" ]; then
+    WARNINGS="${WARNINGS}WARNING: $UNGUARDED_ASYNC async method(s) in $FILE_PATH with await but no reentrancy guard. If called by event callbacks, add: if (_processing) return; at the top.\n"
+  fi
+fi
+
 if [ -n "$WARNINGS" ]; then
   echo -e "$WARNINGS" >&2
 fi

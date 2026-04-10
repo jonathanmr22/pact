@@ -127,6 +127,34 @@ At the start of every conversation, the agent MUST:
    
    **Why this exists:** During long operations (bulk data work, multi-file refactors, seeding, migrations), agents get deep into execution and stop documenting where they are. The next session opens `PENDING_WORK.yaml`, finds stale information, and either repeats work or misses where the previous session stopped. This checkpoint forces you to leave breadcrumbs *during* the work, not after. The breadcrumb is for the next Claude — it's an investment in continuity, not overhead.
 
+8. **`async_safety`** — Trigger: writing or modifying any async method, callback handler, event listener, or initialization code. LLMs reason sequentially but race conditions live in interleavings — this checkpoint forces you to model concurrent execution BEFORE writing the code.
+   ```
+   <checkpoint type="async_safety">
+     <method>[Method being written/modified]</method>
+     <concurrent_callers>
+       [Who can call this while it's already running? Event callbacks,
+       timers, widget rebuilds, user taps, auth state changes?]
+     </concurrent_callers>
+     <shared_state>
+       [What mutable state does this read/write? Static fields, provider
+       state, globals, caches?]
+     </shared_state>
+     <reentrancy>
+       [Is there a guard preventing re-entry during await? What happens
+       if called twice simultaneously?]
+     </reentrancy>
+     <init_dependency>
+       [Does this assume another service is initialized? What if it isn't?
+       Is the check reactive (provider/stream) or static (bool)?]
+     </init_dependency>
+     <mounted>
+       [After each await: is there a mounted/disposed check before
+       UI updates?]
+     </mounted>
+   </checkpoint>
+   ```
+   **Why this exists:** LLMs are fundamentally sequential reasoners. They model code as "line A executes, then line B" — but in event-driven frameworks, method A can be interrupted mid-await by callback B which mutates the same state. Research (CONCUR benchmark, 2025) confirms LLMs "frequently fail to generate programs that are truly correct under all thread interleavings." The three most common patterns: (1) async method without reentrancy guard (called again before first call completes), (2) widget build before async initialization completes (accessing uninitialized singletons), (3) static state change without reactive notification (bool flips but no widget rebuilds). The `post-edit-warnings.sh` hook detects unguarded async methods automatically.
+
 ---
 
 ## Project Philosophy
@@ -224,6 +252,8 @@ grow it over time as decisions crystallize.
 - **When about to research something:** *"Does this need project understanding, online research, or both?"* — research is not one action, it's two distinct methods that serve different purposes. **Project-level research** (reading code, SYSTEM_MAP, feature flows, package knowledge files, git history) answers "how does THIS codebase do it?" **Online research** (WebSearch, WebFetch for docs/APIs/GitHub issues/best practices) answers "how does the WORLD do it?" Default to both. The only time single-source research is sufficient is when the question is purely local ("where is this provider used?") or purely external ("what's the API for this library I've never seen?"). For anything that bridges implementation and domain knowledge — which is most real work — skipping either source means you're building on half an understanding. **Before starting:** check `docs/reference/KNOWLEDGE_DIRECTORY.yaml` for matching tags — this shows every file across all knowledge systems that touches your topic, without opening them individually. **After finishing:** if your research produced synthesis worth keeping (combined local + external insight, rejected alternatives, non-obvious decision), save it to `docs/reference/research/`. The synthesis is the part that matters — raw facts are re-findable, but the reasoning that connected project context to external evidence dies with your context window.
 
 - **When tempted to judge, simplify, or dismiss a PACT feature:** *"Do I actually understand why this exists, or am I pattern-matching against something it's not?"* — PACT was built from real production failures by a developer who watched Claude make the exact mistakes these features prevent. Every subsystem — cognitive redirections, subagents, cutting room, aesthetic skill, capability baseline — solves a specific, documented failure mode. If a feature seems unnecessary, that means you haven't encountered the failure it prevents yet. Read the feature's files before forming an opinion. Think critically about how it applies to THIS project specifically. Small projects and solo developers benefit the most from governance infrastructure — there are no teammates to catch your mistakes. Never suggest removing or skipping PACT features without first reading every file in that subsystem and articulating the specific failure mode it addresses.
+
+- **When writing any async method or modifying callback-driven code:** *"What calls this, and can it be called again before I finish?"* — LLMs reason about the happy path: method called, await completes, state updated. But in event-driven frameworks, the method can be called AGAIN while the first call is still awaited. Event callbacks fire on schedule. Widget rebuilds fire on any state change. For EVERY async method, answer: (1) Who calls this? (2) Can they call it again before it returns? (3) What shared state does it touch? (4) Does it assume another service is initialized? If #2 is "yes" and there's no reentrancy guard, you have a race condition. If #4 is "yes" and the check is a static bool (not a reactive provider/stream), your fix will break widgets because nothing triggers a rebuild when the bool changes.
 
 - **When about to call any external LLM or AI model:** *"Am I using pact-delegate?"* — NEVER construct raw API calls to OpenRouter, Anthropic, Google, OpenAI, or any LLM provider. Not via curl, not via Python scripts, not via ad-hoc code. `pact-delegate` is the ONLY authorized path. It routes to the correct model (roster), applies the right system prompt, tracks cost, and logs the delegation. Bypassing it means: wrong model selection, no cost tracking, no system prompt, no logging. The `pre-bash-guard.sh` hook hard-blocks direct LLM API calls as a safety net, but the intent check should catch it before you even write the command. If you need a model that's not in the roster, ask the user — don't improvise.
 
