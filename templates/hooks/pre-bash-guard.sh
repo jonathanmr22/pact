@@ -443,13 +443,13 @@ if echo "$COMMAND" | grep -qE '^git commit'; then
   # When a new script is created, its patterns and lessons MUST be captured
   # in the catalog so the next session can find and reuse them.
   STAGED_STATUS_SC=$(git diff --cached --name-status 2>/dev/null)
-  if echo "$STAGED_STATUS_SC" | grep -qE '^A.*scripts/.*\.(py|sh|ts|js)'; then
+  if echo "$STAGED_STATUS_SC" | grep -qE '^[AM].*scripts/.*\.(py|sh|ts|js)'; then
     STAGED_SC=$(git diff --cached --name-only 2>/dev/null)
     if ! echo "$STAGED_SC" | grep -q "SCRIPT_CATALOG.yaml"; then
       echo "" >&2
       echo "═══ BLOCKED: SCRIPT CATALOG UPDATE REQUIRED ═══" >&2
-      echo "  New script staged but scripts/SCRIPT_CATALOG.yaml is NOT staged." >&2
-      echo "  Add an entry with: purpose, tags, deps, patterns, and lessons." >&2
+      echo "  Script created or modified but scripts/SCRIPT_CATALOG.yaml is NOT staged." >&2
+      echo "  New scripts need an entry. Modified scripts need updated lessons/patterns." >&2
       echo "" >&2
       echo "  WHY: Every script you write solves a real problem. The patterns" >&2
       echo "  and lessons are as valuable as the code itself. Without a catalog" >&2
