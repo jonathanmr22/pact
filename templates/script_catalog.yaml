@@ -1,0 +1,76 @@
+# Script Catalog — Index of all project scripts
+# Last updated: {DATE}
+#
+# PURPOSE: Help future sessions find and reuse existing scripts
+# instead of reinventing solutions. Every script here was written to solve
+# a real problem — the lessons are as valuable as the code.
+#
+# BEFORE WRITING A NEW SCRIPT: Search this catalog by tags. If a script
+# already solves a similar problem, adapt it instead of starting from scratch.
+#
+# STRUCTURE:
+#   - category: grouping for browsing
+#   - tags: for search (grep this file for a tag)
+#   - deps: what must be installed/configured
+#   - env_vars: required environment variables
+#   - patterns: reusable patterns worth knowing (the gold)
+#   - lessons: hard-won knowledge from failures (the platinum)
+#
+# MAINTENANCE: When you create or significantly modify a script, add/update
+# its entry here. The pre-edit-rules hook blocks editing scripts/ without
+# reading this catalog first.
+
+# ═══════════════════════════════════════════════════════════════════
+# EXAMPLE ENTRIES (replace with your project's scripts)
+# ═══════════════════════════════════════════════════════════════════
+
+# example_category:
+#
+#   my_script.py:
+#     purpose: "One sentence describing what this script does"
+#     category: etl
+#     tags: [database, migration, bulk-insert, cleanup]
+#     deps: [python3, requests, numpy]
+#     env_vars: [DATABASE_URL, API_KEY]
+#     status: production  # or: one-off, experimental, superseded
+#     patterns:
+#       - "Batch insert size 200 for API reliability"
+#       - "Idempotent: skips items that already exist"
+#     lessons:
+#       - "API returns 429 after 100 requests — add 2s delay between batches"
+#       - "Windows cp1252 encoding crashes on non-ASCII — set stdout to utf-8"
+
+# ═══════════════════════════════════════════════════════════════════
+# REUSABLE PATTERNS (cross-cutting lessons)
+# ═══════════════════════════════════════════════════════════════════
+#
+# These patterns appear in multiple scripts. Check here before solving
+# a problem from scratch.
+
+reusable_patterns:
+
+  windows_encoding_fix:
+    description: "Fix Windows cp1252 crash on non-ASCII text"
+    pattern: |
+      # Add at TOP of script, before any imports that print
+      import sys, io
+      sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+      sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+
+  idempotent_batch_processing:
+    description: "Process large datasets idempotently (skip already-done items)"
+    pattern: |
+      # Query for items that still need processing
+      url = f'{API_URL}/table?target_column=is.null&order=priority.desc'
+      # Process each — if script crashes, re-run picks up where it left off
+
+  pact_delegate_subprocess:
+    description: "Call pact-delegate from Python and parse output"
+    pattern: |
+      result = subprocess.run(
+          ['bash', PACT_DELEGATE, task_type, prompt, '--max-tokens', str(n)],
+          capture_output=True, text=False, timeout=120,  # text=False for Windows
+      )
+      output = (result.stdout or b'').decode('utf-8', errors='replace')
+      # Strip ANSI codes before JSON parsing
+      output = re.sub(r'\x1b\[[0-9;]*m', '', output)

@@ -149,3 +149,36 @@ workers:
       - refactor
       - seed_data
     card_image: "delegation/roster/m25.png"
+
+  vision:
+    name: Pixel
+    full_name: "Gemini 2.5 Flash"
+    provider: OpenRouter
+    model_id: "google/gemini-2.5-flash"
+    role: vision
+    tagline: "The Eye"
+    description: >
+      Vision specialist. Evaluates images, selects best photo candidates,
+      reviews UI screenshots, and classifies visual content. Multimodal
+      input (text + images via URL). Fast and cheap — ideal for batch
+      image evaluation where you need quality judgment at scale.
+    color: "#FF6D00"
+    accent: "#1A120B"
+    cost_per_million_output: 0.40
+    context_window_tokens: 1048576
+    stats:
+      reasoning: 82
+      speed: 95
+      cost_efficiency: 98
+      context_window: 99
+      code_quality: 70
+    strengths:
+      - "Image evaluation and selection"
+      - "UI screenshot review"
+      - "Visual content classification"
+      - "Multimodal text + image input"
+      - "Extremely fast and cheap"
+    delegated_tasks:
+      - vision
+      - classify
+    card_image: "delegation/roster/pixel.png"

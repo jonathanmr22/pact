@@ -25,6 +25,17 @@ At the start of every conversation, the agent MUST:
 
 **Format:** Output a `<checkpoint>` block in your response. The user sees it. If the reasoning is weak, they can challenge it before you act.
 
+**Readability:** Each XML tag MUST start on its own line with 2-space indent. Never output checkpoint fields inline/concatenated — the user needs to scan these quickly. Example:
+```
+<checkpoint type="bug_fix">
+  <symptom>Search returns wrong results</symptom>
+  <causal_chain>
+    Lookup uses parsed name string instead of ID
+  </causal_chain>
+  <core_issue>Name-based lookup when ID was available</core_issue>
+</checkpoint>
+```
+
 **Checkpoint types:**
 
 1. **`bug_fix`** — Trigger: user reports something broken, wrong, not working, or regressed.
@@ -78,7 +89,7 @@ At the start of every conversation, the agent MUST:
    </checkpoint>
    ```
 
-6. **`delegation_check`** — Trigger: about to start a task that involves web research, doc reading, changelog summarization, boilerplate code generation, test scaffolding, seed data creation, or content classification.
+6. **`delegation_check`** — Trigger: about to start a task that involves web research, doc reading, changelog summarization, boilerplate code generation, test scaffolding, seed data creation, content classification, **OR any call to an external LLM/AI model**.
    ```
    <checkpoint type="delegation_check">
    <task>[What you're about to do]</task>
@@ -89,9 +100,11 @@ At the start of every conversation, the agent MUST:
      3. Writing code from an existing pattern? [yes/no]
      4. Security, schema, or bug fix? [yes/no]
    </decision_tree>
-   <delegation>[DELEGATE to Trinity/M2.5 because X | KEEP because Y]</delegation>
+   <routing>[MUST use pact-delegate CLI — task type: research|code|classify|plan|document|seed_data]</routing>
+   <delegation>[DELEGATE to worker because X | KEEP because Y]</delegation>
    </checkpoint>
    ```
+   **CRITICAL: ALL external model calls MUST go through `pact-delegate`.** Never construct raw API calls to OpenRouter, Anthropic, Google, OpenAI, or any LLM provider — not via curl, not via Python scripts, not via any other method. `pact-delegate` handles model routing (roster), system prompts, cost tracking, and delegation logging. The `pre-bash-guard.sh` hook **hard-blocks** direct LLM API calls as a safety net.
 
 7. **`ui_work`** — Trigger: about to build or significantly modify a UI element (widget, screen, modal, sheet, overlay, card).
    ```
@@ -212,7 +225,11 @@ grow it over time as decisions crystallize.
 
 - **When tempted to judge, simplify, or dismiss a PACT feature:** *"Do I actually understand why this exists, or am I pattern-matching against something it's not?"* — PACT was built from real production failures by a developer who watched Claude make the exact mistakes these features prevent. Every subsystem — cognitive redirections, subagents, cutting room, aesthetic skill, capability baseline — solves a specific, documented failure mode. If a feature seems unnecessary, that means you haven't encountered the failure it prevents yet. Read the feature's files before forming an opinion. Think critically about how it applies to THIS project specifically. Small projects and solo developers benefit the most from governance infrastructure — there are no teammates to catch your mistakes. Never suggest removing or skipping PACT features without first reading every file in that subsystem and articulating the specific failure mode it addresses.
 
-- **When working on a multi-step operation (seeding, migration, bulk processing, multi-file refactor):** *"Am I leaving breadcrumbs?"* — if a future session opened PENDING_WORK.yaml right now, would they know what you're doing, what's done, what's in flight, and where to pick up? If not, stop and update before the next step. The breadcrumb is for the next Claude, not just the user. Without it, the next session starts from scratch — repeating work, missing progress, or making conflicting changes. A 30-second update to PENDING_WORK.yaml saves the next session 30 minutes of archaeology. This is especially critical for operations that span context window boundaries: if your work is too large for one context window, the only thing that survives compaction is what you wrote down. **Update at every natural milestone** — not at the end, during.
+- **When about to call any external LLM or AI model:** *"Am I using pact-delegate?"* — NEVER construct raw API calls to OpenRouter, Anthropic, Google, OpenAI, or any LLM provider. Not via curl, not via Python scripts, not via ad-hoc code. `pact-delegate` is the ONLY authorized path. It routes to the correct model (roster), applies the right system prompt, tracks cost, and logs the delegation. Bypassing it means: wrong model selection, no cost tracking, no system prompt, no logging. The `pre-bash-guard.sh` hook hard-blocks direct LLM API calls as a safety net, but the intent check should catch it before you even write the command. If you need a model that's not in the roster, ask the user — don't improvise.
+
+- **When about to write a new script:** *"Does one already exist?"* — Check `scripts/SCRIPT_CATALOG.yaml` before writing any Python, Bash, or Node script. The catalog indexes all project scripts with tags, dependencies, reusable patterns, and hard-won lessons. The `reusable_patterns` section at the bottom contains cross-cutting solutions (API auth patterns, encoding fixes, rate limit handling, batch processing) that apply across many scripts. Adapting an existing script takes 5 minutes; debugging the same gotchas from scratch takes an hour. The `pre-edit-rules.sh` hook blocks creating scripts without reading the catalog first.
+
+- **When a major work stream changes state (blocked, completed, or pivoted):** *"Is PENDING_WORK.yaml current?"* — Update `.claude/memory/PENDING_WORK.yaml` when: (1) a multi-step task completes or gets blocked, (2) a long-running background process starts or fails, (3) you discover work the next session needs to know about. Do NOT batch updates at the end of the session — by then you've forgotten details. Each entry should include: what was done, what's still running, what's blocked, and how to continue. The commit-time hook warns if the file is >1 hour stale.
 
 - **When about to declare work done or commit:** *"Have I dispatched pact-reviewer for a second opinion?"* — self-review is inherently biased. You wrote the code, so you'll see what you intended, not what you shipped. For feature work or multi-file changes (3+ files), dispatch `pact-reviewer` — it runs the governance checklist in a fresh context and catches what your loaded context window misses. Skip for trivial commits (typo fixes, version bumps). The 30 seconds a review takes saves the 30 minutes a missed staleness issue costs.
 

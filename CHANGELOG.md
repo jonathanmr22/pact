@@ -7,6 +7,43 @@ PACT uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.10.0] — 2026-04-10
+
+### Added
+- **LLM Delegation Enforcement** — Three-layer system preventing agents from bypassing `pact-delegate` with raw API calls to LLM providers:
+  - **Hard block hook** (`pre-bash-guard.sh`) — Detects Bash commands and Python scripts containing direct LLM API endpoint URLs (OpenRouter, Anthropic, Google, OpenAI). Blocks with actionable error pointing to pact-delegate. Allows commands that invoke pact-delegate itself.
+  - **Strengthened `delegation_check` checkpoint** — New `<routing>` field forces naming the pact-delegate task type. Bold critical notice: "ALL external model calls MUST go through pact-delegate."
+  - **Cognitive redirection: "Am I using pact-delegate?"** — Fires before any external model call. Explains the consequences of bypassing (wrong model, no logging, no cost tracking, no system prompt).
+
+- **Script Catalog System** — New knowledge layer for projects with scripts:
+  - **`scripts/SCRIPT_CATALOG.yaml` template** — Tag-based index with per-script metadata (purpose, category, tags, deps, env_vars, patterns, lessons). Includes `reusable_patterns` section for cross-cutting solutions.
+  - **Pre-edit gate hook** (`pre-edit-rules.sh`) — Blocks creating or editing any file in `scripts/` unless the catalog has been read in the current session. Forces discovery before creation.
+  - **Cognitive redirection: "Does one already exist?"** — Triggers before writing any new script.
+
+- **Machine Bootstrap Template** (`templates/machine_bootstrap.yaml`) — Checklist for setting up new development machines. Covers CLI tools (with install commands per platform), environment variables (names and purposes, not values), PATH requirements, verification commands, PACT setup, and troubleshooting. Born from a real session where missing PATH entries and env vars wasted significant time.
+
+- **Vision Specialist: Pixel** — New worker model in the delegation roster:
+  - Model: Gemini 2.5 Flash via OpenRouter
+  - Role: Image evaluation, photo selection, screenshot review, visual content classification
+  - Multimodal input (text + image URLs)
+  - $0.40/M output tokens — 98% cost efficiency
+  - Proven in production: evaluated 3,400+ photos with accurate quality reasoning
+
+- **PENDING_WORK Staleness Warning** — Commit-time check in `pre-bash-guard.sh` that warns when PENDING_WORK.yaml hasn't been updated in >1 hour. Non-blocking reminder that's impossible to miss.
+
+### Changed
+- **Checkpoint formatting requirement** — All checkpoints now require each XML tag on its own line with 2-space indent. Prevents unreadable single-line checkpoint output. Example format documented.
+- **PENDING_WORK cognitive redirection refined** — Changed trigger from "every task milestone" (too noisy, gets ignored) to "when a major work stream changes state (blocked, completed, or pivoted)." Specific triggers: multi-step task completes/blocks, background process starts/fails, work the next session needs.
+- **`delegation_check` checkpoint** — Trigger expanded to include "any call to an external LLM/AI model." New `<routing>` field added.
+- Instructions template: 8 checkpoint types (was 7), 25 cognitive redirections (was 22)
+- Model roster template: 5 models (was 4) — added Pixel vision specialist
+- Hook templates: 2 new rules in pre-bash-guard (LLM block + PENDING_WORK staleness), 1 new rule in pre-edit-rules (script catalog gate)
+
+### Why
+During a production session, the agent constructed a raw `requests.post()` call to OpenRouter's API endpoint for content generation, completely bypassing `pact-delegate`. This meant wrong model selection (chose an arbitrary model instead of the roster-assigned worker), no system prompt, no cost tracking, and no delegation logging. The root cause: nothing mechanically prevented the bypass — it was guidance, not enforcement. The hook closes that gap permanently. The script catalog addresses a parallel problem: 124 scripts accumulated with no index, and each new script reinvented solved problems (API auth headers, encoding fixes, rate limit handling) because the agent couldn't discover existing solutions. The machine bootstrap template addresses first-session friction: missing CLI tools, wrong PATH, absent environment variables all waste time that a checklist eliminates.
+
+---
+
 ## [0.9.4] — 2026-04-07
 
 ### Added

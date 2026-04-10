@@ -1,0 +1,160 @@
+# Machine Bootstrap — New Development Environment Setup
+# Last updated: {DATE}
+#
+# PURPOSE: Get a new machine ready for development. This is a CHECKLIST,
+# not architecture docs. For architecture, read CLAUDE.md. For wiring,
+# read SYSTEM_MAP.yaml. This file answers one question:
+# "What do I install and configure so everything works?"
+#
+# AUDIENCE: AI sessions on a fresh machine, or developers setting up a new PC.
+#
+# ORDER MATTERS: Follow sections top-to-bottom. Later sections depend on earlier ones.
+#
+# CUSTOMIZE: Replace placeholder entries with your project's actual tools,
+# env vars, and verification commands. Remove sections that don't apply.
+
+# ═══════════════════════════════════════════════════════════════════
+# STEP 1: CLONE THE REPO
+# ═══════════════════════════════════════════════════════════════════
+
+repo:
+  url: "{YOUR_REPO_URL}"
+  branch: main
+  notes:
+    - "Clone to a short path on Windows — deep paths break some build tools"
+
+# ═══════════════════════════════════════════════════════════════════
+# STEP 2: CLI TOOLS
+# ═══════════════════════════════════════════════════════════════════
+# List every tool the project needs. Each entry should have enough
+# information for a fresh machine setup without Googling.
+
+cli_tools:
+
+  # Example entry — customize for your project:
+  # your_framework:
+  #   purpose: "Framework SDK — builds the app, runs tests"
+  #   required: true
+  #   install:
+  #     windows: "Download from example.com → extract to C:\\tools\\framework"
+  #     macos: "brew install framework"
+  #     linux: "apt install framework"
+  #   path_required: "{install_dir}/bin"
+  #   verify: "framework --version"
+  #   min_version: "3.0.0"
+
+  git:
+    purpose: "Version control"
+    required: true
+    install:
+      windows: "git-scm.com (Git for Windows includes bash, gpg, ssh)"
+      macos: "xcode-select --install"
+      linux: "apt install git"
+    verify: "git --version"
+
+  python:
+    purpose: "Python 3 — scripts, ETL, data processing"
+    required: true  # change to false if your project doesn't use Python
+    install:
+      windows: "Microsoft Store: Python 3.13, or python.org installer"
+      macos: "brew install python@3.13"
+      linux: "apt install python3"
+    verify: "python --version"
+    pip_packages: []  # list packages needed: [numpy, requests, etc.]
+    min_version: "3.11"
+
+  gpg:
+    purpose: "GnuPG — encrypts/decrypts the credentials file"
+    required: true  # if using encrypted env vars
+    install:
+      windows: "Comes with Git for Windows (git-bash)"
+      macos: "brew install gnupg"
+      linux: "apt install gnupg"
+    verify: "gpg --version"
+
+# ═══════════════════════════════════════════════════════════════════
+# STEP 3: ENVIRONMENT VARIABLES
+# ═══════════════════════════════════════════════════════════════════
+#
+# List variable NAMES and purposes only — never put values in this file.
+# Values go in the encrypted env file.
+#
+# TO SET ON WINDOWS: setx VARIABLE_NAME "value" (requires new shell)
+# TO SET ON MAC/LINUX: Add 'export VARIABLE_NAME="value"' to ~/.zshrc
+
+environment_variables:
+
+  # Example entries — customize for your project:
+  # - name: PROJECT_API_KEY
+  #   purpose: "Main API key for the backend"
+  #   required: true
+  #   used_by: ["backend", "scripts"]
+  #   security: "Never put in client code"
+
+  - name: OPENROUTER_API_KEY
+    purpose: "OpenRouter — routes to worker models via pact-delegate"
+    required: true  # if using multi-model delegation
+    used_by: ["pact-delegate"]
+
+# ═══════════════════════════════════════════════════════════════════
+# STEP 4: PATH CONFIGURATION
+# ═══════════════════════════════════════════════════════════════════
+#
+# Directories that MUST be on PATH.
+
+path_entries: []
+  # - dir: "{framework_dir}/bin"
+  #   provides: ["framework-cli"]
+
+# ═══════════════════════════════════════════════════════════════════
+# STEP 5: VERIFICATION
+# ═══════════════════════════════════════════════════════════════════
+#
+# Run these commands after setup to confirm everything works.
+
+verification_commands:
+  - command: "git --version"
+    expected: "git version 2.x+"
+
+  - command: "echo $OPENROUTER_API_KEY"
+    expected: "sk-or-v1-..."
+    common_issue: "Key not set — decrypt and source env file"
+
+# ═══════════════════════════════════════════════════════════════════
+# STEP 6: PACT SETUP
+# ═══════════════════════════════════════════════════════════════════
+
+pact_setup:
+  - step: "Verify CLAUDE.md is at project root"
+    purpose: "Auto-loaded at session start — all rules and redirections"
+
+  - step: "Verify .claude/hooks/ contains all hook scripts"
+    purpose: "Enforcement layer — without hooks, rules are suggestions"
+
+  - step: "Verify pact-delegate is executable"
+    test: "bash .claude/tools/pact-delegate --roster"
+
+  - step: "Verify OPENROUTER_API_KEY is set and valid"
+    test: "curl -s https://openrouter.ai/api/v1/auth/key -H 'Authorization: Bearer $OPENROUTER_API_KEY'"
+
+# ═══════════════════════════════════════════════════════════════════
+# TROUBLESHOOTING
+# ═══════════════════════════════════════════════════════════════════
+
+troubleshooting:
+
+  - symptom: "pact-delegate returns 'User not found' from OpenRouter"
+    cause: "OPENROUTER_API_KEY is expired or invalid"
+    fix: "Generate new key at openrouter.ai/keys, update env file"
+
+  - symptom: "Python scripts fail with UnicodeDecodeError on Windows"
+    cause: "Windows default encoding is cp1252, not utf-8"
+    fix: "Use encoding='utf-8', errors='replace' in open() and subprocess calls"
+
+  - symptom: "Hooks not firing"
+    cause: "Hook scripts not registered in settings"
+    fix: "Check .claude/settings.json for hook registrations"
+
+  - symptom: "Environment variables not visible in new shell"
+    cause: "setx on Windows requires a new shell to take effect"
+    fix: "Close and reopen terminal after setx commands"

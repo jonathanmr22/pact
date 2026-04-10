@@ -64,6 +64,25 @@ if echo "$COMMAND" | grep -qE '^git checkout [^-]' && ! echo "$COMMAND" | grep -
 fi
 
 # ============================================================================
+# LLM DELEGATION ENFORCEMENT (Growth+ tier)
+# If using pact-delegate for multi-model delegation, block direct API calls
+# to LLM providers. All model calls MUST go through pact-delegate for proper
+# routing, cost tracking, system prompts, and delegation logging.
+# ============================================================================
+LLM_ENDPOINTS="openrouter\.ai/api/v1/chat|api\.anthropic\.com/v1/messages|generativelanguage\.googleapis\.com|api\.openai\.com/v1/chat"
+if echo "$COMMAND" | grep -qE "$LLM_ENDPOINTS"; then
+  if ! echo "$COMMAND" | grep -q 'pact-delegate'; then
+    VIOLATIONS="${VIOLATIONS}BLOCKED: Direct LLM API call detected — use pact-delegate instead.\n  pact-delegate routes to the correct model, applies system prompts, tracks cost, and logs delegation.\n  Usage: pact-delegate <task_type> \"<prompt>\" [--context-file <path>]\n  Task types: research, code, classify, plan, document, seed_data\n"
+  fi
+fi
+# Also catch Python scripts that construct LLM API calls
+if echo "$COMMAND" | grep -qE "python.*(-c|\.py)" && echo "$COMMAND" | grep -qE "$LLM_ENDPOINTS"; then
+  if ! echo "$COMMAND" | grep -q 'pact-delegate'; then
+    VIOLATIONS="${VIOLATIONS}BLOCKED: Python script with direct LLM API call — use pact-delegate instead.\n  Never construct ad-hoc scripts that call LLM providers. pact-delegate exists for this.\n"
+  fi
+fi
+
+# ============================================================================
 # DESTRUCTIVE FILE OPERATIONS
 # ============================================================================
 
@@ -278,6 +297,15 @@ if echo "$COMMAND" | grep -qE '^git commit'; then
   WARNINGS=""
   PROJECT_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
   EDIT_LOG="${PROJECT_ROOT}/.claude/memory/file_edit_log.yaml"
+
+  # Check: is PENDING_WORK.yaml stale?
+  PENDING_WORK="${PROJECT_ROOT}/.claude/memory/PENDING_WORK.yaml"
+  if [ -f "$PENDING_WORK" ]; then
+    PW_AGE=$(( ($(date +%s) - $(stat -c %Y "$PENDING_WORK" 2>/dev/null || stat -f %m "$PENDING_WORK" 2>/dev/null || echo 0)) / 3600 ))
+    if [ "$PW_AGE" -gt 1 ]; then
+      WARNINGS="${WARNINGS}  - PENDING_WORK.yaml last updated ${PW_AGE}h ago — update with this session's progress\n"
+    fi
+  fi
 
   if [ -f "$EDIT_LOG" ]; then
     TODAY=$(date +%Y-%m-%d)

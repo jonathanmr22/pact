@@ -53,6 +53,27 @@ if [ -f "$ISSUE_FLAG" ] && [ -s "$ISSUE_FLAG" ]; then
   fi
 fi
 
+# ============================================================================
+# SCRIPT CATALOG GATE (Growth+ tier)
+# Must read SCRIPT_CATALOG.yaml before creating or editing scripts.
+# Prevents reinventing solutions that already exist in the script library.
+# ============================================================================
+if echo "$FILE_PATH" | grep -qiE 'scripts/.*\.(py|sh|ts|js)$'; then
+  TRACK_FILE="${TEMP:-${TMP:-/tmp}}/pact_read_files.txt"
+  CATALOG_READ=false
+  if [ -f "$TRACK_FILE" ]; then
+    if grep -qi 'script_catalog.yaml' "$TRACK_FILE" 2>/dev/null; then
+      CATALOG_READ=true
+    fi
+  fi
+  if [ "$CATALOG_READ" = false ]; then
+    echo "BLOCKED: Read scripts/SCRIPT_CATALOG.yaml before creating or editing scripts." >&2
+    echo "  The catalog indexes existing scripts with tags, reusable patterns, and lessons." >&2
+    echo "  A solution to your problem may already exist — check before writing new code." >&2
+    exit 1
+  fi
+fi
+
 # Skip non-source files (configs, docs, etc.)
 if [[ ! "$FILE_PATH" =~ \.(dart|ts|tsx|js|jsx|py|rs|go|java|kt|swift|rb|cs)$ ]]; then
   exit 0
