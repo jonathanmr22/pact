@@ -438,6 +438,31 @@ if echo "$COMMAND" | grep -qE '^git commit'; then
   #     exit 1
   #   fi
   # fi
+
+  # ── Script catalog pairing: new scripts → SCRIPT_CATALOG.yaml (BLOCKING) ──
+  # When a new script is created, its patterns and lessons MUST be captured
+  # in the catalog so the next session can find and reuse them.
+  STAGED_STATUS_SC=$(git diff --cached --name-status 2>/dev/null)
+  if echo "$STAGED_STATUS_SC" | grep -qE '^A.*scripts/.*\.(py|sh|ts|js)'; then
+    STAGED_SC=$(git diff --cached --name-only 2>/dev/null)
+    if ! echo "$STAGED_SC" | grep -q "SCRIPT_CATALOG.yaml"; then
+      echo "" >&2
+      echo "═══ BLOCKED: SCRIPT CATALOG UPDATE REQUIRED ═══" >&2
+      echo "  New script staged but scripts/SCRIPT_CATALOG.yaml is NOT staged." >&2
+      echo "  Add an entry with: purpose, tags, deps, patterns, and lessons." >&2
+      echo "" >&2
+      echo "  WHY: Every script you write solves a real problem. The patterns" >&2
+      echo "  and lessons are as valuable as the code itself. Without a catalog" >&2
+      echo "  entry, the next session reinvents your solution from scratch." >&2
+      echo "" >&2
+      echo "  TO UNBLOCK:" >&2
+      echo "    1. Add entry to scripts/SCRIPT_CATALOG.yaml" >&2
+      echo "    2. git add scripts/SCRIPT_CATALOG.yaml" >&2
+      echo "    3. Re-run the commit" >&2
+      echo "═══════════════════════════════════════════════" >&2
+      exit 1
+    fi
+  fi
 fi
 
 exit 0
