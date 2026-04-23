@@ -1,0 +1,12 @@
+# Consuming-project names that must NEVER appear in PACT's commit history,
+# templates, docs, or hooks. PACT is project-agnostic infrastructure —
+# naming a specific consumer breaks portability.
+#
+# Format: one term per line, case-insensitive match. Lines starting
+# with # are comments. Whole-word match is recommended for short terms
+# (e.g., a 3-letter consumer-project code) — see the hook source for how
+# it's matched (currently substring, case-insensitive).
+#
+# To extend: add a new line. To remove: delete the line.
+
+Kensic

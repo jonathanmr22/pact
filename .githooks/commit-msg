@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+# commit-msg: block consuming-project name leaks in commit messages.
+#
+# Scans the proposed commit message ($1 = path to message file) against
+# .githooks/forbidden_terms.txt. Blocks the commit if any forbidden term
+# is found. Bypass with `git commit --no-verify` if justified.
+
+set -euo pipefail
+
+MSG_FILE="$1"
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+TERMS_FILE="$REPO_ROOT/.githooks/forbidden_terms.txt"
+
+if [ ! -f "$TERMS_FILE" ] || [ ! -f "$MSG_FILE" ]; then
+  exit 0
+fi
+
+TERMS=$(grep -vE '^\s*(#|$)' "$TERMS_FILE" | sed 's/[][\.*^$()+?{}|]/\\&/g' | paste -sd'|' -)
+if [ -z "$TERMS" ]; then
+  exit 0
+fi
+
+# Strip git's comment lines (starting with #) from the message before scanning
+HITS=$(grep -vE '^#' "$MSG_FILE" | grep -iE "$TERMS" || true)
+
+if [ -n "$HITS" ]; then
+  cat <<'BANNER' >&2
+
+══════════════════════════════════════════════════════════════════════
+BLOCKED: forbidden term detected in commit message
+
+PACT is project-agnostic infrastructure. Commit messages must not name
+specific consuming projects.
+
+To unblock:
+  1. Rewrite the message to remove the project name
+  2. Re-run `git commit` with the new message
+     (or `git commit --amend` if mid-flow)
+
+If the term is genuinely justified, bypass with: git commit --no-verify
+
+To adjust the term list: edit .githooks/forbidden_terms.txt
+══════════════════════════════════════════════════════════════════════
+BANNER
+  echo "" >&2
+  echo "Offending lines:" >&2
+  echo "$HITS" >&2
+  echo "" >&2
+  exit 1
+fi
+
+exit 0

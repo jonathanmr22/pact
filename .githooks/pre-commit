@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+# pre-commit: block consuming-project name leaks in staged file content.
+#
+# Scans staged additions (lines added or modified) against
+# .githooks/forbidden_terms.txt. Blocks the commit if any forbidden term
+# is found. Bypass with `git commit --no-verify` if the term is genuinely
+# justified (case study, explicit attribution).
+
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+TERMS_FILE="$REPO_ROOT/.githooks/forbidden_terms.txt"
+
+if [ ! -f "$TERMS_FILE" ]; then
+  exit 0  # no term list configured; do nothing
+fi
+
+# Build a single regex from non-comment lines (case-insensitive)
+TERMS=$(grep -vE '^\s*(#|$)' "$TERMS_FILE" | sed 's/[][\.*^$()+?{}|]/\\&/g' | paste -sd'|' -)
+if [ -z "$TERMS" ]; then
+  exit 0
+fi
+
+# Files to skip — the hook's own config legitimately contains the
+# forbidden terms it enforces; scanning it would be circular.
+SKIP_PATHS_RE='^\.githooks/'
+
+# List staged files (Added/Copied/Modified/Renamed only), filter out skips,
+# then diff each remaining file and scan added lines.
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep -vE "$SKIP_PATHS_RE" || true)
+
+HITS=""
+if [ -n "$STAGED_FILES" ]; then
+  HITS=$(echo "$STAGED_FILES" | while IFS= read -r f; do
+    [ -z "$f" ] && continue
+    git diff --cached --no-color -U0 -- "$f" \
+      | grep -E '^\+' \
+      | grep -vE '^\+\+\+ ' \
+      | grep -inE "$TERMS" \
+      | sed "s|^|$f: |"
+  done | head -10)
+fi
+
+if [ -n "$HITS" ]; then
+  cat <<'BANNER' >&2
+
+══════════════════════════════════════════════════════════════════════
+BLOCKED: forbidden term detected in staged content
+
+PACT is project-agnostic infrastructure. Names of specific consuming
+projects must never enter PACT's commit history, templates, or docs.
+
+To unblock:
+  1. Replace the offending text with generic phrasing
+     (e.g. "the consuming project" or "downstream projects")
+  2. Re-stage and re-commit
+
+If the term is genuinely justified (case study, explicit attribution),
+bypass with: git commit --no-verify
+
+To adjust the term list: edit .githooks/forbidden_terms.txt
+══════════════════════════════════════════════════════════════════════
+BANNER
+  echo "" >&2
+  echo "Offending lines (first 10):" >&2
+  echo "$HITS" >&2
+  echo "" >&2
+  exit 1
+fi
+
+exit 0

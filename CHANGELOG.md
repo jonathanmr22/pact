@@ -7,6 +7,22 @@ PACT uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [Unreleased]
+
+### Added
+- **Project-agnosticism guard** — Two new git hooks under `.githooks/` block consuming-project names from leaking into PACT's commit history, templates, and docs:
+  - `pre-commit` scans staged additions (added/modified lines only) for any term in `.githooks/forbidden_terms.txt`. Blocks with an actionable error if found.
+  - `commit-msg` scans the proposed commit message for the same terms. Blocks before the commit lands.
+  - `forbidden_terms.txt` is the term list — newline-separated, case-insensitive substring match, comments with `#`. Easy to extend per consuming project added.
+  - The `.githooks/` directory itself is excluded from scanning (the term list legitimately contains the terms it enforces).
+  - Bypass with `git commit --no-verify` for justified cases (e.g., explicit case study with permission).
+  - Setup (one-time per clone): `git config core.hooksPath .githooks`. See `.githooks/README.md`.
+
+### Changed
+- Restructured top-level layout: promoted `docs/{skills,plans,reference,feature_flows,governance,philosophy,setup,archive}/` to top-level `{skills,plans,knowledge,feature_flows,governance,philosophy,setup,archive}/`. `.claude/bugs/` promoted to top-level `bugs/`. Templates, plugin scripts, and docs all swept to reference the new paths. Future projects bootstrapped from PACT inherit the flatter layout by default.
+
+---
+
 ## [0.10.0] — 2026-04-10
 
 ### Added
