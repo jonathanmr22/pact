@@ -10,7 +10,7 @@
 #   - A pattern in _SOLUTIONS.yaml = wisdom that transfers across systems
 #
 # Directory structure:
-#   .claude/bugs/
+#   bugs/
 #   ├── _INDEX.yaml          # This file — format spec
 #   ├── _SOLUTIONS.yaml      # Reusable solutions knowledge base
 #   └── {system}/            # Bugs grouped by system

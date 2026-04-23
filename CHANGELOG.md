@@ -173,7 +173,7 @@ The aesthetic skill solved visual consistency across sessions. But product decis
 - `UPGRADE.md` — Step-by-step upgrade guide for existing users (dependency install, migration, verification).
 
 **Feedback Consolidation**
-- Task ratings (formerly `pact-ratings.jsonl`) now live at `.claude/bugs/_FEEDBACK.jsonl` — alongside bugs and solutions under one conceptual system. Server reads from both locations for backward compatibility.
+- Task ratings (formerly `pact-ratings.jsonl`) now live at `bugs/_FEEDBACK.jsonl` — alongside bugs and solutions under one conceptual system. Server reads from both locations for backward compatibility.
 - New ratings are automatically stored in the vector index for semantic recall.
 
 **Anonymous Feedback System**
@@ -187,7 +187,7 @@ The aesthetic skill solved visual consistency across sessions. But product decis
 
 ### Changed
 - `templates/hooks/session-register.sh` — Reports vector memory status and document count at session start.
-- `templates/dashboard/pact-server.py` — Feedback writes to `.claude/bugs/_FEEDBACK.jsonl`, new `/recall` endpoint, auto-indexes ratings into vector store.
+- `templates/dashboard/pact-server.py` — Feedback writes to `bugs/_FEEDBACK.jsonl`, new `/recall` endpoint, auto-indexes ratings into vector store.
 - README: 9 features (was 8), 5 slash commands (was 4), vector memory in templates table and adoption checklist.
 - `.pact-gitignore` template created (from v0.6.0 polish).
 

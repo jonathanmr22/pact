@@ -70,7 +70,7 @@ For each changed file, ask the relevant redirections:
 
 - **Deleted code:** was there a comment explaining WHY it existed? Was
   that reason addressed or just ignored?
-- **New service/provider:** was `docs/reference/packages/` checked for
+- **New service/provider:** was `knowledge/packages/` checked for
   the packages it uses?
 - **UI changes:** does the user journey make sense? Text readable?
   Edge cases (zero items, overflow, missing data)?
@@ -81,7 +81,7 @@ For each changed file, ask the relevant redirections:
 ### 5. Bug Tracker Check
 
 - If any commit message references a fix: does a bug file exist in
-  `.claude/bugs/`?
+  `bugs/`?
 - If a bug file was created: does `_INDEX.yaml` reference it?
 
 ## Your Output Format

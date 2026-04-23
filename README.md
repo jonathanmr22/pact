@@ -158,11 +158,11 @@ A fresh AI session has training data and a context window. A session running PAC
 
 Three systems make this work:
 
-**Research Knowledge Base** (`docs/reference/research/`) — When the agent researches something non-trivial (combining project code analysis with online docs/papers/APIs), the *synthesis* — the insight that neither source had alone — is saved as a structured YAML file. Future sessions find these via tags, build on them, and evolve them through four actions: deepen, reframe, update, supersede.
+**Research Knowledge Base** (`knowledge/research/`) — When the agent researches something non-trivial (combining project code analysis with online docs/papers/APIs), the *synthesis* — the insight that neither source had alone — is saved as a structured YAML file. Future sessions find these via tags, build on them, and evolve them through four actions: deepen, reframe, update, supersede.
 
-**Knowledge Directory** (`docs/reference/KNOWLEDGE_DIRECTORY.yaml`) — A single-file tag index across ALL knowledge systems (research, bugs, solutions, packages, feature flows). One read shows every file that touches a topic without opening them individually. Hook-enforced: commits that include knowledge files without updating the directory are blocked.
+**Knowledge Directory** (`knowledge/KNOWLEDGE_DIRECTORY.yaml`) — A single-file tag index across ALL knowledge systems (research, bugs, solutions, packages, feature flows). One read shows every file that touches a topic without opening them individually. Hook-enforced: commits that include knowledge files without updating the directory are blocked.
 
-**Capability Baseline** (`docs/reference/PACT_BASELINE.yaml`) — PACT's self-awareness layer. Records what the agent can do natively, what PACT compensates for, and how capabilities change over time. When the agent provider ships a new feature that makes a PACT rule redundant, this file is how the agent notices. When a new capability makes PACT stronger, this file is how the agent leans into it.
+**Capability Baseline** (`knowledge/PACT_BASELINE.yaml`) — PACT's self-awareness layer. Records what the agent can do natively, what PACT compensates for, and how capabilities change over time. When the agent provider ships a new feature that makes a PACT rule redundant, this file is how the agent notices. When a new capability makes PACT stronger, this file is how the agent leans into it.
 
 ---
 
@@ -418,14 +418,14 @@ PACT generates some files that should be committed (hooks, architecture maps, kn
 - [ ] Write cognitive redirections from your actual experience
 - [ ] Create `PENDING_WORK.yaml` for cross-session continuity
 - [ ] Add session start protocol to instructions file
-- [ ] Create `docs/reference/packages/` for package knowledge
-- [ ] Create `docs/reference/research/_RESEARCH.yaml` for cross-session research synthesis
-- [ ] Create `docs/reference/KNOWLEDGE_DIRECTORY.yaml` as the cross-system tag index
-- [ ] Create `docs/reference/PACT_BASELINE.yaml` with your agent's current capabilities
-- [ ] Create `docs/feature_flows/` for lifecycle flows of critical systems
+- [ ] Create `knowledge/packages/` for package knowledge
+- [ ] Create `knowledge/research/_RESEARCH.yaml` for cross-session research synthesis
+- [ ] Create `knowledge/KNOWLEDGE_DIRECTORY.yaml` as the cross-system tag index
+- [ ] Create `knowledge/PACT_BASELINE.yaml` with your agent's current capabilities
+- [ ] Create `feature_flows/` for lifecycle flows of critical systems
 - [ ] Write your first feature flow for your highest-risk system
 - [ ] Create `cutting_room/` for visual prototyping
-- [ ] Create `.claude/bugs/` with `_INDEX.yaml` and `_SOLUTIONS.yaml`
+- [ ] Create `bugs/` with `_INDEX.yaml` and `_SOLUTIONS.yaml`
 - [ ] Set up `session-register.sh` for multi-session awareness
 - [ ] **Optional: Enable worktree isolation** — set `"worktree_isolation": true` in `~/.claude/pact-config.json`. Each session gets its own git branch; merges to main require user approval. Recommended if agents commit too eagerly or you run parallel sessions. Add `.worktrees/` to `.gitignore`.
 - [ ] Set up the PACT dashboard (`pact-server.py`, `pact-dashboard.html`, `pact-event-logger.sh`)

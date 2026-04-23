@@ -3,7 +3,7 @@
 # PACT PostToolUse Hook — fires after issue tracker tool calls (e.g. Sentry MCP)
 #
 # Writes a flag file so pre-edit-rules.sh can BLOCK source edits until a
-# .claude/bugs/ file is created. Same pattern as read-before-write.
+# bugs/ file is created. Same pattern as read-before-write.
 #
 # WHY THIS EXISTS: Agents fetch bug reports, jump straight to fix code, and
 # never create bug files. Rules say "create the bug file IMMEDIATELY" but
@@ -43,12 +43,12 @@ echo "═══ BUG TRACKER: DOCUMENT BEFORE FIXING ═══"
 echo "  Issue fetched: ${ISSUE_ID}"
 echo ""
 echo "  BEFORE editing source code, you MUST create:"
-echo "    .claude/bugs/{system}/{system}-NNN.yaml"
+echo "    bugs/{system}/{system}-NNN.yaml"
 echo ""
 echo "  This is mechanically enforced — pre-edit-rules.sh"
 echo "  will BLOCK edits until a bug file exists."
 echo ""
-echo "  Template: .claude/bugs/_INDEX.yaml"
+echo "  Template: bugs/_INDEX.yaml"
 echo "═════════════════════════════════════════════"
 
 exit 0

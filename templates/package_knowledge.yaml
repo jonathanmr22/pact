@@ -6,7 +6,7 @@
 # workarounds, no circular debugging. Research compounds: 10 minutes
 # reading docs saves hours of iteration.
 #
-# Save to: docs/reference/packages/{package_name}.yaml
+# Save to: knowledge/packages/{package_name}.yaml
 #
 # Check this file BEFORE writing code that uses this package.
 # If it doesn't exist yet, research the package first, then create it.

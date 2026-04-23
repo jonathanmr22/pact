@@ -135,7 +135,7 @@ except Exception:
 " <<< "$INPUT" 2>/dev/null)
 
 if [ -n "$WORKAROUND_WARN" ]; then
-  WARNINGS="${WARNINGS}WARNING: WORKAROUND DETECTED — $WORKAROUND_WARN. STOP AND RESEARCH. Check docs/reference/packages/{package}.yaml first. If not sufficient, search official docs. Save findings for future sessions. The correct response to unexpected behavior is research, not hacks.\n"
+  WARNINGS="${WARNINGS}WARNING: WORKAROUND DETECTED — $WORKAROUND_WARN. STOP AND RESEARCH. Check knowledge/packages/{package}.yaml first. If not sufficient, search official docs. Save findings for future sessions. The correct response to unexpected behavior is research, not hacks.\n"
 fi
 
 # ============================================================================

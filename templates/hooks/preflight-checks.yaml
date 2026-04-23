@@ -48,8 +48,8 @@ checks:
     message: |
       THINK: You're creating a new service. Before writing code:
       1. Check KNOWLEDGE_DIRECTORY.yaml for matching tags
-      2. Check docs/reference/packages/ for packages this service will use
-      3. Check docs/reference/research/ for prior decisions about this domain
+      2. Check knowledge/packages/ for packages this service will use
+      3. Check knowledge/research/ for prior decisions about this domain
       Does a previous session's research inform what you're about to build?
     root_pattern: "Building without checking accumulated knowledge"
     learned_from: "Sessions repeatedly re-researched problems that were already synthesized"
@@ -57,7 +57,7 @@ checks:
   # ── Knowledge Directory Awareness ──
   - id: knowledge_update
     trigger:
-      file_match: "docs/reference/research/|docs/reference/packages/"
+      file_match: "knowledge/research/|knowledge/packages/"
       require_all: false
     severity: think
     message: |
@@ -101,7 +101,7 @@ checks:
   #   severity: think
   #   message: |
   #     THINK: Have you verified this API works the way you expect?
-  #     Check docs/reference/packages/ for known gotchas.
+  #     Check knowledge/packages/ for known gotchas.
   #     Test on device/in production before building systems around it.
   #   root_pattern: "Building systems around unverified third-party API behavior"
   #   learned_from: "API silently failed in production — entire system built before testing"

@@ -85,12 +85,12 @@ Both agents read and write to the same files:
 | `.claude/sessions.yaml` | Active session tracker (all agents) | Hooks (auto) |
 | `.claude/memory/PENDING_WORK.yaml` | Cross-session task tracker | Claude, Gemini |
 | `.claude/memory/file_edit_log.yaml` | Edit timestamps | Hooks (auto) |
-| `.claude/bugs/` | Bug investigations | Claude, Gemini |
-| `docs/feature_flows/` | Lifecycle flow docs | Claude, Gemini |
-| `docs/reference/packages/` | Package knowledge | Claude, Gemini |
-| `docs/reference/research/` | Cross-session research synthesis | Claude, Gemini |
-| `docs/reference/KNOWLEDGE_DIRECTORY.yaml` | Tag index across all knowledge systems | Claude, Gemini |
-| `docs/reference/PACT_BASELINE.yaml` | Agent capability baseline + deltas | Claude, Gemini |
+| `bugs/` | Bug investigations | Claude, Gemini |
+| `feature_flows/` | Lifecycle flow docs | Claude, Gemini |
+| `knowledge/packages/` | Package knowledge | Claude, Gemini |
+| `knowledge/research/` | Cross-session research synthesis | Claude, Gemini |
+| `knowledge/KNOWLEDGE_DIRECTORY.yaml` | Tag index across all knowledge systems | Claude, Gemini |
+| `knowledge/PACT_BASELINE.yaml` | Agent capability baseline + deltas | Claude, Gemini |
 
 ### Model Identity in Sessions
 

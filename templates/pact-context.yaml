@@ -32,11 +32,11 @@ delegates_to:
   # Which subsystems to read from the parent instead of maintaining locally
   # Common: [solutions_kb, package_knowledge, research, knowledge_directory, capability_baseline]
   shared:
-    - solutions_kb           # .claude/bugs/_SOLUTIONS.yaml
-    - package_knowledge      # docs/reference/packages/
-    - research               # docs/reference/research/
-    - knowledge_directory    # docs/reference/KNOWLEDGE_DIRECTORY.yaml
-    # - capability_baseline  # docs/reference/PACT_BASELINE.yaml
+    - solutions_kb           # bugs/_SOLUTIONS.yaml
+    - package_knowledge      # knowledge/packages/
+    - research               # knowledge/research/
+    - knowledge_directory    # knowledge/KNOWLEDGE_DIRECTORY.yaml
+    # - capability_baseline  # knowledge/PACT_BASELINE.yaml
     # - aesthetic_skill      # .claude/skills/ (if UI matches parent)
     # - cognitive_redirections  # Stack-level redirections (stack type only)
 
@@ -98,6 +98,6 @@ governance:
   # Path to SYSTEM_MAP (tracer needs this)
   system_map: "SYSTEM_MAP.yaml"
   # Path to knowledge directory (researcher needs this)
-  knowledge_directory: "docs/reference/KNOWLEDGE_DIRECTORY.yaml"
+  knowledge_directory: "knowledge/KNOWLEDGE_DIRECTORY.yaml"
   # Path to solutions file (all agents can reference)
-  solutions: ".claude/bugs/_SOLUTIONS.yaml"
+  solutions: "bugs/_SOLUTIONS.yaml"

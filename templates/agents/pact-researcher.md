@@ -44,14 +44,14 @@ may be less project-specific.
 
 ### Phase 1: Check What We Already Know
 
-1. **Read `docs/reference/KNOWLEDGE_DIRECTORY.yaml`** — search for tags
+1. **Read `knowledge/KNOWLEDGE_DIRECTORY.yaml`** — search for tags
    matching your topic. This is the cross-system index.
 
-2. **If package-related:** read `docs/reference/packages/{name}.yaml`
+2. **If package-related:** read `knowledge/packages/{name}.yaml`
    if it exists. Check the `verified_date` — if recent and covers your
    question, return it directly. No new research needed.
 
-3. **If domain/architecture-related:** scan `docs/reference/research/`
+3. **If domain/architecture-related:** scan `knowledge/research/`
    entries with matching tags. A previous session may have already
    synthesized exactly what you need.
 
@@ -76,15 +76,15 @@ may be less project-specific.
 ### Phase 3: Save
 
 8. **Package knowledge** — if you researched a package, save/update
-   `docs/reference/packages/{name}.yaml` using the project's template
+   `knowledge/packages/{name}.yaml` using the project's template
    format.
 
 9. **Research synthesis** — if your research combined project analysis
-   with external knowledge, save to `docs/reference/research/` as a
+   with external knowledge, save to `knowledge/research/` as a
    new entry or evolve an existing one (deepen/reframe/update/supersede).
 
 10. **Update the directory** — add any new tags to
-    `docs/reference/KNOWLEDGE_DIRECTORY.yaml` pointing to the files
+    `knowledge/KNOWLEDGE_DIRECTORY.yaml` pointing to the files
     you created or updated.
 
 ## Your Output Format

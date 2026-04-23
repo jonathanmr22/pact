@@ -75,7 +75,7 @@ Ask the user: *"Does this project share infrastructure with a larger project (sa
 
 If yes, ask for the parent project path and the delegation type. Then:
 
-1. Verify the parent has PACT infrastructure (check for `.claude/bugs/_SOLUTIONS.yaml`, package knowledge, etc.)
+1. Verify the parent has PACT infrastructure (check for `bugs/_SOLUTIONS.yaml`, package knowledge, etc.)
 2. Record the delegation in `pact-context.yaml` (see `delegates_to` field)
 3. Skip scaffolding the delegated subsystems — the parent's files are used directly
 4. The child project still gets its OWN: bugs (local to its code), PENDING_WORK (local tasks), hooks (local enforcement), and cognitive redirections (always local)
@@ -149,17 +149,17 @@ Each item below is annotated with its minimum tier: **[Seed]**, **[Growth]**, or
 
 1. **[Growth]** **SYSTEM_MAP.yaml** — Architecture wiring map. Read the project's source files to populate it with actual tables, services, state management, and screens. Don't leave it as a template — fill in the real architecture.
 
-2. **[Growth]** **docs/feature_flows/** directory — Create the directory for lifecycle flow documents.
+2. **[Growth]** **feature_flows/** directory — Create the directory for lifecycle flow documents.
 
-3. **[Seed]** **docs/reference/packages/** directory — Create the directory for package knowledge files.
+3. **[Seed]** **knowledge/packages/** directory — Create the directory for package knowledge files.
 
-4. **[Growth]** **docs/reference/research/_RESEARCH.yaml** — Research knowledge base index and format spec. Cross-session synthesis storage for decisions that combined local + external knowledge. **Skip if delegating to a parent project.**
+4. **[Growth]** **knowledge/research/_RESEARCH.yaml** — Research knowledge base index and format spec. Cross-session synthesis storage for decisions that combined local + external knowledge. **Skip if delegating to a parent project.**
 
-5. **[Growth]** **docs/reference/KNOWLEDGE_DIRECTORY.yaml** — Cross-system tag directory. Single-file lookup for all knowledge across research, bugs, solutions, packages, and feature flows. **Skip if delegating to a parent project.**
+5. **[Growth]** **knowledge/KNOWLEDGE_DIRECTORY.yaml** — Cross-system tag directory. Single-file lookup for all knowledge across research, bugs, solutions, packages, and feature flows. **Skip if delegating to a parent project.**
 
-6. **[Full]** **docs/reference/PACT_BASELINE.yaml** — Capability baseline. Snapshot of the agent's current capabilities, PACT compensations for native limitations, and a capability deltas log for tracking changes over time. Fill in the baseline with the agent's actual model, context window, and available tools. **Skip if delegating to a parent project.**
+6. **[Full]** **knowledge/PACT_BASELINE.yaml** — Capability baseline. Snapshot of the agent's current capabilities, PACT compensations for native limitations, and a capability deltas log for tracking changes over time. Fill in the baseline with the agent's actual model, context window, and available tools. **Skip if delegating to a parent project.**
 
-7. **[Growth]** **docs/plans/** directory — Create the directory for implementation plans.
+7. **[Growth]** **plans/** directory — Create the directory for implementation plans.
 
 8. **[Full]** **cutting_room/** directory with **_INDEX.yaml** and **_TRIAL_TEMPLATE.yaml** — Visual prototyping workspace for iterating on complex visuals outside the framework.
 
@@ -167,7 +167,7 @@ Each item below is annotated with its minimum tier: **[Seed]**, **[Growth]**, or
 
 10. **[Seed]** **.claude/memory/file_edit_log.yaml** — Empty edit log (auto-populated by hooks).
 
-11. **[Seed]** **.claude/bugs/_INDEX.yaml** and **.claude/bugs/_SOLUTIONS.yaml** — Bug tracker format spec and solutions knowledge base. **Solutions KB skipped if delegating — use parent's.**
+11. **[Seed]** **bugs/_INDEX.yaml** and **bugs/_SOLUTIONS.yaml** — Bug tracker format spec and solutions knowledge base. **Solutions KB skipped if delegating — use parent's.**
 
 12. **[Seed]** **.claude/sessions.yaml** — Multi-session coordination file (auto-maintained by hooks).
 

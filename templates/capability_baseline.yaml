@@ -5,7 +5,7 @@
 # for, and how those capabilities change over time. It ensures PACT evolves
 # WITH the agent instead of accumulating stale workarounds.
 #
-# Save to: docs/reference/PACT_BASELINE.yaml
+# Save to: knowledge/PACT_BASELINE.yaml
 #
 # WHY THIS MATTERS:
 #   PACT was built to compensate for specific agent limitations. When the
@@ -92,10 +92,10 @@ pact_compensations:
   - limitation: "No memory across sessions"
     pact_mechanism:
       - "KNOWLEDGE_DIRECTORY.yaml — tag-based cross-session lookup"
-      - "docs/reference/research/ — synthesized research findings"
-      - ".claude/bugs/ — bug investigations and solutions"
-      - "docs/reference/packages/ — verified package knowledge"
-      - "docs/feature_flows/ — lifecycle state machines"
+      - "knowledge/research/ — synthesized research findings"
+      - "bugs/ — bug investigations and solutions"
+      - "knowledge/packages/ — verified package knowledge"
+      - "feature_flows/ — lifecycle state machines"
       - "SYSTEM_MAP.yaml — structural wiring map"
       - "PENDING_WORK.yaml — work continuity"
     what_retirement_looks_like: >

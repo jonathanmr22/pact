@@ -74,6 +74,6 @@ governance:
   # Path to SYSTEM_MAP (tracer needs this)
   system_map: "SYSTEM_MAP.yaml"
   # Path to knowledge directory (researcher needs this)
-  knowledge_directory: "docs/reference/KNOWLEDGE_DIRECTORY.yaml"
+  knowledge_directory: "knowledge/KNOWLEDGE_DIRECTORY.yaml"
   # Path to solutions file (all agents can reference)
-  solutions: ".claude/bugs/_SOLUTIONS.yaml"
+  solutions: "bugs/_SOLUTIONS.yaml"

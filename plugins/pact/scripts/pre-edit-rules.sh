@@ -29,7 +29,7 @@ except:
 # ============================================================================
 # ISSUE TRACKER GATE — must document bug before fixing it
 # If an issue was fetched (post-sentry-bug-reminder.sh wrote a flag),
-# BLOCK source file edits until a .claude/bugs/ file has been created.
+# BLOCK source file edits until a bugs/ file has been created.
 # ============================================================================
 ISSUE_FLAG="${PACT_TEMP}/pact_issue_pending.txt"
 if [ -f "$ISSUE_FLAG" ] && [ -s "$ISSUE_FLAG" ]; then
@@ -37,7 +37,7 @@ if [ -f "$ISSUE_FLAG" ] && [ -s "$ISSUE_FLAG" ]; then
   if echo "$FILE_PATH" | grep -qiE '[/\\](lib|src|app|packages)[/\\]'; then
     BUG_FILED=false
     TRACK_FILE="${PACT_TEMP}/pact_read_files.txt"
-    if [ -f "$TRACK_FILE" ] && grep -qiE '\.claude/bugs/.*\.yaml' "$TRACK_FILE" 2>/dev/null; then
+    if [ -f "$TRACK_FILE" ] && grep -qiE '\bugs/.*\.yaml' "$TRACK_FILE" 2>/dev/null; then
       BUG_FILED=true
     fi
     PROJECT_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo ".")
@@ -49,8 +49,8 @@ if [ -f "$ISSUE_FLAG" ] && [ -s "$ISSUE_FLAG" ]; then
     if [ "$BUG_FILED" = false ]; then
       PENDING=$(cat "$ISSUE_FLAG" | awk '{print $1}' | tr '\n' ', ' | sed 's/,$//')
       echo "BLOCKED: You fetched issue(s) [${PENDING}] but have NOT created a bug file yet." >&2
-      echo "  Create .claude/bugs/{system}/{system}-NNN.yaml BEFORE editing source code." >&2
-      echo "  Template: .claude/bugs/_INDEX.yaml" >&2
+      echo "  Create bugs/{system}/{system}-NNN.yaml BEFORE editing source code." >&2
+      echo "  Template: bugs/_INDEX.yaml" >&2
       exit 1
     fi
   fi

@@ -15,7 +15,7 @@ Review the changes made in this session against PACT's cognitive redirections. F
 
 **3. Cache consistency:** If any provider/state management was modified, were ALL caches updated (both list and map caches)?
 
-**4. Package verification:** Were any packages used based on assumption rather than verified documentation? Check `docs/reference/packages/` for knowledge files.
+**4. Package verification:** Were any packages used based on assumption rather than verified documentation? Check `knowledge/packages/` for knowledge files.
 
 **5. Lifecycle impact:** Do the changes survive all app states? Fresh install, normal open, background, force close, backup restore?
 

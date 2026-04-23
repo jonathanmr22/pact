@@ -36,7 +36,7 @@ fi
 
 **The failure:** The agent spent 4+ hours debugging a Bluetooth package by guessing at the API from training data. The actual fix was a one-line version bump — the bug had been patched 2 years ago.
 
-**The mechanism:** Per-package knowledge files (`docs/reference/packages/{name}.yaml`) where verified research is saved. A cognitive redirection triggers the lookup:
+**The mechanism:** Per-package knowledge files (`knowledge/packages/{name}.yaml`) where verified research is saved. A cognitive redirection triggers the lookup:
 
 > *"When a package doesn't behave as expected: Do I actually know this package, or am I guessing?"*
 

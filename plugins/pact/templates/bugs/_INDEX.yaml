@@ -5,7 +5,7 @@
 # so the next session doesn't re-investigate bugs that were already solved.
 #
 # Directory structure:
-#   .claude/bugs/
+#   bugs/
 #   ├── _INDEX.yaml          # This file — format spec
 #   ├── _SOLUTIONS.yaml      # Reusable solutions knowledge base
 #   └── {system}/            # Bugs grouped by system

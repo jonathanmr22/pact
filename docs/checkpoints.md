@@ -19,7 +19,7 @@ Checkpoints are structured blocks the agent must output *before acting*. They're
 <symptom>[What the user reported]</symptom>
 <causal_chain>[Trace from where the bad state is OBSERVED back to where it is PRODUCED]</causal_chain>
 <core_issue>[The line/mechanism that creates the bad state]</core_issue>
-<bug_file>[Path to .claude/bugs/ file — create it NOW if it doesn't exist]</bug_file>
+<bug_file>[Path to bugs/ file — create it NOW if it doesn't exist]</bug_file>
 </checkpoint>
 ```
 

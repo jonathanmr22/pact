@@ -4,7 +4,7 @@
 # Your single-file lookup for ALL cross-session knowledge. Read this ONCE
 # to find what already exists about a topic without opening files one by one.
 #
-# Save to: docs/reference/KNOWLEDGE_DIRECTORY.yaml
+# Save to: knowledge/KNOWLEDGE_DIRECTORY.yaml
 #
 # This file answers: "What do I already know about {topic}?"
 # by mapping tags to files across every knowledge system.
@@ -33,26 +33,26 @@
 # Where each knowledge system lives
 systems:
   research:
-    path: docs/reference/research/
+    path: knowledge/research/
     purpose: "Cross-session synthesis — decisions combining local + external knowledge"
-    index: docs/reference/research/_RESEARCH.yaml
+    index: knowledge/research/_RESEARCH.yaml
 
   solutions:
-    path: .claude/bugs/_SOLUTIONS.yaml
+    path: bugs/_SOLUTIONS.yaml
     purpose: "Reusable fix patterns — your fast path to resolving bugs"
 
   bugs:
-    path: .claude/bugs/{system}/
+    path: bugs/{system}/
     purpose: "Individual bug investigations with attempts and resolutions"
     # Add subdirectories as your project creates them:
     # subdirs: [ui, api, auth, sync, etc.]
 
   packages:
-    path: docs/reference/packages/
+    path: knowledge/packages/
     purpose: "Verified API knowledge, gotchas, and proven patterns per package"
 
   feature_flows:
-    path: docs/feature_flows/
+    path: feature_flows/
     purpose: "Lifecycle state machines — what happens across app states"
 
 # =============================================================================

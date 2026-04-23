@@ -26,7 +26,7 @@ Shell scripts that block violations before they land. Hooks don't care which mod
 - **Empty catch blocks** — `catch (_) {}` or `catch (e) {}`
 - **Raw SQL with string interpolation** — `execute(`, `rawQuery(`, `customSelect(`, `customStatement(` combined with `$variable`
 - **Read-before-write** — Tracks all file reads via `post-read-tracker.sh`. Blocks edits on files not yet read this session. Only enforces for existing files.
-- **Issue tracker gate** — After fetching a Sentry/GitHub issue, blocks source code edits (`lib/`, `src/`, `app/`, `packages/`) until a `.claude/bugs/*.yaml` file is created
+- **Issue tracker gate** — After fetching a Sentry/GitHub issue, blocks source code edits (`lib/`, `src/`, `app/`, `packages/`) until a `bugs/*.yaml` file is created
 
 **Customizable patterns (uncomment for your project):**
 - Forbidden imports (e.g., `import hive` → use Drift)
@@ -56,7 +56,7 @@ Shell scripts that block violations before they land. Hooks don't care which mod
 - If staging a new research/bug/package/feature-flow file, requires `KNOWLEDGE_DIRECTORY.yaml` also staged
 
 **Bug tracker enforcement (on fix commits):**
-- If commit message contains `fix`, `bug`, `resolve`, `patch`, `hotfix`: requires a `.claude/bugs/` file in staging
+- If commit message contains `fix`, `bug`, `resolve`, `patch`, `hotfix`: requires a `bugs/` file in staging
 
 **Staleness warnings (non-blocking):**
 - Service edited today → "is SYSTEM_MAP.yaml wiring current?"
@@ -73,7 +73,7 @@ Shell scripts that block violations before they land. Hooks don't care which mod
 - `sync_service`, `sync_provider`
 - `app_startup`, `app_init`
 
-**Requires:** A corresponding lifecycle flow doc in `docs/feature_flows/{category}_flow.yaml`. The flow must cover: fresh_install, normal_open, background, force_close_reopen, error_paths. Must include invariants, assumptions, lost/persisted state, and gotchas.
+**Requires:** A corresponding lifecycle flow doc in `feature_flows/{category}_flow.yaml`. The flow must cover: fresh_install, normal_open, background, force_close_reopen, error_paths. Must include invariants, assumptions, lost/persisted state, and gotchas.
 
 ---
 

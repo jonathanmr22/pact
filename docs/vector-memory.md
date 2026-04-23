@@ -38,9 +38,9 @@ Or use the `/pact-recall` slash command in Claude Code for inline search.
 
 | Source | Fields Extracted | Type Tag |
 |--------|-----------------|----------|
-| `.claude/bugs/{system}/*.yaml` | title, symptoms, root_cause, resolution, tags | `bug` |
-| `.claude/bugs/_SOLUTIONS.yaml` | title, symptom, root_cause, fix, tags | `solution` |
-| `docs/reference/research/*.yaml` | question, synthesis, decision, tags | `research` |
+| `bugs/{system}/*.yaml` | title, symptoms, root_cause, resolution, tags | `bug` |
+| `bugs/_SOLUTIONS.yaml` | title, symptom, root_cause, fix, tags | `solution` |
+| `knowledge/research/*.yaml` | question, synthesis, decision, tags | `research` |
 | `_FEEDBACK.jsonl` | task, score, wrong, right, tags | `feedback` |
 
 Each document is stored with its file path, project name, and metadata. Updates re-embed and replace the existing vector.
@@ -55,7 +55,7 @@ python pact-memory.py store \
   --type bug \
   --id "meld-007" \
   --text "BLE advertising fails when Bluetooth audio is connected" \
-  --file ".claude/bugs/meld/meld-007.yaml" \
+  --file "bugs/meld/meld-007.yaml" \
   --project "kensic"
 ```
 
@@ -81,7 +81,7 @@ python pact-memory.py reindex --project-root /path/to/project
 
 ### Index a single file
 ```bash
-python pact-memory.py index-file .claude/bugs/sync/sync-003.yaml --project myproject
+python pact-memory.py index-file bugs/sync/sync-003.yaml --project myproject
 ```
 
 ### Stats

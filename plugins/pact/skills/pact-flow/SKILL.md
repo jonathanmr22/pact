@@ -3,7 +3,7 @@ description: Generate a lifecycle flow document for a feature
 disable-model-invocation: false
 ---
 
-Create a PACT lifecycle flow document for the feature the user specifies. Save it to `docs/feature_flows/{feature_name}_flow.yaml`.
+Create a PACT lifecycle flow document for the feature the user specifies. Save it to `feature_flows/{feature_name}_flow.yaml`.
 
 Read the relevant source code first to understand the feature's actual behavior. Then generate a YAML flow document covering:
 

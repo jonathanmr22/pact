@@ -37,7 +37,7 @@ wiring:
       - profile_view_screen     # View someone else's profile
       - settings_screen         # User preferences
     cascade_on_delete: "profiles CASCADE, preferences CASCADE"
-    feature_flow: "docs/feature_flows/auth_flow.yaml"
+    feature_flow: "feature_flows/auth_flow.yaml"
 
   # ---- Example: Content/Posts system ----
   # posts:
@@ -70,7 +70,7 @@ wiring:
   #     - conversations_screen  # List
   #     - chat_screen           # Single conversation
   #   cascade_on_delete: "messages CASCADE"
-  #   feature_flow: "docs/feature_flows/messaging_flow.yaml"
+  #   feature_flow: "feature_flows/messaging_flow.yaml"
 
 # =============================================================================
 # CROSS-CUTTING CONCERNS

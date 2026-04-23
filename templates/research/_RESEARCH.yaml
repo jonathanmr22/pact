@@ -8,7 +8,7 @@
 # these files has training data + context window + every synthesis every
 # previous session earned. That's compound intelligence.
 #
-# Save to: docs/reference/research/{topic-name}.yaml
+# Save to: knowledge/research/{topic-name}.yaml
 #
 # WHEN TO CREATE:
 #   - You spent 10+ minutes investigating something non-trivial
@@ -18,9 +18,9 @@
 #   - You discovered something that contradicts your training data
 #
 # WHEN NOT TO CREATE (use the right system instead):
-#   - Package-specific knowledge → docs/reference/packages/
-#   - Bug investigations → .claude/bugs/
-#   - Feature lifecycle behavior → docs/feature_flows/
+#   - Package-specific knowledge → knowledge/packages/
+#   - Bug investigations → bugs/
+#   - Feature lifecycle behavior → feature_flows/
 #   - Simple lookups → just read the code
 #
 # BEFORE CREATING: Check KNOWLEDGE_DIRECTORY.yaml for matching tags.

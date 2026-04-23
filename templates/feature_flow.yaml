@@ -6,7 +6,7 @@
 # This file describes what HAPPENS (what breaks if you touch them wrong).
 #
 # MANDATORY before rewriting or significantly modifying any feature.
-# Save to: docs/feature_flows/{feature_name}_flow.yaml
+# Save to: feature_flows/{feature_name}_flow.yaml
 #
 # Last updated: YYYY-MM-DD
 # =============================================================================

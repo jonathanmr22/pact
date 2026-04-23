@@ -255,7 +255,7 @@ if echo "$COMMAND" | grep -qE '^git commit'; then
   STAGED_STATUS=$(git diff --cached --name-status 2>/dev/null)
 
   # New research files? (exclude the index file itself)
-  if echo "$STAGED_STATUS" | grep -E '^A.*docs/reference/research/.*\.yaml' | grep -qv '_RESEARCH.yaml'; then
+  if echo "$STAGED_STATUS" | grep -E '^A.*knowledge/research/.*\.yaml' | grep -qv '_RESEARCH.yaml'; then
     NEEDS_KDIR=true
   fi
   # New bug solutions? (new entries detected by added SOL- lines)
@@ -265,11 +265,11 @@ if echo "$COMMAND" | grep -qE '^git commit'; then
     fi
   fi
   # New package knowledge files? (exclude the format spec)
-  if echo "$STAGED_STATUS" | grep -E '^A.*docs/reference/packages/.*\.yaml' | grep -qv '_PACKAGE_KNOWLEDGE'; then
+  if echo "$STAGED_STATUS" | grep -E '^A.*knowledge/packages/.*\.yaml' | grep -qv '_PACKAGE_KNOWLEDGE'; then
     NEEDS_KDIR=true
   fi
   # New feature flow files?
-  if echo "$STAGED_STATUS" | grep -qE '^A.*docs/feature_flows/.*\.yaml'; then
+  if echo "$STAGED_STATUS" | grep -qE '^A.*feature_flows/.*\.yaml'; then
     NEEDS_KDIR=true
   fi
 
@@ -278,15 +278,15 @@ if echo "$COMMAND" | grep -qE '^git commit'; then
       echo "" >&2
       echo "═══ BLOCKED: KNOWLEDGE DIRECTORY UPDATE REQUIRED ═══" >&2
       echo "  Knowledge system file staged but KNOWLEDGE_DIRECTORY.yaml is NOT staged." >&2
-      echo "  Add new tags/file entries to docs/reference/KNOWLEDGE_DIRECTORY.yaml." >&2
+      echo "  Add new tags/file entries to knowledge/KNOWLEDGE_DIRECTORY.yaml." >&2
       echo "" >&2
       echo "  WHY: The Knowledge Directory is your searchability superpower." >&2
       echo "  Updating it means future sessions find your work instantly" >&2
       echo "  instead of opening files one by one." >&2
       echo "" >&2
       echo "  TO UNBLOCK:" >&2
-      echo "    1. Update docs/reference/KNOWLEDGE_DIRECTORY.yaml tags section" >&2
-      echo "    2. git add docs/reference/KNOWLEDGE_DIRECTORY.yaml" >&2
+      echo "    1. Update knowledge/KNOWLEDGE_DIRECTORY.yaml tags section" >&2
+      echo "    2. git add knowledge/KNOWLEDGE_DIRECTORY.yaml" >&2
       echo "    3. Re-run the commit" >&2
       echo "══════════════════════════════════════════════════" >&2
       exit 1
@@ -297,7 +297,7 @@ if echo "$COMMAND" | grep -qE '^git commit'; then
   if echo "$COMMAND" | grep -qiE 'fix|bug|resolve|patch|repair|hotfix'; then
     BUG_TOUCHED=false
 
-    if git diff --cached --name-only 2>/dev/null | grep -q '.claude/bugs/'; then
+    if git diff --cached --name-only 2>/dev/null | grep -q 'bugs/'; then
       BUG_TOUCHED=true
     fi
     if [ -f "$EDIT_LOG" ] && grep -q "bugs/.*$TODAY" "$EDIT_LOG" 2>/dev/null; then
@@ -307,16 +307,16 @@ if echo "$COMMAND" | grep -qE '^git commit'; then
     if [ "$BUG_TOUCHED" = false ]; then
       echo "" >&2
       echo "═══ BLOCKED: BUG TRACKER REQUIRED ═══" >&2
-      echo "  This commit contains fix/bug keywords but no .claude/bugs/ file" >&2
+      echo "  This commit contains fix/bug keywords but no bugs/ file" >&2
       echo "  is staged." >&2
       echo "" >&2
       echo "  WHY: Your debugging knowledge is valuable. 5 minutes of documentation" >&2
       echo "  gives the next session a 3-hour head start. That's compound leverage." >&2
       echo "" >&2
       echo "  TO UNBLOCK:" >&2
-      echo "    1. Create .claude/bugs/{system}/{system}-NNN.yaml" >&2
+      echo "    1. Create bugs/{system}/{system}-NNN.yaml" >&2
       echo "    2. Fill in: root_cause, attempts[], resolution" >&2
-      echo "    3. git add .claude/bugs/" >&2
+      echo "    3. git add bugs/" >&2
       echo "    4. Re-run the commit" >&2
       echo "═══════════════════════════════════════" >&2
       exit 1

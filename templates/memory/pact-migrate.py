@@ -4,7 +4,7 @@ PACT Memory Migration — One-time upgrade to v0.7.0 vector search.
 
 Run this ONCE per project to:
   1. Index all existing PACT knowledge files into the vector store
-  2. Move pact-ratings.jsonl → .claude/bugs/_FEEDBACK.jsonl (if needed)
+  2. Move pact-ratings.jsonl → bugs/_FEEDBACK.jsonl (if needed)
   3. Verify the index
 
 Non-destructive: YAML files are never modified. This only READS them
@@ -30,7 +30,7 @@ def main():
         print()
         print('This upgrades your PACT project to v0.7.0 by:')
         print('  1. Building a vector search index from your existing knowledge files')
-        print('  2. Moving task ratings to the new location (.claude/bugs/_FEEDBACK.jsonl)')
+        print('  2. Moving task ratings to the new location (bugs/_FEEDBACK.jsonl)')
         print()
         print('Non-destructive — your YAML files are never modified.')
         sys.exit(1)
@@ -71,7 +71,7 @@ def main():
     if os.path.isfile(old_ratings) and not os.path.isfile(new_feedback):
         os.makedirs(os.path.dirname(new_feedback), exist_ok=True)
         shutil.copy2(old_ratings, new_feedback)
-        print(f'  Copied: ~/.claude/pact-ratings.jsonl → .claude/bugs/_FEEDBACK.jsonl')
+        print(f'  Copied: ~/.claude/pact-ratings.jsonl → bugs/_FEEDBACK.jsonl')
         print(f'  (Original kept at old location for safety. Delete manually when ready.)')
     elif os.path.isfile(new_feedback):
         print(f'  _FEEDBACK.jsonl already exists at new location.')
@@ -125,7 +125,7 @@ def main():
     print(f'  - Your YAML files: UNTOUCHED (read-only indexing)')
     print(f'  - New file: ~/.claude/pact-memory.db (vector index)')
     if os.path.isfile(new_feedback):
-        print(f'  - New file: .claude/bugs/_FEEDBACK.jsonl (task ratings)')
+        print(f'  - New file: bugs/_FEEDBACK.jsonl (task ratings)')
     print()
     print(f'The vector index will be updated automatically as you work.')
     print(f'To re-index manually: python pact-memory.py reindex --project-root {project_root}')

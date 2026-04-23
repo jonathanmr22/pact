@@ -5,7 +5,7 @@
 # an unfamiliar package. If this file doesn't exist for a package, STOP and
 # research before coding.
 #
-# Save to: docs/reference/packages/{package_name}.yaml
+# Save to: knowledge/packages/{package_name}.yaml
 #
 # WHY THIS EXISTS:
 #   AI agents guess at package APIs from stale training data. This produces

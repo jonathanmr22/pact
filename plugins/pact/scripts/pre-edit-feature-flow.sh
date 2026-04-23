@@ -117,7 +117,7 @@ if [ "$FOUND_FLOW" = false ]; then
 BLOCKED: You are editing a CRITICAL system file (${CATEGORY}) without a Feature Flow document.
 
 Before modifying this file, you MUST:
-1. Create docs/feature_flows/${CATEGORY}_flow.yaml with the full lifecycle state machine
+1. Create feature_flows/${CATEGORY}_flow.yaml with the full lifecycle state machine
 2. Cover ALL states: fresh_install, normal_open, background, force_close_reopen, error_paths
 3. Include: invariants, assumes, lost/persisted, danger flags, gotchas
 4. Present the flow verbally to the user and get confirmation

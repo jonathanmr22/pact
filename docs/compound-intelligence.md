@@ -8,8 +8,8 @@ A fresh AI session has training data and a context window. A session running PAC
 
 ### 1. Research Knowledge Base
 
-**Location:** `docs/reference/research/`
-**Index:** `docs/reference/research/_RESEARCH.yaml`
+**Location:** `knowledge/research/`
+**Index:** `knowledge/research/_RESEARCH.yaml`
 
 When the agent researches something non-trivial — combining project code analysis with online docs, papers, or APIs — the *synthesis* is saved as a structured YAML file. Not the raw facts (those are re-findable) but the reasoning that connected project context to external evidence.
 
@@ -29,16 +29,16 @@ When the agent researches something non-trivial — combining project code analy
 
 ### 2. Knowledge Directory
 
-**Location:** `docs/reference/KNOWLEDGE_DIRECTORY.yaml`
+**Location:** `knowledge/KNOWLEDGE_DIRECTORY.yaml`
 
 A single-file tag index across ALL knowledge systems. One read shows every file that touches a topic without opening them individually.
 
 **Systems indexed:**
-- Research files (`docs/reference/research/`)
-- Bug investigations (`.claude/bugs/`)
-- Reusable solutions (`.claude/bugs/_SOLUTIONS.yaml`)
-- Package knowledge (`docs/reference/packages/`)
-- Feature flows (`docs/feature_flows/`)
+- Research files (`knowledge/research/`)
+- Bug investigations (`bugs/`)
+- Reusable solutions (`bugs/_SOLUTIONS.yaml`)
+- Package knowledge (`knowledge/packages/`)
+- Feature flows (`feature_flows/`)
 
 **Hook enforcement:** `pre-bash-guard.sh` blocks commits that include new knowledge files without updating the directory.
 
@@ -46,7 +46,7 @@ A single-file tag index across ALL knowledge systems. One read shows every file 
 
 ### 3. Capability Baseline
 
-**Location:** `docs/reference/PACT_BASELINE.yaml`
+**Location:** `knowledge/PACT_BASELINE.yaml`
 
 PACT's self-awareness layer. Records what the agent can do natively, what PACT compensates for, and how capabilities change over time.
 
@@ -63,7 +63,7 @@ PACT's self-awareness layer. Records what the agent can do natively, what PACT c
 
 ## Package Knowledge Files
 
-**Location:** `docs/reference/packages/{name}.yaml`
+**Location:** `knowledge/packages/{name}.yaml`
 
 Per-package research files with verified API knowledge, gotchas, and past mistakes. Mandatory check before writing code that uses a package.
 
@@ -80,9 +80,9 @@ Per-package research files with verified API knowledge, gotchas, and past mistak
 
 ## Bug Tracking & Solutions
 
-**Bugs:** `.claude/bugs/{system}/{system}-NNN.yaml`
-**Solutions:** `.claude/bugs/_SOLUTIONS.yaml`
-**Index:** `.claude/bugs/_INDEX.yaml`
+**Bugs:** `bugs/{system}/{system}-NNN.yaml`
+**Solutions:** `bugs/_SOLUTIONS.yaml`
+**Index:** `bugs/_INDEX.yaml`
 
 Bug files document investigations in real time — not just the fix, but every failed attempt and the reasoning behind them. This is the knowledge that prevents the next session from repeating dead ends.
 

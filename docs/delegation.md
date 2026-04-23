@@ -137,7 +137,7 @@ Worker model output is never committed directly. Every delegation passes through
 
 ## Delegation Log
 
-Every delegation is logged to `docs/reference/delegation_log.yaml` with actual token counts:
+Every delegation is logged to `knowledge/delegation_log.yaml` with actual token counts:
 
 ```yaml
 delegations:

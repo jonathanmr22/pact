@@ -23,13 +23,13 @@ Read it fully before doing any work. Key governance files:
 - `.claude/memory/PENDING_WORK.yaml` — Cross-session task tracker
 - `.claude/memory/file_edit_log.yaml` — File edit timestamps (auto-populated by hooks)
 - `.claude/sessions.yaml` — Active sessions (all agents)
-- `.claude/bugs/_INDEX.yaml` — Bug tracker protocol
-- `.claude/bugs/_SOLUTIONS.yaml` — Reusable solutions knowledge base
-- `docs/feature_flows/` — Lifecycle flow docs for critical systems
-- `docs/reference/packages/` — Package knowledge files (research before coding)
-- `docs/reference/research/_RESEARCH.yaml` — Cross-session research synthesis (check before researching)
-- `docs/reference/KNOWLEDGE_DIRECTORY.yaml` — Tag index across all knowledge systems (read before researching to find what already exists)
-- `docs/reference/PACT_BASELINE.yaml` — Agent capability baseline (check at session start if anything feels different)
+- `bugs/_INDEX.yaml` — Bug tracker protocol
+- `bugs/_SOLUTIONS.yaml` — Reusable solutions knowledge base
+- `feature_flows/` — Lifecycle flow docs for critical systems
+- `knowledge/packages/` — Package knowledge files (research before coding)
+- `knowledge/research/_RESEARCH.yaml` — Cross-session research synthesis (check before researching)
+- `knowledge/KNOWLEDGE_DIRECTORY.yaml` — Tag index across all knowledge systems (read before researching to find what already exists)
+- `knowledge/PACT_BASELINE.yaml` — Agent capability baseline (check at session start if anything feels different)
 
 ## Session Start Protocol
 
@@ -39,7 +39,7 @@ At the start of every conversation:
 3. Read `.claude/sessions.yaml` — check for active Claude or Gemini sessions
 4. Read `.claude/memory/file_edit_log.yaml` (recent entries) — know what was touched
 5. If another session pushed recently, run `git pull` before any work
-6. Glance at `docs/reference/PACT_BASELINE.yaml` — does your model or available tools differ from the baseline? If yes, add a `capability_deltas[]` entry.
+6. Glance at `knowledge/PACT_BASELINE.yaml` — does your model or available tools differ from the baseline? If yes, add a `capability_deltas[]` entry.
 7. List the cognitive redirections from CLAUDE.md
 
 ## Handoff Protocol

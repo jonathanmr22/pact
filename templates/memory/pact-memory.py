@@ -13,7 +13,7 @@ Single file: ~/.claude/pact-memory.db
 
 Usage:
   # Store a document
-  python pact-memory.py store --type bug --id meld-007 --text "BLE write values null" --file ".claude/bugs/meld/meld-007.yaml"
+  python pact-memory.py store --type bug --id meld-007 --text "BLE write values null" --file "bugs/meld/meld-007.yaml"
 
   # Query for similar documents
   python pact-memory.py query "entity deleted but still shows in UI" --top 5
@@ -299,7 +299,7 @@ def reindex(project_root):
                 text = f"{sol.get('title', '')} {sol.get('symptom', '')} {sol.get('root_cause', '')} {sol.get('fix', '')} {' '.join(sol.get('tags', []))}"
                 doc_id = f"solution:{project_name}:{sol_id}"
                 store(doc_id, 'solution', text.strip(),
-                      file='.claude/bugs/_SOLUTIONS.yaml', project=project_name,
+                      file='bugs/_SOLUTIONS.yaml', project=project_name,
                       metadata={'sol_id': sol_id, 'title': sol.get('title', '')})
                 indexed += 1
         except Exception as e:
@@ -349,7 +349,7 @@ def reindex(project_root):
                     text = f"Task: {task}. Score: {score}/5. Wrong: {wrong}. Right: {right}. Tags: {tags}".strip()
                     doc_id = f"feedback:{project_name}:{i}"
                     store(doc_id, 'feedback', text,
-                          file='.claude/bugs/_FEEDBACK.jsonl', project=project_name,
+                          file='bugs/_FEEDBACK.jsonl', project=project_name,
                           metadata={'score': score, 'task': task})
                     indexed += 1
         except Exception as e:

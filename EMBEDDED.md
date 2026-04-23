@@ -44,9 +44,9 @@ PACT's governance prevents these failure modes whether the agent runs in a termi
 
 **CLI:**
 ```
-docs/reference/packages/{name}.yaml     # Package knowledge
-docs/reference/research/_RESEARCH.yaml   # Research synthesis
-.claude/bugs/_SOLUTIONS.yaml             # Graduated fixes
+knowledge/packages/{name}.yaml     # Package knowledge
+knowledge/research/_RESEARCH.yaml   # Research synthesis
+bugs/_SOLUTIONS.yaml             # Graduated fixes
 ```
 
 **Embedded:**
@@ -76,8 +76,8 @@ CREATE TABLE knowledge_base (
 
 **CLI:**
 ```
-.claude/bugs/{system}/{system}-NNN.yaml  # Structured investigation
-.claude/bugs/_SOLUTIONS.yaml             # Graduated reusable fixes
+bugs/{system}/{system}-NNN.yaml  # Structured investigation
+bugs/_SOLUTIONS.yaml             # Graduated reusable fixes
 ```
 
 **Embedded:**
@@ -274,7 +274,7 @@ Local Mirror (immediately updated)
 Feature flow documents work identically in embedded contexts. Save them as YAML files in your repo:
 
 ```
-docs/feature_flows/
+feature_flows/
   auth_flow.yaml
   billing_flow.yaml
   onboarding_flow.yaml

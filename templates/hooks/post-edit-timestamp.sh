@@ -36,7 +36,7 @@ echo "    at: \"$TIMESTAMP\"" >> "$LOG_FILE"
 # ── Auto-index knowledge files into vector memory (background, non-blocking) ──
 # Detects writes to bug files, solutions, and research — indexes them immediately
 # so vector search stays current without manual reindex.
-if echo "$NORM_PATH" | grep -qE '\.claude/bugs/.*\.yaml$|docs/reference/research/.*\.yaml$'; then
+if echo "$NORM_PATH" | grep -qE '\bugs/.*\.yaml$|knowledge/research/.*\.yaml$'; then
   MEMORY_SCRIPT="$SCRIPT_DIR/pact-memory.py"
   if [ ! -f "$MEMORY_SCRIPT" ]; then
     MEMORY_SCRIPT="$SCRIPT_DIR/../memory/pact-memory.py"

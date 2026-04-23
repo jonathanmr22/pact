@@ -10,7 +10,7 @@ PACT v0.7.0 adds semantic vector search across your bugs, solutions, research, a
 - **Cross-system search**: one query searches bugs, solutions, research, and feedback simultaneously
 - **Auto-indexed feedback**: task ratings from the dashboard are automatically added to the vector index
 - **`/pact-recall` skill**: ask Claude to search PACT memory by describing what you're looking for
-- **Task feedback consolidated**: ratings now live at `.claude/bugs/_FEEDBACK.jsonl` (alongside bugs and solutions)
+- **Task feedback consolidated**: ratings now live at `bugs/_FEEDBACK.jsonl` (alongside bugs and solutions)
 
 ## Upgrade Steps
 
@@ -37,7 +37,7 @@ python pact-migrate.py /path/to/your/project
 
 This will:
 1. Read all your bug files, solutions, and research files (read-only — nothing is modified)
-2. Copy `~/.claude/pact-ratings.jsonl` → `.claude/bugs/_FEEDBACK.jsonl` (if it exists)
+2. Copy `~/.claude/pact-ratings.jsonl` → `bugs/_FEEDBACK.jsonl` (if it exists)
 3. Build the vector index at `~/.claude/pact-memory.db`
 4. Run a test query to verify everything works
 
@@ -51,7 +51,7 @@ Project: /path/to/your/project
   All dependencies installed.
 
 [2/4] Checking feedback file location...
-  Copied: ~/.claude/pact-ratings.jsonl → .claude/bugs/_FEEDBACK.jsonl
+  Copied: ~/.claude/pact-ratings.jsonl → bugs/_FEEDBACK.jsonl
 
 [3/4] Building vector search index...
   Indexed 31 documents.

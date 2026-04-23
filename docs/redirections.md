@@ -26,7 +26,7 @@ Read the comments above, inline, and surrounding code you're about to delete. Co
 
 > **"Do I actually know this package, or am I guessing?"**
 
-If you haven't verified this package's behavior in this session, you do not know it. Training data is stale. Lookup order: (1) `docs/reference/packages/{name}.yaml`, (2) if not sufficient, WebSearch/WebFetch, (3) save findings to the package knowledge file.
+If you haven't verified this package's behavior in this session, you do not know it. Training data is stale. Lookup order: (1) `knowledge/packages/{name}.yaml`, (2) if not sufficient, WebSearch/WebFetch, (3) save findings to the package knowledge file.
 
 > **"Can I delegate this?"**
 

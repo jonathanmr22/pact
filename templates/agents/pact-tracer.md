@@ -49,7 +49,7 @@ If the file doesn't exist, look for SYSTEM_MAP.yaml at the project root.
    render its data, services that call it, caches that mirror it, exports
    that depend on it.
 
-5. **Check feature flows** — read `docs/feature_flows/` for any lifecycle
+5. **Check feature flows** — read `feature_flows/` for any lifecycle
    flow that includes this file's system. Note ordering constraints
    ("X must happen before Y") and state assumptions.
 
