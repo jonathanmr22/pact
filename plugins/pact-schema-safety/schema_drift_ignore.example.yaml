@@ -1,0 +1,18 @@
+# Schema Drift Ignore List (example — copy to scripts/.schema_drift_ignore.yaml in your project)
+#
+# Add (table, column) pairs here to suppress drift warnings for known-acceptable
+# divergence: deprecated columns being phased out, ORM-only local tables that
+# have no Postgres counterpart, etc.
+#
+# Format:
+#   ignored:
+#     - { table: legacy_users,    column: deprecated_email_v1, reason: "phasing out, drop in v0.0.50", added: 2026-03-15 }
+#     - { table: local_only_cache, column: null,                reason: "ORM-only table; no Postgres equivalent", added: 2026-04-23 }
+#
+# - column: null   → ignore entire table (use sparingly)
+# - reason         → MUST explain why; future you will thank present you
+# - added          → when the entry was added (helps audit periodically)
+#
+# Read by scripts/check_schema_drift.py.
+
+ignored: []

@@ -1,0 +1,137 @@
+skill: drift_database
+version: 1
+created_by: PACT stack-recipe (flutter)
+purpose: |
+  Conventions for using Drift (the Flutter local-DB ORM) safely:
+  the entity-ID dual-key pattern, dual provider cache, idempotent
+  migrations, and the schema_verify checkpoint integration. Captures
+  patterns that have repeatedly broken Drift-using projects in production.
+
+triggers:
+  - drift table
+  - drift migration
+  - new entity
+  - new local table
+  - database schema change
+  - provider cache
+
+prerequisites:
+  read_first:
+    - "lib/database/{your_app}_database.dart (the main Drift database file) for migration history"
+    - "Existing Drift table files for the project's naming conventions"
+
+procedure:
+  1_dual_key_entity_id:
+    what: "Every entity table has TWO key columns"
+    pattern: |
+      class Profiles extends Table {
+        IntColumn get id => integer().autoIncrement()();          // Drift internal FK use only
+        TextColumn get profileId => text().clientDefault(() => Uuid().v4())();  // External identity (UUID)
+
+        @override
+        Set<Column> get primaryKey => {id};
+      }
+    rules:
+      - "id (auto-increment int) is for INTERNAL Drift FK joins only — never serialized, never sent over the wire, never compared across devices"
+      - "{entity}Id (text UUID) is the EXTERNAL identity — survives backup/restore, syncs to server, used in cross-system references"
+      - "App models expose .id as the TEXT UUID (the external one), never the auto-int"
+      - "When writing Dart code that references entities by ID, use the text {entity}Id (model's .id), not the auto-int"
+
+  2_dual_provider_cache:
+    what: "Riverpod providers that cache entities use TWO data structures"
+    pattern: |
+      class ProfilesNotifier extends ChangeNotifier {
+        List<Profile> _profiles = [];               // for iteration / list rendering
+        final Map<String, Profile> _profilesById = {}; // for O(1) lookup
+
+        Future<void> add(Profile p) async {
+          await _service.insert(p);
+          _profiles.add(p);
+          _profilesById[p.id] = p;     // BOTH must be updated
+          notifyListeners();
+        }
+
+        Future<void> update(Profile p) async {
+          await _service.update(p);
+          final idx = _profiles.indexWhere((x) => x.id == p.id);
+          if (idx >= 0) _profiles[idx] = p;
+          _profilesById[p.id] = p;     // BOTH must be updated
+          notifyListeners();
+        }
+
+        Future<void> delete(String id) async {
+          await _service.delete(id);
+          _profiles.removeWhere((x) => x.id == id);
+          _profilesById.remove(id);    // BOTH must be updated
+          notifyListeners();
+        }
+      }
+    critical: "EVERY add/update/delete method must update BOTH the list AND the map. Missing one = stale cache bug. The symptom is 'data saves to Drift but doesn't show in UI' — but the save isn't broken; the UI is reading from the stale half of the cache."
+
+  3_idempotent_migrations:
+    what: "Every migration must be safe to run twice"
+    why: "Failed migrations can add a column then crash before the version bump commits. Next launch reruns and hits 'duplicate column' errors that cascade into encryption-failure false alarms."
+    pattern: |
+      // Helper used in every migration
+      Future<void> _addColumnIfNotExists(Migrator m, Table table, String columnName, String columnDef) async {
+        final exists = await customSelect(
+          "SELECT COUNT(*) AS c FROM pragma_table_info(?) WHERE name = ?",
+          variables: [Variable(table.actualTableName), Variable(columnName)],
+        ).getSingle().then((row) => row.read<int>('c') > 0);
+        if (!exists) {
+          await customStatement('ALTER TABLE ${table.actualTableName} ADD COLUMN $columnName $columnDef');
+        }
+      }
+
+      // Then in onUpgrade:
+      if (from < 42) {
+        await _addColumnIfNotExists(m, profiles, 'avatar_url', 'TEXT');
+      }
+    rules:
+      - "Use _addColumnIfNotExists for every ALTER TABLE ADD COLUMN (never bare m.addColumn())"
+      - "Use CREATE TABLE IF NOT EXISTS for new tables"
+      - "Test the migration twice in a row — must succeed both times"
+
+  4_before_any_schema_change:
+    what: "Follow the schema_change_workflow skill"
+    rules:
+      - "Ask user: CASCADE / SET NULL / RESTRICT for FK behavior"
+      - "Show example data flow: BEFORE -> ACTION -> AFTER"
+      - "Wait for user confirmation"
+      - "Verify live schema (if Drift mirrors a remote DB) via schema_verify checkpoint"
+
+  5_after_changes:
+    what: "Update governance"
+    checklist:
+      - "Update SYSTEM_MAP.yaml tables list + wiring sections that touch this table"
+      - "Update KNOWLEDGE_DIRECTORY.yaml if a new table system was added"
+      - "Update feature flow doc if behavior changed"
+      - "Run flutter pub run build_runner build --delete-conflicting-outputs"
+      - "dart analyze clean"
+
+quality_gates:
+  - "Both id (int) AND {entity}Id (UUID) declared on every entity table"
+  - "App model exposes .id as the TEXT UUID, not the auto-int"
+  - "All providers update both _list AND _byId on every mutation"
+  - "All migrations use idempotent patterns (_addColumnIfNotExists, CREATE TABLE IF NOT EXISTS)"
+  - "Migration tested by running twice in succession"
+  - "build_runner clean after schema changes"
+
+gotchas:
+  - pattern: "Use auto-int .id as external entity identity"
+    problem: "Auto-int IDs are not stable across backup/restore (different rows on different devices). Cross-device sync breaks."
+    fix: "Always use the TEXT UUID ({entity}Id) for external identity. The auto-int is for internal Drift FK joins only."
+
+  - pattern: "Update _list but not _byId in a provider mutation method"
+    problem: "Data saves to Drift correctly. UI list iterates from _list and shows the new state. But anywhere that does provider.getById(id) (which uses _byId) returns stale data."
+    fix: "Provider add/update/delete must touch BOTH caches. Add a comment above the field declarations stating they're paired."
+
+  - pattern: "Bare ALTER TABLE ADD COLUMN in a migration"
+    problem: "Failed mid-migration leaves the column added but version not bumped. Next launch tries to add again, hits 'duplicate column' error, which the encryption layer often misinterprets as DB corruption."
+    fix: "Always use _addColumnIfNotExists. Test the migration twice in a row before shipping."
+
+  - pattern: "String-interpolating an entity ID into a map key"
+    problem: "If the input ID is already prefixed (e.g. 'interest_birdwatching'), wrapping it again ('interest_${id}') produces 'interest_interest_birdwatching' — the lookup silently misses."
+    fix: "Document the key format above any Map<String, ...> declaration. Verify the input format before composing keys."
+
+history: []

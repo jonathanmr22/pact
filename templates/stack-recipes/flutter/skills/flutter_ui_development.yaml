@@ -1,0 +1,91 @@
+skill: flutter_ui_development
+version: 1
+created_by: PACT stack-recipe (flutter)
+purpose: |
+  Standard procedure for building any Flutter UI element (widget, screen,
+  modal, sheet, card). Captures the search-before-creating, follow-conventions,
+  mental-walkthrough discipline that keeps every screen feeling like part of
+  the same family.
+
+triggers:
+  - new widget
+  - new screen
+  - build modal
+  - build sheet
+  - build card
+  - UI work
+  - flutter UI
+
+# Scope distinction:
+# - This skill: Flutter code (Dart widgets, screens, modals in lib/)
+# - figma_design skill: Figma mockups (design exploration, not code)
+# - cutting_room/: Complex animations, shaders, custom painters (prototype OUTSIDE Flutter first)
+
+prerequisites:
+  read_first:
+    - "SYSTEM_MAP.yaml — find the wiring section for the feature"
+  search_first:
+    - "lib/widgets/ — reusable widgets your project has accumulated"
+    - "lib/theme/ or equivalent — spacing, text styles, input decoration helpers"
+
+procedure:
+  1_find_siblings:
+    what: "Search for existing screens/widgets that solve a similar problem"
+    why: "Consistency comes from studying siblings. Every screen should feel like the same family."
+    search: "Glob for *_screen.dart, *_sheet.dart, *_modal.dart, *_card.dart in lib/"
+
+  2_read_closest_sibling:
+    what: "Read at least ONE existing screen closest to what you're building"
+    why: "Absorb the spacing rhythm, widget composition patterns, and visual language of the project"
+
+  3_check_reusables:
+    what: "Check existing widgets before building new ones"
+    must_check_per_project_conventions:
+      - "Does the project have a single primary-action FAB widget? (Use it for action buttons; never raw FilledButton at screen bottom — gets hidden behind a floating nav bar.)"
+      - "Does the project have a tag-picker dialog? (Use it; never build a one-off picker.)"
+      - "Does the project have a wrapped bottom-sheet helper? (Use it; never raw showModalBottomSheet — wrapper handles nav-bar clearance + scroll safety.)"
+      - "Does the project have a snackbar/dialog helper? (Use it; never raw SnackBar / AlertDialog.)"
+      - "Does the project have a palette helper? (Use it; never raw Color(0x...).)"
+
+  4_build:
+    what: "Build the widget following the project's patterns + Flutter discipline"
+    universal_rules:
+      - "Always braces on if/else/for/while"
+      - "if (!mounted) return after every await before setState/Navigator"
+      - "Fresh-read entity from provider before saving — never use stale widget.entity"
+      - "Wrap modals in SingleChildScrollView (modals always overflow eventually)"
+      - "Add bottom padding equal to nav-bar clearance for pushed routes"
+      - "Use the project's primary-action FAB widget, not raw buttons"
+      - "Use the project's theme builder, not manual styleFrom"
+
+  5_mental_walkthrough:
+    what: "Walk through the ENTIRE user journey mentally before declaring done"
+    questions:
+      - "What do you see first?"
+      - "What happens when you tap?"
+      - "What at 0 items? At 100?"
+      - "What if the keyboard opens?"
+      - "Does text overflow at long values?"
+      - "Would this feel tedious after the 10th time?"
+
+quality_gates:
+  - "dart analyze clean"
+  - "No overflow — every screen responsive"
+  - "Reusable widgets used where they exist"
+  - "Follows the project's primary-action widget convention"
+  - "Bottom padding accounts for floating nav bar (if applicable)"
+
+gotchas:
+  - pattern: "Build a custom tag picker / dialog / sheet from scratch"
+    problem: "Project likely has a wrapped helper; using raw widgets bypasses nav-bar handling and scroll safety"
+    fix: "Always search lib/widgets/ for an existing helper first"
+
+  - pattern: "Use FilledButton at the bottom of a pushed screen"
+    problem: "Gets hidden behind floating nav bar (most Flutter apps with bottom nav have ~70-80px clearance)"
+    fix: "Use the project's primary-action FAB widget, OR add explicit clearance padding"
+
+  - pattern: "setState after await without mounted check"
+    problem: "If the widget disposed during the await, setState throws — and the error is caught silently by the framework, leaving state in a partial-update mode"
+    fix: "ALWAYS `if (!mounted) return;` after every await before setState/Navigator"
+
+history: []

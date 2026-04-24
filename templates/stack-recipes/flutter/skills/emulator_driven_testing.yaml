@@ -1,0 +1,92 @@
+skill: emulator_driven_testing
+version: 1
+created_by: PACT stack-recipe (flutter)
+purpose: |
+  Headless Android emulator workflow for Flutter projects. Captures the
+  auto-kill-watchdog pattern (no zombie emulators), screenshot-via-adb
+  pattern (no GUI window), and optional marionette-MCP integration for
+  widget-tree-driven interaction (no coordinate-based tapping).
+
+triggers:
+  - launch emulator
+  - test on emulator
+  - emulator screenshot
+  - widget interaction
+  - mobile UI test
+
+prerequisites:
+  tools_needed:
+    - "Android SDK (emulator, adb)"
+    - "An AVD created via avdmanager (e.g. Pixel_9_Pro)"
+  optional_tools:
+    - "marionette_flutter + marionette_mcp packages — for widget-tree interaction via MCP"
+
+procedure:
+  1_launch_via_watchdog_wrapper:
+    what: "ALWAYS launch the emulator through a wrapper that arms an auto-kill watchdog"
+    why: "Forgotten emulator VMs burn CPU + battery for hours. Unattended sessions die without cleaning up."
+    pattern: |
+      # PowerShell example wrapper (adapt to bash for Linux/macOS):
+      param(
+        [string]$AvdName = "Pixel_9_Pro",
+        [int]$TimeoutMinutes = 30
+      )
+      $deadline = (Get-Date).AddMinutes($TimeoutMinutes)
+      Start-Process -FilePath "emulator" -ArgumentList "-avd", $AvdName, "-no-window", "-no-snapshot-load" -WindowStyle Hidden
+      Start-Process pwsh -ArgumentList "-NoProfile", "-Command", "Start-Sleep -Seconds ($TimeoutMinutes * 60); adb -s emulator-5554 emu kill" -WindowStyle Hidden
+    rules:
+      - "Default timeout 30 minutes (override per call)"
+      - "Hard cap at 4 hours — past that you should be on a real device"
+      - "Watchdog runs as a detached process — survives if your Claude session crashes"
+
+  2_wait_for_boot:
+    what: "Don't interact until emulator finishes booting"
+    pattern: |
+      adb -s emulator-5554 wait-for-device
+      adb -s emulator-5554 shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 1; done'
+    rule: "If you start tapping before boot completes, half your taps land on the wallpaper"
+
+  3_screenshot_via_adb:
+    what: "Capture screenshots without opening any GUI"
+    pattern: "adb -s emulator-5554 exec-out screencap -p > screenshot.png"
+    rules:
+      - "ALWAYS headless — emulator must run with -no-window"
+      - "ALWAYS screenshot via adb exec-out — never via GUI screenshot tools"
+      - "Save to a non-VCS-tracked path (e.g. .tmp_screenshots/)"
+
+  4_interact_via_widget_keys_not_coordinates:
+    what: "Use marionette MCP to tap by ValueKey when possible"
+    why: "Coordinate-based tapping (uiautomator dump + tap X Y) is fragile across resolutions and slow"
+    fallback: "If marionette isn't installed, use adb shell input tap X Y but be explicit about resolution assumptions"
+    anti_pattern: "DO NOT use sleep + uiautomator dump | grep loops to wait for UI state — those freeze your session for minutes"
+
+  5_kill_when_done:
+    what: "End the emulator explicitly if finishing before the watchdog timeout"
+    pattern: "adb -s emulator-5554 emu kill"
+    why: "Releases CPU + memory immediately"
+
+quality_gates:
+  - "Emulator launched headless (no GUI window opened)"
+  - "Auto-kill watchdog armed at launch (max timeout enforced)"
+  - "Wait-for-boot completed before any interaction"
+  - "Screenshots captured via adb exec-out (not a GUI tool)"
+  - "Emulator killed when work is done (don't rely solely on watchdog)"
+
+gotchas:
+  - pattern: "Launch emulator with bare `emulator -avd Foo` command"
+    problem: "No watchdog. If your session dies, the emulator runs forever. Burns laptop battery, drains CPU."
+    fix: "ALWAYS launch via the watchdog wrapper. Never bare emulator command."
+
+  - pattern: "Skip wait-for-boot and start tapping immediately"
+    problem: "Half your taps land on the boot animation or wallpaper, not the app"
+    fix: "Always wait for sys.boot_completed before any input"
+
+  - pattern: "Use uiautomator dump in a sleep loop to wait for a UI state"
+    problem: "Each dump takes 2-5 seconds. Loop runs for minutes. Your Claude session is frozen the whole time."
+    fix: "Use marionette MCP for state queries (instant), or accept fixed-duration sleeps + explicit verification, or stream flutter run logs"
+
+  - pattern: "Open the emulator GUI window for visual debugging"
+    problem: "Defeats the headless model; user's screen is theirs, not the agent's"
+    fix: "Take adb screenshots; review them; never open a window the user didn't ask for"
+
+history: []

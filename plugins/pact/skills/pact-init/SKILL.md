@@ -141,6 +141,47 @@ Let the user decide per row. Only scaffold what they choose. The goal is zero re
 
 ---
 
+## Step 1.5: Stack Recipes (Optional)
+
+PACT ships **stack-specific recipe bundles** under `templates/stack-recipes/`. Each is a curated set of skills, knowledge patterns, and hooks that capture idioms for a particular tech stack — patterns that have repeatedly bitten projects in production and are worth shipping as templates.
+
+**Currently shipped:**
+
+- **`templates/stack-recipes/flutter/`** — Flutter projects (Riverpod dispose safety, ORM dual-key entity ID, dual provider cache, idempotent migrations, widget discipline, responsive overflow, image compression standard, headless emulator + auto-kill watchdog, post-edit `flutter analyze` hook)
+
+**Optional plugins** that pair with stack recipes:
+
+- **`plugins/pact-schema-safety/`** — Postgres schema drift detection (live schema vs ORM tables vs backend `.select()` calls). Pairs naturally with the Flutter recipe's `drift_database.yaml` skill.
+
+### Procedure
+
+1. **Detect the stack.** Look at `pubspec.yaml`, `package.json`, `Cargo.toml`, `go.mod`, etc. Decide what stack the project uses.
+
+2. **Ask the user:** *"This appears to be a Flutter project. PACT ships an optional `flutter` stack-recipe bundle (3 skills + 4 patterns + 1 hook) covering Riverpod dispose safety, drift database conventions, widget discipline, responsive overflow, image compression, emulator workflow, and a post-edit flutter-analyze hook. Want to install it?"*
+
+3. **If yes**, copy the contents of the relevant `templates/stack-recipes/{stack}/` subdirectory into the project:
+   - `skills/*.yaml` → project's `skills/` directory
+   - `patterns/*.md` → project's `knowledge/patterns/` directory (create if absent)
+   - `hooks/*.sh` → project's `.claude/hooks/` directory (chmod +x; wire into `.claude/settings.json` per the recipe's README)
+   - Update `skills/_SKILL_INDEX.yaml` to register each new skill
+   - Update `knowledge/KNOWLEDGE_DIRECTORY.yaml` to register the patterns
+
+4. **If the recipe pairs with an optional plugin** (e.g. Flutter recipe + `pact-schema-safety` for projects that use Postgres), ask separately about each plugin.
+
+5. **Customize per project.** The skill files reference generic widget names (`PrimaryActionFab`, `AppPalette`, etc.). Walk the user through replacing those with the project's actual widget names.
+
+### Skip if
+
+- The project doesn't match any shipped stack
+- The user explicitly opts out
+- The user wants to author project-specific skills from scratch instead of starting from templates
+
+### Future stacks
+
+Stack-recipe contributions for Node.js, React/Next.js, Rust, Go, etc. would follow the same structure: `templates/stack-recipes/{stack}/{skills,patterns,hooks}/`. See the existing `flutter/` recipe for the model.
+
+---
+
 ## Step 2: Scaffold
 
 Scaffold the PACT governance infrastructure into this project. **Only scaffold items appropriate for the chosen tier** (see tier table above). Create the following files if they don't already exist (and the user hasn't opted out of that subsystem above).

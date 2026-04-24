@@ -1,0 +1,16 @@
+# pact-schema-safety configuration (example — copy to project root if defaults don't fit)
+#
+# All paths are relative to the project root. Each key overrides the
+# corresponding default in scripts/check_schema_drift.py.
+#
+# If this file is absent, the script uses sensible defaults that work for
+# most Drift + Supabase projects.
+
+# orm_tables_dir:           lib/database/tables          # ORM table definitions
+# edge_functions_dir:       supabase/functions           # backend functions with .select() calls
+# schema_doc:               knowledge/postgres_schema.yaml  # auto-regenerated schema doc
+# tech_stack:               knowledge/tech_stack.yaml    # for the edge_functions inventory diff
+# ignore_file:              scripts/.schema_drift_ignore.yaml
+# bugs_schema_dir:          bugs/schema                  # where drift bug files go
+# cache_ttl_hours:          12                           # live-schema cache TTL
+# drift_age_escalation_days: 7                           # days before critical -> high severity

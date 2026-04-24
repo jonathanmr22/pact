@@ -59,6 +59,27 @@ PACT uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - **`templates/nested_claude_md_guide.md`** — recipe doc for the per-directory CLAUDE.md scaffolding pattern. Explains when to adopt nested layout (root >12k tokens, mixed domains), what goes in root vs. each subdir, recommended structure, sizing guidance, validation procedure, and trade-offs. Referenced from `templates/instructions.md § Nested CLAUDE.md Layout`.
 
+- **`plugins/pact-schema-safety/`** — optional plugin for projects with a Postgres database. Detects divergence between live schema and local codebase assumptions (ORM table definitions, backend `.select()` calls, schema doc, function inventory). Ships with:
+  - `scripts/check_schema_drift.py` — full detector (~1000 LOC). Live-schema fetch via psycopg2 + `SCHEMA_SAFETY_DB_URL` (or `DATABASE_URL`), Drift-class regex parser, EF `.from(...).select(...)` regex parser, structured-YAML schema-doc parser, FK target validation, suggested-fix via difflib for renamed columns, first_seen/last_seen tracking, severity escalation if drift persists >7 days, KEEP-block-preserving doc regenerator
+  - `commands/check-drift.md` — `/check-drift` slash command
+  - `bugs/schema/_INDEX.yaml` — schema-bug subsystem header
+  - `schema_drift_ignore.example.yaml` — template for opt-out list
+  - `pact-schema-safety.config.example.yaml` — config-file template (override default paths per project)
+  - `README.md` — install instructions, usage, configuration, limitations, adapting to other DBs
+
+- **`templates/stack-recipes/flutter/`** — optional stack recipes for Flutter projects:
+  - `skills/flutter_ui_development.yaml` — search siblings, check reusables, follow conventions, mental walkthrough
+  - `skills/emulator_driven_testing.yaml` — headless emulator + auto-kill watchdog + adb screenshots + (optional) marionette MCP for widget-tree interaction
+  - `skills/drift_database.yaml` — entity ID dual-key (auto-int + UUID), dual provider cache (list + map), idempotent migrations
+  - `patterns/riverpod_dispose_safety.md` — `ConsumerStatefulWidget` container-in-`didChangeDependencies` pattern
+  - `patterns/widget_discipline.md` — single PrimaryActionFab, theme over manual styleFrom, modal scroll wrapper, no arbitrary Color literals, with hook-enforcement examples
+  - `patterns/responsive_overflow.md` — every-screen-must-be-responsive checklist + nav bar clearance
+  - `patterns/image_compression_standard.md` — WebP quality 90 @ 1080px max, single helper enforcement, migration strategy
+  - `hooks/flutter-verify.sh` — generic post-edit `flutter analyze` runner
+  - `README.md` — install instructions, when to adopt, customization guidance
+
+- **`/pact-init` updated** — new "Step 1.5: Stack Recipes (Optional)" section between Overlap Audit and Scaffold. Detects the project's stack from manifest files, asks the user whether to install the matching recipe bundle, and walks through the install steps (copy skills/patterns/hooks, register in indexes, customize widget names per project). Currently flags Flutter; future stacks (Node, React, Rust, Go) follow the same pattern.
+
 ### Changed
 - Restructured top-level layout: promoted `docs/{skills,plans,reference,feature_flows,governance,philosophy,setup,archive}/` to top-level `{skills,plans,knowledge,feature_flows,governance,philosophy,setup,archive}/`. `.claude/bugs/` promoted to top-level `bugs/`. Templates, plugin scripts, and docs all swept to reference the new paths. Future projects bootstrapped from PACT inherit the flatter layout by default.
 

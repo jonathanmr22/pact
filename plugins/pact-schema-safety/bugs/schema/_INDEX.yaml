@@ -1,0 +1,19 @@
+# bugs/schema/ subsystem
+#
+# Auto-generated drift bug files land here.
+#
+# File naming: schema-drift-{ISODATE}.yaml — one per detection run.
+# The script checks for an existing OPEN bug file before creating a new one;
+# updates `last_seen` and `age_days` instead of duplicating.
+#
+# Status field follows the project's bug protocol:
+#   open      — drift detected, not yet resolved
+#   resolved  — drift was fixed; resolution.commit recorded
+#   closed    — bug was filed in error or no longer applicable
+#
+# When you resolve a drift bug, update the file's status field and add a
+# resolution.commit entry pointing at the fix. The next /check-drift run
+# will see the resolved status and not re-open the bug.
+
+system: schema
+purpose: "Auto-generated schema drift detection (via plugins/pact-schema-safety)"
