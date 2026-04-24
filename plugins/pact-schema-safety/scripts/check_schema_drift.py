@@ -358,50 +358,158 @@ def parse_drift_tables() -> list[DriftTable]:
 # Edge Function .select() parser
 # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-# .from('table')  followed within ~600 chars by  .select('a, b')
-# (handles multi-line selects by treating . as anychar)
-EF_PAIR_RE = re.compile(
-    r"\.from\(\s*[\"']([\w_]+)[\"']\s*\)[\s\S]{0,600}?"
-    r"\.select\(\s*[\"']([^\"']+)[\"']\s*[,\)]",
-    re.MULTILINE,
+# State-machine parser:
+#   1. Walk every .from(TABLE) and .select(COLS) in source order
+#   2. Track the most-recent .from() — that's the current table
+#   3. Each .select() pairs with the current table
+#   4. .from(VARIABLE) (non-string-literal) RESETS the current table to None
+#      so a later .select() doesn't get paired with an earlier literal
+#   5. PostgREST embed syntax `embedded!inner (col1, col2)` attributes
+#      inner cols to the embedded table, not the outer one
+#
+# Replaces an earlier 600-char-window regex that mis-paired .select() with
+# a too-distant earlier .from() when multiple .from() calls sat close
+# together (validated against a downstream consumer where 8/10 EF
+# criticals from the original parser were false positives).
+
+FROM_RE = re.compile(r"\.from\(\s*[\"']([\w_]+)[\"']\s*\)")
+# .from(variable) — matches any .from( NOT followed by a quote. Used to RESET
+# the current_table state so a later .select() doesn't get paired with the
+# previous literal .from(). Common in dispatch code: .from(tableName).select(...)
+# where tableName is a runtime variable.
+FROM_VAR_RE = re.compile(r"\.from\(\s*(?![\"'])")
+SELECT_RE = re.compile(
+    r"\.select\(\s*"
+    r"(?:'([^']+)'|\"([^\"]+)\"|`([^`]+)`)"  # single, double, or backtick template
+    r"\s*[,\)]"
 )
+_EMBED_PREFIX_RE = re.compile(r"^(\w+)(?:!\w+)?\s*\(")
+
+
+def _split_top_level_commas(s: str) -> list[str]:
+    """Split s by commas at paren-depth 0. PostgREST embeds use parens."""
+    out: list[str] = []
+    depth = 0
+    cur: list[str] = []
+    for ch in s:
+        if ch in "([{":
+            depth += 1
+            cur.append(ch)
+        elif ch in ")]}":
+            depth -= 1
+            cur.append(ch)
+        elif ch == "," and depth == 0:
+            out.append("".join(cur))
+            cur = []
+        else:
+            cur.append(ch)
+    if cur:
+        out.append("".join(cur))
+    return [p.strip() for p in out if p.strip()]
+
+
+def parse_select_cols(cols_str: str, outer_table: str) -> list[tuple[str, str]]:
+    """Parse a PostgREST .select() string into [(table, column), ...].
+
+    Recognizes embed syntax `word!inner (cols)` and `word (cols)` —
+    those cols attribute to the embedded table, not the outer.
+    Recursive for nested embeds like `posts (id, comments (id, body))`.
+    """
+    out: list[tuple[str, str]] = []
+    if not cols_str:
+        return out
+
+    for piece in _split_top_level_commas(cols_str):
+        # Strip 'col as alias'
+        piece = re.split(r"\s+as\s+", piece, maxsplit=1)[0].strip()
+        if not piece or piece == "*":
+            continue
+
+        em = _EMBED_PREFIX_RE.match(piece)
+        if em:
+            inner_table = em.group(1)
+            # Find the matching close paren (depth-aware)
+            paren_start = em.end() - 1  # position of the '('
+            depth = 0
+            paren_end = -1
+            for i in range(paren_start, len(piece)):
+                if piece[i] == "(":
+                    depth += 1
+                elif piece[i] == ")":
+                    depth -= 1
+                    if depth == 0:
+                        paren_end = i
+                        break
+            if paren_end > 0:
+                inner_cols = piece[paren_start + 1 : paren_end]
+                # Recurse — the embedded table becomes the new outer
+                for it, ic in parse_select_cols(inner_cols, inner_table):
+                    out.append((it, ic))
+            continue
+
+        # Plain column on outer table — strip nested-fn / wildcard junk
+        if "(" in piece or "*" in piece:
+            continue
+        if not re.match(r"^[\w_]+$", piece):
+            continue
+        out.append((outer_table, piece))
+
+    return out
 
 
 def parse_edge_function_refs() -> list[EFColumnRef]:
     refs: list[EFColumnRef] = []
     if not EF_DIR.exists():
         return refs
+
     for path in sorted(EF_DIR.rglob("index.ts")):
         text = path.read_text(encoding="utf-8", errors="replace")
-        for m in EF_PAIR_RE.finditer(text):
-            table = m.group(1)
-            cols_str = m.group(2).strip()
-            # Skip *
-            if cols_str == "*":
-                cols: list[str] = []
-            else:
-                cols = []
-                for piece in cols_str.split(","):
-                    raw = piece.strip()
-                    # Strip ' as alias' suffix
-                    raw = re.split(r"\s+as\s+", raw, maxsplit=1)[0].strip()
-                    # Strip nested ( ... ) like  count(*)
-                    if "(" in raw or "*" in raw or not raw:
-                        continue
-                    # Strip foreign-table embed:  some_table(col1, col2)
-                    if not re.match(r"^[\w_]+$", raw):
-                        continue
-                    cols.append(raw)
-            line = text[: m.start()].count("\n") + 1
-            refs.append(
-                EFColumnRef(
-                    file=str(path.relative_to(PROJECT_ROOT)).replace("\\", "/"),
-                    line=line,
-                    table=table,
-                    columns=cols,
-                )
-            )
+        rel_path = str(path.relative_to(PROJECT_ROOT)).replace("\\", "/")
+
+        # Build a source-ordered event stream:
+        #   ('from',     pos, table)  - .from('literal_table')
+        #   ('from_var', pos, '')     - .from(variable) — RESETS current_table
+        #   ('select',   pos, cols)   - .select('cols')
+        events: list[tuple[int, str, str]] = []
+        for m in FROM_RE.finditer(text):
+            events.append((m.start(), "from", m.group(1)))
+        for m in FROM_VAR_RE.finditer(text):
+            events.append((m.start(), "from_var", ""))
+        for m in SELECT_RE.finditer(text):
+            cols = m.group(1) or m.group(2) or m.group(3) or ""
+            events.append((m.start(), "select", cols))
+        events.sort(key=lambda e: e[0])
+
+        current_table: str | None = None
+        for pos, kind, payload in events:
+            if kind == "from":
+                current_table = payload
+            elif kind == "from_var":
+                current_table = None  # variable-table .from() — don't carry old literal forward
+            else:  # select
+                if not current_table:
+                    continue  # .select() with no preceding literal .from() — ambiguous, skip
+                line = text[:pos].count("\n") + 1
+                pairs = parse_select_cols(payload, current_table)
+
+                # One EFColumnRef per (table, location) — bucket cols by attributed table
+                by_table: dict[str, list[str]] = {}
+                for t, c in pairs:
+                    by_table.setdefault(t, []).append(c)
+                for t, col_list in by_table.items():
+                    refs.append(
+                        EFColumnRef(
+                            file=rel_path,
+                            line=line,
+                            table=t,
+                            columns=col_list,
+                        )
+                    )
     return refs
+
+
+# (Legacy regex-window parser removed 2026-04-24 in favor of the
+# state-machine version above. See git history if you want to compare.)
 
 
 # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
