@@ -695,9 +695,20 @@ def diff_all(
 # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def existing_open_bug() -> Path | None:
+    """Return the most recent OPEN auto-generated drift bug file, if any.
+
+    Scoped to the date-stamped naming convention (schema-drift-YYYY-MM-DD.yaml)
+    so it never picks up hand-written bug files in bugs/schema/ that happen
+    to start with `schema-drift-`. Hand-written files use other prefixes
+    (e.g. `schema-{table}-{column}.yaml`) and are never touched by this script.
+    """
     if not BUGS_SCHEMA_DIR.exists():
         return None
+    # Only the date-stamped auto-generated form: schema-drift-YYYY-MM-DD.yaml
+    auto_glob = re.compile(r"^schema-drift-\d{4}-\d{2}-\d{2}\.yaml$")
     for p in sorted(BUGS_SCHEMA_DIR.glob("schema-drift-*.yaml"), reverse=True):
+        if not auto_glob.match(p.name):
+            continue
         try:
             data = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
             if data.get("status") not in {"resolved", "closed"}:
