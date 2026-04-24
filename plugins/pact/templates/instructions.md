@@ -78,6 +78,8 @@ At the start of every conversation, the agent MUST:
 
 - **When writing script output that a human will read:** *"Would a user understand what's happening at a glance?"* — Script output is a UI. Raw debug logs with cryptic IDs, abbreviations, and unstructured timestamps are not acceptable for scripts the user runs directly. Design console output with clear visual hierarchy: headers for major phases, section dividers for groups, aligned key-value pairs for status, and compact progress lines for iteration. Use consistent indentation to show nesting. Show what matters: human-readable names (not IDs), counts with commas, percentages for completion, elapsed time, and running totals. The user should be able to open a terminal and immediately understand: what's running, how far along it is, and whether anything is wrong.
 
+- **When writing or tuning a heavy script (ETL, parallel workers, large backfills, bulk enrichment):** *"Am I throttling for no reason?"* — Default Python and library docs assume conservative consumer-grade hardware. If your actual host is more capable (developer workstation, dedicated server, batch host), those defaults leave most of the resources idle. Tune to the actual upstream constraint, not to the worst-case host. The rule: whenever you set a concurrency, batch size, worker count, or rate, name the upstream constraint that determined it. "I set X to N because Y is the bottleneck" is good. "I set X to N because it felt safe" is a tell to revisit. The host running the script almost never IS the constraint — the database pooler, API rate limit, or remote service quota almost always IS.
+
 ---
 
 ## Subagent Delegation (PACT Agents)

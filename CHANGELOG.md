@@ -18,8 +18,28 @@ PACT uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   - Bypass with `git commit --no-verify` for justified cases (e.g., explicit case study with permission).
   - Setup (one-time per clone): `git config core.hooksPath .githooks`. See `.githooks/README.md`.
 
+- **TodoWrite enforcement hook** (`pact-todowrite-enforce.sh`) — Mechanical counterpart to the harness's "TodoWrite hasn't been used recently" reminder. Counts substantive Edit/Write/Bash calls; blocks the next one once the threshold is hit (default 12). Resets when TodoWrite fires. Wired via three settings.json hooks: PreToolUse check, PostToolUse reset on TodoWrite, PostToolUse increment on Edit/Write/Bash. The harness reminder is easy to ignore; the hard block forces task-state acknowledgement.
+
+- **PowerShell encoding gate** in `pre-edit-rules.sh` — Hard-blocks edits that would write non-ASCII bytes into a `.ps1` file. `powershell -File` rejects/mis-parses UTF-8 multi-byte characters (em-dash, en-dash, smart quotes, ellipsis) when no BOM is present, causing silent wrapper-script failures. Cross-platform: only fires when the edited file ends in `.ps1`, so Linux/macOS-only projects are unaffected. Triggered by an actual incident where two ~30-min wrapper-failure investigations both traced back to a single em-dash.
+
+- **Schema-touching staleness warning** in `pre-bash-guard.sh` — When a commit includes edits to `tables/`, `models/`, or `schema/` files, the hook checks for a schema-drift detector marker file (`scripts/.cache/daily_marker_*`). If the last drift check is >7 days old (or never ran), warns to run `/check-drift` (or `scripts/check_schema_drift.py`) before committing. Non-blocking — partners with the new `<last_drift_check>` field on the `schema_verify` checkpoint.
+
+- **Auto-compact counter** (`auto-compact-counter.sh`) — UserPromptSubmit hook that counts user prompts per session and inserts a system message every 350 prompts telling the agent to run `/compact`. Prevents conversations from running into context limits without warning. Counter is keyed by parent process ID, so each session has its own count.
+
+- **Claude-unavailable banner** (`claude-unavailable-banner.sh`) — Manual banner script for when Claude is rate-limited or down. Displays the Gemini-orchestrator + pact-delegate fallback paths so work can continue without a Claude session.
+
+- **`/staleness-check` slash command** — Generic temporal governance check. Reads `.claude/memory/file_edit_log.yaml`, walks each edited file's likely ripple effects (SYSTEM_MAP, schema docs, feature flows, knowledge directory), and reports Current/Stale/Missing per artifact. Includes optional integration with the schema-drift detector.
+
+- **`schema_verify` checkpoint (#9)** — Forces live-schema verification for any code referencing a database table. Three required fields: `<table>`, `<verified_columns>` (confirmed via live query — never via migration scripts or schema-export files), `<source>` (the verification method). Plus a `<last_drift_check>` field that requires re-running the broad drift detector if older than 7 days. The per-table verify catches what you remembered to check; the freshness field catches what you didn't think to look for.
+
+- **`skill_followup` checkpoint (#10)** — Triggers when a skill was read at the start of a task AND the task is now complete. Forces a check that any new gotchas, procedure steps, or files discovered during the work get propagated back to the skill BEFORE saying "done." Without this, skills decay: every session adds value to the codebase but never updates the skill that made the work easier, and the skill becomes stale enough that future sessions stop trusting it. Pair with `done_check`.
+
+- **Cognitive redirection: "Am I throttling for no reason?"** — Triggers when writing or tuning a heavy script (ETL, parallel workers, large backfills, bulk enrichment). Reframes default Python/library throttling as conservative-laptop assumptions that don't hold for capable hosts. Rule: whenever you set a concurrency, batch size, worker count, or rate, name the upstream constraint that determined it. "Set X because Y is the bottleneck" is good; "set X because it felt safe" is a tell.
+
 ### Changed
 - Restructured top-level layout: promoted `docs/{skills,plans,reference,feature_flows,governance,philosophy,setup,archive}/` to top-level `{skills,plans,knowledge,feature_flows,governance,philosophy,setup,archive}/`. `.claude/bugs/` promoted to top-level `bugs/`. Templates, plugin scripts, and docs all swept to reference the new paths. Future projects bootstrapped from PACT inherit the flatter layout by default.
+
+- Instructions template: 10 checkpoint types (was 8), 26 cognitive redirections (was 25 — added throttle redirection).
 
 ---
 

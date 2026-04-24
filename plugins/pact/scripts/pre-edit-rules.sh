@@ -56,6 +56,42 @@ if [ -f "$ISSUE_FLAG" ] && [ -s "$ISSUE_FLAG" ]; then
   fi
 fi
 
+# ============================================================================
+# POWERSHELL ENCODING GATE — block non-ASCII bytes in .ps1 files
+# ============================================================================
+# `powershell -File` rejects/mis-parses files with UTF-8 multi-byte characters
+# when no BOM is present (em-dash, en-dash, smart quotes, ellipsis, etc.).
+# Has caused multiple wrapper-script failures in production. Force ASCII-only
+# in .ps1. Cross-platform: only fires when the edited file ends in .ps1, so
+# Linux/macOS-only projects are unaffected.
+if echo "$FILE_PATH" | grep -qiE '\.ps1$' && [ -n "$NEW_STRING" ]; then
+  PS1_CHECK=$($PACT_PYTHON -c "
+import sys
+content = sys.stdin.read()
+offenders = []
+for lineno, line in enumerate(content.split('\n'), 1):
+    bad = [(i, c) for i, c in enumerate(line) if ord(c) > 127]
+    if bad:
+        offenders.append((lineno, line, bad[:3]))
+        if len(offenders) >= 3:
+            break
+if offenders:
+    print('BLOCKED')
+    for lineno, line, bad in offenders:
+        chars = ', '.join(f\"{repr(c)} at col {i+1}\" for i, c in bad)
+        print(f'  line {lineno}: {chars}')
+        print(f'    > {line[:120]}')
+" <<< "$NEW_STRING" 2>/dev/null)
+  if [ -n "$PS1_CHECK" ] && echo "$PS1_CHECK" | head -1 | grep -q '^BLOCKED'; then
+    echo "BLOCKED: Non-ASCII bytes in .ps1 file." >&2
+    echo "  PowerShell -File loader chokes on UTF-8 multi-byte chars without a BOM." >&2
+    echo "  Common offenders: em-dash (use - or --), en-dash (use -), smart quotes, ellipsis (use ...)" >&2
+    echo "  Fix: replace with ASCII equivalents before saving." >&2
+    echo "$PS1_CHECK" | tail -n +2 | sed 's/^/  /' >&2
+    exit 1
+  fi
+fi
+
 # Skip non-source files (configs, docs, etc.)
 if [[ ! "$FILE_PATH" =~ \.(dart|ts|tsx|js|jsx|py|rs|go|java|kt|swift|rb|cs)$ ]]; then
   exit 0

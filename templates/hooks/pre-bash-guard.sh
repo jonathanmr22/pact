@@ -318,6 +318,22 @@ if echo "$COMMAND" | grep -qE '^git commit'; then
     fi
     if grep -qE "(tables?|models?|schema)/.*$TODAY" "$EDIT_LOG" 2>/dev/null; then
       WARNINGS="${WARNINGS}  - Database/model file edited → is SYSTEM_MAP.yaml tables list current?\n"
+      # Schema-touching edit + stale schema-verify check
+      # If a schema-drift detector exists (scripts/check_schema_drift.py or
+      # similar), check its last-run marker. If >7 days old, recommend running
+      # before commit. Marker convention: scripts/.cache/daily_marker_YYYY-MM-DD
+      DRIFT_MARKER_DIR="$PROJECT_ROOT/scripts/.cache"
+      if [ -d "$DRIFT_MARKER_DIR" ]; then
+        LATEST_MARKER=$(ls -t "$DRIFT_MARKER_DIR"/daily_marker_* 2>/dev/null | head -1)
+        if [ -n "$LATEST_MARKER" ]; then
+          MARKER_AGE_DAYS=$(( ( $(date +%s) - $(stat -c %Y "$LATEST_MARKER" 2>/dev/null || stat -f %m "$LATEST_MARKER" 2>/dev/null || echo 0) ) / 86400 ))
+          if [ "$MARKER_AGE_DAYS" -gt 7 ]; then
+            WARNINGS="${WARNINGS}  - Last schema-drift check was ${MARKER_AGE_DAYS} days ago — run /check-drift (or scripts/check_schema_drift.py) before committing schema changes\n"
+          fi
+        elif [ -f "$PROJECT_ROOT/scripts/check_schema_drift.py" ]; then
+          WARNINGS="${WARNINGS}  - Schema-drift detector exists but has never run — run /check-drift before committing schema changes\n"
+        fi
+      fi
     fi
     if grep -qE "(providers?|store)/.*$TODAY" "$EDIT_LOG" 2>/dev/null; then
       WARNINGS="${WARNINGS}  - State management file edited → is any reference doc current?\n"

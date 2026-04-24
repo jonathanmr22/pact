@@ -156,6 +156,57 @@ At the start of every conversation, the agent MUST:
    ```
    **Why this exists:** LLMs are fundamentally sequential reasoners. They model code as "line A executes, then line B" — but in event-driven frameworks, method A can be interrupted mid-await by callback B which mutates the same state. Research (CONCUR benchmark, 2025) confirms LLMs "frequently fail to generate programs that are truly correct under all thread interleavings." The three most common patterns: (1) async method without reentrancy guard (called again before first call completes), (2) widget build before async initialization completes (accessing uninitialized singletons), (3) static state change without reactive notification (bool flips but no widget rebuilds). The `post-edit-warnings.sh` hook detects unguarded async methods automatically.
 
+9. **`schema_verify`** — Trigger: writing ANY code that references a database table or persisted entity — ORM table definitions, service queries, edge function handlers, migration scripts, export jobs.
+   ```
+   <checkpoint type="schema_verify">
+     <table>[Table being referenced]</table>
+     <verified_columns>
+       [Columns confirmed via live query — list them]
+     </verified_columns>
+     <source>
+       [How verified: SELECT * FROM table LIMIT 1 via REST,
+       information_schema query, or admin tool. NEVER migration scripts
+       or schema export files — they show intent, not reality.]
+     </source>
+     <last_drift_check>
+       [Date of latest schema-drift detector run, found in
+       scripts/RUN_LOG.yaml. If older than 7 days, run /check-drift
+       (or scripts/check_schema_drift.py) BEFORE proceeding. The
+       per-table verify only catches what you remembered to check;
+       broad drift detection catches what you didn't think to look for.]
+     </last_drift_check>
+   </checkpoint>
+   ```
+   **Why this exists:** A session built table+service+handler+UI all referencing column names that didn't exist in the live schema. Migration scripts and schema-export files described intent at one point in time but had since diverged from reality. One live query against `information_schema.columns` would have prevented a multi-file fix. The `<last_drift_check>` field forces re-running broad drift detection before working in schema-touching code.
+
+10. **`skill_followup`** — Trigger: a skill was read at the start of a task (matched via the `delegation_check.skill_match` field) AND the task is now complete. Forces a check that any new lessons, gotchas, tools, or procedure changes discovered during the work get propagated back to the skill BEFORE you say "done." Skills decay if every session adds value to the codebase but never updates the skill that made the work easier.
+    ```
+    <checkpoint type="skill_followup">
+      <skill>[skill_name that was read at start]</skill>
+      <new_gotchas>
+        [List any failure modes, error messages, or edge cases you hit
+        that the skill didn't warn about. "None" is a valid answer.]
+      </new_gotchas>
+      <new_procedure_steps>
+        [List any sub-steps or sequencing decisions that the skill's
+        procedure didn't capture. "None" is a valid answer.]
+      </new_procedure_steps>
+      <new_files_or_tools>
+        [List any new scripts, tables, columns, packages, or modules
+        created during this task that future skill-followers should
+        know about. "None" is a valid answer.]
+      </new_files_or_tools>
+      <skill_update>
+        [If any of the above are non-empty, EDIT the skill file now
+        (add gotchas/lessons/history entry, bump version, update
+        update_log). State the file path you edited and the specific
+        changes. If all "None", state "skill is current — no update
+        needed."]
+      </skill_update>
+    </checkpoint>
+    ```
+    **Why this exists:** Skills are written to encode what one session learned the hard way. The whole point is that the NEXT session inherits that knowledge. But the moment a session reads a skill, applies it, and then discovers new gotchas WITHOUT updating the skill, the next session re-learns the same thing — and the skill becomes a stale artifact people stop trusting. This checkpoint catches that drift. Pair with the `done_check` checkpoint: if `done_check` says "what stale artifacts did I create," `skill_followup` says "did I leave the skill that helped me richer than I found it?"
+
 ---
 
 ## Project Philosophy
@@ -267,6 +318,18 @@ grow it over time as decisions crystallize.
 - **When a script will run longer than ~10 minutes:** *"Will my execution environment kill this?"* — Claude Code, IDE terminals, and similar AI tool runners kill background processes after ~10 minutes. **NEVER run long-lived scripts (ETL, bulk enrichment, backfills, data migrations) as background tasks in Claude Code or equivalent.** Instead, launch them as **detached OS processes** that run independently. Pattern: (1) Write the Python script with resume-safe design — write results incrementally (per-page, per-batch), skip already-done work on restart, track progress in a JSON file. (2) Create a thin OS-native wrapper (`.ps1` on Windows, `.sh` on Linux/Mac) that invokes the Python script and tees output to a log file. (3) Launch detached: Windows: `Start-Process powershell -ArgumentList "-ExecutionPolicy Bypass -File script.ps1" -WindowStyle Minimized`. Linux/Mac: `nohup python script.py > log.txt 2>&1 &`. (4) Check progress by reading the progress file or audit log, not by checking process status. This is a **hard rule** — not a suggestion. Every hour spent debugging "why did my background task die" is an hour that could have been avoided by launching correctly the first time.
 
 - **When writing script output that a human will read:** *"Would a user understand what's happening at a glance?"* — Script output is a UI. Raw debug logs with cryptic IDs, abbreviations, and unstructured timestamps are not acceptable for scripts the user runs directly. Design console output with clear visual hierarchy: headers for major phases, section dividers for groups, aligned key-value pairs for status, and compact progress lines for iteration. Use consistent indentation to show nesting (metro inside country inside tier). Show what matters: human-readable names (not IDs), counts with commas, percentages for completion, elapsed time, and running totals. The user should be able to open a terminal window and immediately understand: what's running, how far along it is, and whether anything is wrong — without reading code or parsing log files.
+
+- **When writing or tuning a heavy script (ETL, parallel workers, large backfills, bulk enrichment):** *"Am I throttling for no reason?"* — Default Python and library docs assume conservative consumer-grade hardware (laptops, low-memory CI runners). If your actual host is more capable (a developer workstation, dedicated server, or batch host), those defaults leave most of the resources idle. **Tune to the actual upstream constraint, not to the worst-case host.** Examples of the right framing:
+  - "concurrency = 200 because the upstream pooler accepts 250 max_clients and our other services use ~30"
+  - "8 parallel workers because the target API rate-limits at 10 req/s per IP and we're below that"
+  - "chunk size = 50k because target table is partitioned and >10k chunks fit in one partition write"
+  
+  Examples of the wrong framing:
+  - "concurrency = 15 to be safe" (safe relative to what? name the constraint)
+  - "I lowered it because the script was using a lot of CPU" (CPU is rarely the upstream bottleneck for I/O-bound work)
+  - "Default seemed reasonable" (defaults are written for the conservative case; check yours)
+  
+  The rule: **whenever you set a concurrency, batch size, worker count, or rate, name the upstream constraint that determined it.** "I set X to N because Y is the bottleneck" is good. "I set X to N because it felt safe" is a tell to revisit. The host running the script almost never IS the constraint — the database pooler, API rate limit, or remote service quota almost always IS.
 
 - **When researching a topic:** *"Have I exhausted all potential sources?"* — Research is not "find one good article and stop." Research is insatiable curiosity until the knowledge is genuinely exhausted. The stopping rule: **10 consecutive successfully-fetched sources since the last significant finding with nothing new.** 404s and failed fetches don't count toward the 10. "Significant" means a technique, tool, or pattern that would change your implementation — not a minor variation of something you already know. Track your count honestly. If you stop at 3 and rationalize "I've seen enough," you haven't. Delegate research to cheaper worker models via pact-delegate (research type) — this makes exhaustive searching cost-effective. When you DO find something significant, reset the counter and keep going. The goal: when you finish researching, you should be able to say "I looked at 30+ sources and the last 10 had nothing new" — not "I looked at 5 and felt done."
 

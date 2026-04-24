@@ -6,7 +6,10 @@
 # is found. Bypass with `git commit --no-verify` if the term is genuinely
 # justified (case study, explicit attribution).
 
-set -euo pipefail
+# NOTE: deliberately NOT using `set -e` or `pipefail`. The grep pipelines
+# exit non-zero when there are no matches, which is the *expected* clean case.
+# Strict mode would cause the hook to fail silently when there's nothing to find.
+set -u
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 TERMS_FILE="$REPO_ROOT/.githooks/forbidden_terms.txt"

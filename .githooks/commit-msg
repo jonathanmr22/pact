@@ -5,7 +5,9 @@
 # .githooks/forbidden_terms.txt. Blocks the commit if any forbidden term
 # is found. Bypass with `git commit --no-verify` if justified.
 
-set -euo pipefail
+# NOTE: NOT using `set -e` or `pipefail` — grep returning 1 (no match) is
+# the clean case. See pre-commit hook for the same rationale.
+set -u
 
 MSG_FILE="$1"
 REPO_ROOT="$(git rev-parse --show-toplevel)"
