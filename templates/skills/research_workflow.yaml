@@ -1,0 +1,86 @@
+skill: research_workflow
+version: 1
+created_by: PACT template
+purpose: |
+  Standard procedure for researching a topic. Defaults to checking what's
+  already known locally first, then combining project + external sources,
+  then saving synthesis (not raw facts) for future sessions.
+
+triggers:
+  - research
+  - investigate
+  - look into
+  - find out how
+  - what does the world do
+  - how should we approach
+
+prerequisites:
+  read_first:
+    - "knowledge/KNOWLEDGE_DIRECTORY.yaml — scan for matching tags first"
+
+procedure:
+  1_check_existing:
+    what: "Scan KNOWLEDGE_DIRECTORY.yaml for matching tags"
+    why: "A previous session may have already researched this"
+    actions:
+      exists_and_answers: "Use it"
+      exists_and_close: "Deepen it"
+      exists_and_stale: "Update it"
+      not_found: "Proceed to step 2"
+
+  2_determine_source_type:
+    project_level:
+      when: "How does THIS codebase do it?"
+      sources: "Code, SYSTEM_MAP, feature flows, package knowledge, git history"
+    online:
+      when: "How does the WORLD do it?"
+      sources: "WebSearch, WebFetch for docs/APIs/GitHub issues/best practices"
+    both:
+      when: "Most real work — bridges implementation and domain knowledge"
+      rule: "Default to both. Single-source is only sufficient for purely local or purely external questions."
+
+  3_security_research:
+    when: "Security, privacy, or cryptography architecture"
+    rule: "ALWAYS WebSearch first"
+    check: "Signal, Matrix, Keybase, age, OWASP, academic systems"
+    why: "Standing on battle-tested patterns makes proposals dramatically stronger"
+
+  4_package_research:
+    when: "Package doesn't behave as expected"
+    order:
+      - "Check knowledge/packages/{package_name}.yaml"
+      - "If not sufficient: WebSearch/WebFetch docs, GitHub issues, changelog"
+      - "SAVE findings to the package knowledge file"
+
+  5_save_synthesis:
+    what: "If research produced non-trivial synthesis, save to knowledge/research/"
+    what_to_save: "Combined local + external insight, rejected alternatives, non-obvious decisions"
+    what_not_to_save: "Raw facts (re-findable)"
+    update: "knowledge/KNOWLEDGE_DIRECTORY.yaml with new tags/file entries"
+
+stopping_rule:
+  what: "10 consecutive successfully-fetched sources since last significant finding with nothing new"
+  not_counted: "404s and failed fetches"
+  significant: "A technique, tool, or pattern that would change your implementation — not a minor variation"
+  goal: "When done, you should be able to say 'I looked at 30+ sources and the last 10 had nothing new'"
+
+quality_gates:
+  - "KNOWLEDGE_DIRECTORY checked before starting"
+  - "Both project and online sources used when applicable"
+  - "Synthesis saved if non-trivial"
+  - "Package knowledge files updated if package was researched"
+
+gotchas:
+  - pattern: "Research only the codebase when the question bridges implementation and domain"
+    problem: "You get half an understanding. The library's known bugs aren't in your code."
+    fix: "Default to both sources"
+
+  - pattern: "Skip saving synthesis because 'it was quick'"
+    problem: "The reasoning dies with your context window. Next session repeats the research."
+    fix: "If you connected project context to external evidence to make a decision, that's worth saving"
+
+  - pattern: "Stop after 5 sources because 'I've seen enough'"
+    problem: "You haven't. The stopping rule is 10 since last significant finding, not 5 since starting."
+    fix: "Track count honestly. Delegate to a cheaper worker via pact-delegate to make exhaustive searching cost-effective"
+
+history: []

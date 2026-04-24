@@ -1,0 +1,64 @@
+skill: image_sourcing
+version: 1
+created_by: PACT template
+purpose: |
+  Procedure for sourcing images for app/website use — branded vs generic,
+  legal sources, parallel scraping, and vision-based evaluation.
+
+triggers:
+  - source images
+  - branded imagery
+  - find images for
+  - cover images
+  - hero photos
+  - thumbnail selection
+
+prerequisites:
+  read_first:
+    - "skills/vision_delegation.yaml — how to evaluate candidates with Pixel"
+    - "knowledge/packages/ — check for any image-API package knowledge files (Pexels, Unsplash, etc.)"
+
+procedure:
+  1_determine_source_type:
+    branded:
+      sources: "Official websites first, Wikimedia Commons as fallback"
+      why: "Brand-specific imagery is what users actually recognize; stock is forgettable"
+    generic:
+      sources: "Pexels API, Unsplash API, or similar stock photo services"
+      why: "When the subject is generic (food, scenery, abstract concepts), stock is fine"
+    rule: "Am I picking easy or right? Branded > generic when the brand matters."
+
+  2_scrape_in_parallel:
+    what: "Launch subagents to scrape multiple websites simultaneously"
+    tool: "Agent tool with WebFetch, run_in_background"
+    why: "Each website fetch takes 10-30s. Parallelizing saves minutes."
+
+  3_evaluate_with_pixel:
+    what: "Use pact-delegate vision to compare candidates"
+    tool: "pact-delegate vision 'Which is best for a 140x160dp card?' --image-url URL1 --image-url URL2"
+    why: "Pixel evaluates mobile-friendliness, composition, brand accuracy"
+
+  4_store:
+    what: "Store winning URLs in the appropriate table or asset directory"
+    rule: "Use direct image URLs (not JS-rendered pages); they need to load without a headless browser"
+
+  5_attribution:
+    what: "If source requires attribution (Wikimedia Commons CC-BY, Unsplash by author), record the attribution metadata"
+    rule: "Display attribution in-app or in credits as required by the license"
+
+quality_gates:
+  - "Real branded photos when brand matters, not generic stock"
+  - "Pixel rated the final selection (specific reasoning, not 'looks good')"
+  - "Images are direct URLs (not JS-rendered pages)"
+  - "Attribution recorded for licensed sources"
+
+gotchas:
+  - pattern: "Use the first image search result without comparing alternatives"
+    problem: "Vision-evaluating a small candidate set takes ~$0.001 and routinely beats the top result"
+    fix: "Always present 3+ candidates to Pixel"
+
+  - pattern: "Scrape sites that block automation"
+    problem: "Many brand sites use Cloudflare, Akamai, or other anti-bot. You'll get 403s or stale-cached responses."
+    fix: "Check Wikimedia Commons FIRST for brand imagery — it's almost always there and unblocked"
+
+history: []

@@ -1,0 +1,106 @@
+skill: edge_function_development
+version: 1
+created_by: PACT template
+purpose: |
+  Standard procedure for writing or modifying a Supabase Edge Function.
+  Captures the auth-verify, error-handling, and deploy-discipline patterns
+  that prevent the most common edge-function failure modes (auth bypass,
+  raw error leaks, undeployed code).
+
+triggers:
+  - edge function
+  - supabase function
+  - deploy function
+  - new endpoint
+  - new API action
+  - serverless function
+
+prerequisites:
+  read_first:
+    - "supabase/functions/_shared/ — check for shared auth/cors/response helpers"
+    - "An existing function in supabase/functions/ for the project's pattern"
+
+procedure:
+  1_create_directory:
+    what: "mkdir supabase/functions/{name}/"
+    convention: "kebab-case name matching the action domain (e.g. user-profile, order-checkout)"
+
+  2_write_index_ts:
+    what: "Create index.ts following the standard pattern"
+    pattern: |
+      import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
+      import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+      import { handleCors } from "../_shared/cors.ts";
+      import { jsonResponse, errorResponse } from "../_shared/response.ts";
+      import { verifyUser } from "../_shared/auth.ts";
+
+      serve(async (req) => {
+        const corsResponse = handleCors(req);
+        if (corsResponse) return corsResponse;
+
+        const supabaseAdmin = createClient(
+          Deno.env.get("SUPABASE_URL") ?? "",
+          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+        );
+
+        try {
+          const { error: authError, userId } = await verifyUser(supabaseAdmin, req);
+          if (!userId) return errorResponse(authError ?? "Unauthorized", 401);
+
+          const body = await req.json();
+          switch (body.action) {
+            case "actionName": return await handleAction(supabaseAdmin, userId, body);
+            default: return errorResponse(`Unknown action: ${body.action}`, 400);
+          }
+        } catch (error) {
+          console.error("function error:", error);
+          return errorResponse("Internal server error", 500);
+        }
+      });
+    rules:
+      - "NEVER trust body.userId — always use verified JWT userId from verifyUser()"
+      - "NEVER return raw Postgres errors to client (they leak table/column names)"
+      - "Use service_role key (supabaseAdmin) for all queries — RLS is the second line of defense, not the only one"
+      - "ALL functions deploy with --no-verify-jwt (the function verifies the JWT internally)"
+
+  3_add_to_deploy_script:
+    what: "Add function name to FUNCTIONS array in supabase/deploy-functions.sh"
+    rule: "Alphabetical order so diffs are clean"
+
+  4_deploy:
+    what: "bash supabase/deploy-functions.sh {name}"
+    verification: "Curl the deployed endpoint with a valid JWT — confirm 200 on happy path, 401 without auth, 400 on unknown action"
+
+  5_update_governance:
+    what: "Update governance artifacts"
+    checklist:
+      - "SYSTEM_MAP.yaml — add the function to the relevant wiring section"
+      - "knowledge/tech_stack.yaml — add to the edge_functions inventory (if you maintain one)"
+      - "Feature flow doc — if this function is part of a critical-system flow"
+
+quality_gates:
+  - "verifyUser called for every user-facing action"
+  - "No body.userId used in queries (only verified JWT userId)"
+  - "Generic error messages returned to client; details logged server-side"
+  - "Added to deploy-functions.sh"
+  - "SYSTEM_MAP.yaml updated"
+  - "Smoke-tested with valid + missing + invalid JWT"
+
+gotchas:
+  - pattern: "Trust body.userId for authorization"
+    problem: "Anyone can forge a request body. They become anyone."
+    fix: "Always extract userId from the verified JWT (verifyUser), never from the body"
+
+  - pattern: "Return Postgres error.message to the client"
+    problem: "Leaks table names, column names, constraint names, function names — full DB schema fingerprint"
+    fix: "Return generic 'Internal server error', log the real error server-side"
+
+  - pattern: "Forget to add to deploy-functions.sh"
+    problem: "Function exists in repo, never gets deployed, callers get 404, debugging takes hours"
+    fix: "Update deploy-functions.sh in the same commit as creating the function"
+
+  - pattern: "Deploy without --no-verify-jwt"
+    problem: "Supabase's external JWT verification kicks in on top of internal verification, often causing 401s for valid auth"
+    fix: "ALL deploys use --no-verify-jwt; the function does the verification itself"
+
+history: []

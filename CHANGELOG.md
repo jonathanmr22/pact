@@ -36,6 +36,29 @@ PACT uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - **Cognitive redirection: "Am I throttling for no reason?"** — Triggers when writing or tuning a heavy script (ETL, parallel workers, large backfills, bulk enrichment). Reframes default Python/library throttling as conservative-laptop assumptions that don't hold for capable hosts. Rule: whenever you set a concurrency, batch size, worker count, or rate, name the upstream constraint that determined it. "Set X because Y is the bottleneck" is good; "set X because it felt safe" is a tell.
 
+- **`templates/skills/` directory** — 9 generic skill templates that future projects bootstrap with:
+  - `bug_investigation.yaml` — check `_SOLUTIONS` first, file bug immediately, trace causal chain, fix forward, log every attempt
+  - `feature_flow_authoring.yaml` — when to write a flow doc; SYSTEM_MAP owns structure, flow docs own behavior
+  - `research_workflow.yaml` — KNOWLEDGE_DIRECTORY first; project + online sources; save synthesis; 10-since-last-finding stopping rule
+  - `vision_delegation.yaml` — route image evaluation to Pixel via pact-delegate
+  - `image_sourcing.yaml` — branded > generic; parallel scraping; vision evaluation; attribution discipline
+  - `batch_script_authoring.yaml` — four required properties for any batch script >2min (line-buffered output, graceful SIGINT, audit log, free resume)
+  - `figma_design.yaml` — anchor designs to actual screenshots, iterate variants, vision-evaluate, user approves
+  - `schema_change_workflow.yaml` — ask CASCADE/SET NULL/RESTRICT; verify live schema; idempotent local-ORM migration; update governance. Includes the recommendation to keep schema docs in YAML (parseable, structured) rather than markdown (pipe-table format is brittle).
+  - `edge_function_development.yaml` — auth-verify + error-handling + deploy-discipline pattern for Supabase Edge Functions; --no-verify-jwt; alphabetize deploy script
+  - `_SKILL_INDEX.yaml` — hand-edited discoverability index for the skill set
+  - `_SKILL_TEMPLATE.yaml` — canonical template; copy when creating a new skill
+
+- **`templates/plans/` directory** — implementation-plan scaffolding:
+  - `FOLDER.yaml` — defines the status vocabulary (active, partial, delayed, complete) and the per-plan "include a status field" policy
+  - `_PLAN_INDEX.yaml` — auto-generated index stub (gets populated by the regeneration script)
+
+- **`templates/scripts/` directory** — script-domain templates:
+  - `regenerate_plan_index.py` — scans `plans/`, parses each file's status + description, emits `_PLAN_INDEX.yaml` grouped by status. Run after adding or closing a plan.
+  - `RUN_LOG.yaml` — append-only log template for one-shot operations (backfills, schema migrations, bulk SQL, infrastructure tweaks). Pairs with KNOWLEDGE_DIRECTORY.yaml under the `run_log` tag.
+
+- **`templates/nested_claude_md_guide.md`** — recipe doc for the per-directory CLAUDE.md scaffolding pattern. Explains when to adopt nested layout (root >12k tokens, mixed domains), what goes in root vs. each subdir, recommended structure, sizing guidance, validation procedure, and trade-offs. Referenced from `templates/instructions.md § Nested CLAUDE.md Layout`.
+
 ### Changed
 - Restructured top-level layout: promoted `docs/{skills,plans,reference,feature_flows,governance,philosophy,setup,archive}/` to top-level `{skills,plans,knowledge,feature_flows,governance,philosophy,setup,archive}/`. `.claude/bugs/` promoted to top-level `bugs/`. Templates, plugin scripts, and docs all swept to reference the new paths. Future projects bootstrapped from PACT inherit the flatter layout by default.
 

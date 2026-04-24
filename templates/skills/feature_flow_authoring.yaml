@@ -1,0 +1,73 @@
+skill: feature_flow_authoring
+version: 1
+created_by: PACT template
+purpose: |
+  When to write a feature flow document and how to structure it. Flow docs
+  describe BEHAVIOR (lifecycle, state transitions, error paths) — they are
+  the dynamic counterpart to SYSTEM_MAP.yaml's static wiring view.
+
+triggers:
+  - feature flow
+  - flow document
+  - lifecycle flow
+  - rewriting feature
+  - adding feature
+  - modifying service
+  - changing critical system
+
+prerequisites:
+  read_first:
+    - "SYSTEM_MAP.yaml — find the wiring section for the feature you're changing"
+    - "feature_flows/ — check if a flow already exists for this feature"
+
+procedure:
+  1_check_if_required:
+    what: "Determine if a flow doc is needed"
+    required_for:
+      - "Changes touching services, providers, or database logic"
+      - "Changes to security, encryption, auth, backup, sync, payments, broadcast"
+      - "Changes affecting app initialization, lifecycle, state persistence"
+      - "New features integrating with existing systems"
+    not_required_for:
+      - "Pure UI cosmetic changes (colors, spacing, labels)"
+      - "Adding entries to data maps"
+      - "Simple bug fixes where the flow is already documented"
+
+  2_write_flow_doc:
+    what: "Create feature_flows/{feature_name}_flow.yaml"
+    template_location: "templates/feature_flow.yaml has the canonical structure"
+    key_sections:
+      - "purpose: one sentence"
+      - "system_map_section: pointer to SYSTEM_MAP.yaml (NEVER duplicate wiring)"
+      - "invariants: things that must ALWAYS be true"
+      - "states: cold start, warm start, background, force-close-reopen, restore-from-backup, auth boundaries, error paths"
+      - "gotchas: non-obvious interactions"
+    critical_rule: "SYSTEM_MAP owns STRUCTURE. Flow docs own BEHAVIOR. Never duplicate tables/services/screens in flow docs."
+
+  3_present_to_user:
+    what: "Describe the flow conversationally before any code is written"
+    why: "User verifies your understanding before you touch implementation"
+
+  4_wait_for_confirmation:
+    what: "Do NOT begin implementation until user confirms understanding is correct"
+
+  5_update_after_implementation:
+    what: "Update the flow doc with any discoveries or changes"
+    also: "Link the flow doc in SYSTEM_MAP.yaml feature_flows section"
+
+quality_gates:
+  - "Flow doc covers ALL lifecycle states the feature participates in"
+  - "system_map_section pointer is set (no duplicated wiring)"
+  - "User confirmed understanding before code was written"
+  - "Flow doc updated after implementation with discoveries"
+
+gotchas:
+  - pattern: "Duplicate wiring (table/service/screen lists) in the flow doc"
+    problem: "Two sources of truth that drift apart"
+    fix: "Only reference SYSTEM_MAP via system_map_section pointer"
+
+  - pattern: "Skip the conversational walkthrough"
+    problem: "User can't catch misunderstandings before implementation"
+    fix: "Always present verbally first, then code"
+
+history: []

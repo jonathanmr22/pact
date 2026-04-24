@@ -1,0 +1,13 @@
+# Plans Index — quickly find which plan covers a topic and its current status.
+# Mirrors knowledge/_RESEARCH.yaml and skills/_SKILL_INDEX.yaml.
+# Regenerate via: python scripts/regenerate_plan_index.py
+# Status vocabulary (per FOLDER.yaml): active, partial, delayed, complete.
+#
+# This is a stub — gets populated automatically by the regeneration script
+# as plans are added.
+
+plans:
+
+  # === ACTIVE (0) ===
+
+  # === COMPLETE (0) ===

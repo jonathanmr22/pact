@@ -1,0 +1,35 @@
+# PACT Run Log
+# ============================================================================
+# Append-only log of one-shot operations: backfills, schema migrations,
+# bulk SQL UPDATE/DELETE, dedup passes, batch prefills, etc.
+#
+# WHY: when a future session asks "has X been backfilled?" / "did we ever
+# normalize phones?" / "how many rows did the dedup remove?" — the answer
+# lives here, not buried in chat history.
+#
+# WHEN TO ADD AN ENTRY:
+#   - Any backfill/migration script that mutates >1k rows
+#   - Any one-shot SQL UPDATE/DELETE you ran via MCP or a console
+#   - Any new Storage bucket / RLS change / pooler setting bump
+#   - Any infrastructure tweak you'd want a future session to know happened
+#
+# WHEN NOT TO ADD:
+#   - Per-domain incremental work (use a domain-specific log instead)
+#   - In-flight work (use PENDING_WORK.yaml)
+#   - Code edits (git history is enough)
+#
+# FORMAT: append at top of `entries:`. Newest first.
+#   - id: NNN              (monotonic, increment by 1)
+#     date: YYYY-MM-DD
+#     who: "model name (e.g. Opus 4.6)"
+#     what: short headline
+#     command: |          (the actual SQL or shell invocation)
+#     rows_affected: N
+#     before: optional snapshot
+#     after: optional snapshot
+#     notes: optional commentary
+#
+# This file is hand-edited (or appended-to by scripts that mutate state).
+# It pairs with KNOWLEDGE_DIRECTORY.yaml (which indexes it under tag = "run_log").
+
+entries: []

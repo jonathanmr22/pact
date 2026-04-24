@@ -1,0 +1,65 @@
+# Copy this file when creating a new skill: cp _SKILL_TEMPLATE.yaml my_new_skill.yaml
+# Then add an entry to _SKILL_INDEX.yaml so future sessions can discover it.
+
+skill: my_new_skill           # snake_case, matches filename
+version: 1
+created_by: ""                # session/author note
+purpose: |
+  One-paragraph description of what this skill is for. What pattern does it
+  capture? What failure mode does it prevent? Why is it worth following?
+
+triggers:
+  # Phrases that should make a future session read this skill before acting.
+  # Include both literal task language ("bug fix") and natural-conversation
+  # language ("something broken"). The matcher is a fuzzy substring scan.
+  - example trigger phrase
+  - another phrase
+
+prerequisites:
+  read_first:
+    # Files that should be read BEFORE following the procedure. Usually
+    # SYSTEM_MAP.yaml, a related feature flow, or a package knowledge file.
+    - "path/to/relevant/file.yaml"
+  tools_needed:
+    # Optional: required CLIs, env vars, MCP integrations
+    - "tool name"
+
+procedure:
+  # Numbered steps. Each step has at minimum `what` (the action) and `why`
+  # (the rationale). Add `tool`, `pattern`, `rule`, `critical` fields as
+  # needed for clarity.
+  1_first_step:
+    what: "Do X"
+    why: "So that Y"
+  2_second_step:
+    what: "Do Z"
+    why: "Because W"
+
+quality_gates:
+  # Checklist a future session uses to confirm the skill was applied
+  # correctly. These are the criteria for "done".
+  - "Outcome 1 verified"
+  - "Outcome 2 confirmed"
+
+gotchas:
+  # Anti-patterns and the fixes for them. Each entry is a 3-tuple:
+  # the pattern (what looks tempting), the problem (why it fails), the fix.
+  - pattern: "Tempting wrong move"
+    problem: "Why it fails"
+    fix: "What to do instead"
+
+history:
+  # Append entries when this skill is read AND the task discovers something
+  # the skill didn't already capture. This is what compounds intelligence
+  # across sessions. The skill_followup checkpoint enforces this.
+  - session_date: YYYY-MM-DD
+    model: "model identifier"
+    what_happened: "What was learned that wasn't in the skill before"
+
+update_log:
+  # Append entries when the skill itself is materially changed (new step,
+  # new gotcha, new quality gate). Bump `version:` at the top when this list
+  # gains an entry.
+  - date: YYYY-MM-DD
+    by: "session/author"
+    change: "What was changed and why"

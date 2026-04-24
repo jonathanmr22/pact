@@ -1,0 +1,53 @@
+# Skill Index — quickly find which skill matches a task and read it before starting.
+#
+# Skills are PROCEDURES (verbs — "how to DO something"). Knowledge facts go in
+# knowledge/ instead. Each skill lists triggers (phrases that should make you
+# read it), prerequisites, the procedure, quality gates, and gotchas.
+#
+# This file is HAND-EDITED. It is the discoverability layer for skills/ —
+# every skill must be listed here, indexed by task domain.
+#
+# When adding a skill: copy _SKILL_TEMPLATE.yaml, fill it in, then add an
+# entry below under the appropriate domain.
+
+skills:
+
+  # === GENERIC / CROSS-DOMAIN ===
+
+  - file: skills/bug_investigation.yaml
+    triggers: [bug fix, something broken, not working, regression, debug]
+    summary: "Standard bug-investigation procedure: check _SOLUTIONS first, create bug file immediately, trace causal chain, fix forward, log every attempt."
+
+  - file: skills/feature_flow_authoring.yaml
+    triggers: [feature flow, lifecycle flow, modifying critical system]
+    summary: "When to write a feature flow doc and how to structure it. SYSTEM_MAP owns structure; flow docs own behavior."
+
+  - file: skills/research_workflow.yaml
+    triggers: [research, investigate, look into, find out how]
+    summary: "Check KNOWLEDGE_DIRECTORY first; combine project-level + online sources; save synthesis (not raw facts)."
+
+  - file: skills/vision_delegation.yaml
+    triggers: [evaluate images, compare photos, vision task, pick best image]
+    summary: "Route image evaluation to Pixel via pact-delegate; ~98% cheaper than orchestrator inference and multimodal."
+
+  - file: skills/image_sourcing.yaml
+    triggers: [source images, branded imagery, find images for, cover photos]
+    summary: "Branded > generic when brand matters; parallel scraping; Pixel evaluation; attribution discipline."
+
+  - file: skills/batch_script_authoring.yaml
+    triggers: [batch script, ETL script, bulk processing, long-running script]
+    summary: "Four required properties for any batch script >2min: line-buffered output, graceful SIGINT, persistent audit log, free resume."
+
+  - file: skills/figma_design.yaml
+    triggers: [figma, design mockup, visual prototype]
+    summary: "Anchor designs to actual screenshots; iterate variants; Pixel-evaluate for consistency; user approves before implementation."
+
+  # === DATA + BACKEND ===
+
+  - file: skills/schema_change_workflow.yaml
+    triggers: [schema change, new table, migration, ALTER TABLE]
+    summary: "Ask CASCADE/SET NULL/RESTRICT first; verify live schema (never trust migration files); idempotent local-ORM migration; update governance."
+
+  - file: skills/edge_function_development.yaml
+    triggers: [edge function, supabase function, deploy function, new endpoint]
+    summary: "Standard auth-verify + error-handling + deploy-discipline pattern; --no-verify-jwt; alphabetize deploy script; never trust body.userId."

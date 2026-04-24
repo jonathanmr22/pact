@@ -1,0 +1,15 @@
+name: Implementation Plans
+purpose: >
+  Active and historical implementation plans for features. Each plan should
+  include a status field indicating its current state. Plans drive work —
+  reference docs inform it.
+statuses:
+  active: Currently being implemented or about to start.
+  partial: Some phases done, remaining phases pending.
+  delayed: Intentionally deferred — blocked, deprioritized, or waiting on a dependency.
+  complete: Fully implemented. Move to archive if no longer referenced.
+policy: >
+  Always include a "status" line at the top of each plan file.
+  Update status when work progresses. Never delete — archive when done.
+  Run `python scripts/regenerate_plan_index.py` after adding/closing a plan
+  to refresh _PLAN_INDEX.yaml.

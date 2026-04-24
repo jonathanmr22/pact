@@ -1,0 +1,78 @@
+skill: figma_design
+version: 1
+created_by: PACT template
+purpose: |
+  Procedure for using Figma (via MCP integration) to design and prototype
+  UI before writing implementation code. Catches visual issues that text-
+  reasoning alone misses, and gives the user something to react to before
+  implementation costs are sunk.
+
+triggers:
+  - figma
+  - design mockup
+  - visual prototype
+  - mockup before building
+  - explore visual options
+
+prerequisites:
+  tools_needed:
+    - "Figma MCP integration enabled (mcp__figma__* tools)"
+    - "An accessible Figma file or workspace"
+  read_first:
+    - "skills/vision_delegation.yaml — for evaluating Figma exports with Pixel"
+    - "Project's design system or existing UI screens for visual language reference"
+
+procedure:
+  1_understand_target_context:
+    what: "Determine what platform/dimensions/aesthetic the design needs to fit"
+    questions:
+      - "What screen size? (mobile, tablet, desktop)"
+      - "What design system applies? (Material, HIG, custom)"
+      - "What's the visual language of the existing app? (read 1-2 nearby screens)"
+    why: "Designing in a vacuum produces output that won't blend with the existing app"
+
+  2_take_reference_screenshots:
+    what: "If working on a mobile app, launch the headless emulator and capture current screens for reference"
+    why: "Designs anchored to actual app screenshots match better than designs invented from memory"
+
+  3_create_or_select_figma_file:
+    what: "Create a new Figma file or select an existing one for this design exploration"
+    convention: "One file per feature exploration; multiple frames inside for variants"
+
+  4_iterate_on_frames:
+    what: "Build multiple frame variants — different approaches to the same UI problem"
+    why: "Comparing 3 options is faster than perfecting 1 in isolation"
+
+  5_export_and_evaluate:
+    what: "Export frames as PNGs and use Pixel (via pact-delegate vision) to compare"
+    tool: "pact-delegate vision 'Which of these is most consistent with [reference screenshot]?' --image-file frame1.png --image-file frame2.png"
+    why: "Vision evaluation catches visual issues (spacing inconsistency, color drift, hierarchy problems) that text descriptions miss"
+
+  6_present_to_user:
+    what: "Walk the user through your top candidate(s) verbally"
+    why: "User has the final aesthetic call; you can describe but not see the way they do"
+
+  7_implement_after_approval:
+    what: "Implement the chosen design in code, mirroring the Figma structure"
+    rule: "Capture any non-trivial visual decisions in a feature flow doc or aesthetic skill"
+
+quality_gates:
+  - "Designs anchored to actual app screenshots, not imagined from memory"
+  - "Multiple variants compared (not single-design-bias)"
+  - "Pixel-evaluated for consistency with existing visual language"
+  - "User approved before implementation"
+
+gotchas:
+  - pattern: "Design from memory without screenshotting the current app"
+    problem: "Mockups don't match the existing app's spacing/color/type rhythm"
+    fix: "Always launch the emulator and capture reference screenshots first"
+
+  - pattern: "Show user only one mockup variant"
+    problem: "User can't tell whether your variant is the best of several or the only one you tried"
+    fix: "Always show 2-3 variants. Compare side-by-side. Let the user pick."
+
+  - pattern: "Implement without re-checking against the Figma export at the end"
+    problem: "Implementation drift — code looks subtly different from the approved design"
+    fix: "After implementation, screenshot the running app and Pixel-compare against the Figma export"
+
+history: []

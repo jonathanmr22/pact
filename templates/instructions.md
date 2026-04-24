@@ -490,3 +490,26 @@ Ask: **"What did my changes just make stale?"**
 - **State Management:** (e.g., Riverpod, Redux, Zustand, etc.)
 - **Backend:** (e.g., Supabase, Firebase, custom API, etc.)
 - **Key files:** See `SYSTEM_MAP.yaml` for full wiring
+
+---
+
+## Nested CLAUDE.md Layout (optional, for large projects)
+
+If this `CLAUDE.md` grows past ~12k tokens, consider splitting domain-specific
+rules into per-directory `CLAUDE.md` files (e.g., `lib/CLAUDE.md`,
+`scripts/CLAUDE.md`, `supabase/CLAUDE.md`). Claude Code auto-loads them when
+the agent works in that directory, keeping the always-loaded root small and
+domain rules surfaced only when relevant.
+
+See `templates/nested_claude_md_guide.md` for the full pattern: when to
+adopt, what goes in root vs. each subdir, sizing guidance, validation, and
+trade-offs.
+
+If used, list the subdirs at the top of this file as a one-line index, e.g.:
+
+```
+> Domain-specific rules:
+> - lib/CLAUDE.md      — Flutter rules
+> - scripts/CLAUDE.md  — script authoring
+> - supabase/CLAUDE.md — Edge Function + RLS security
+```

@@ -1,0 +1,73 @@
+skill: bug_investigation
+version: 1
+created_by: PACT template
+purpose: |
+  Standard procedure for investigating and fixing a bug. Captures the
+  failed-fast-and-document-everything discipline that makes the bug system
+  pay off across sessions.
+
+triggers:
+  - bug fix
+  - something broken
+  - not working
+  - regression
+  - debug
+  - investigate issue
+
+prerequisites:
+  read_first:
+    - "bugs/_INDEX.yaml — bug tracker protocol"
+    - "bugs/_SOLUTIONS.yaml — check tags for matching past solutions"
+
+procedure:
+  1_check_solutions_first:
+    what: "Check _SOLUTIONS.yaml for matching tags BEFORE writing code"
+    why: "A past session may have already solved this exact problem"
+    tool: "bash bugs/bug-query.sh tag <keyword>"
+
+  2_create_bug_file_immediately:
+    what: "Create bugs/{system}/{system}-NNN.yaml NOW, not after fixing"
+    why: "Your failed attempts are as valuable as the fix"
+    critical: "Do this BEFORE starting to debug, not after"
+
+  3_trace_causal_chain:
+    what: "Trace from where the bad state is OBSERVED back to where it is PRODUCED"
+    questions:
+      - "Where is the bug visible? (UI, logs, database)"
+      - "What code path produces that state?"
+      - "If I remove my fix, does the problem come back? If yes, I fixed a symptom."
+    rule: "Server-side filtering, client-side hiding, broader time windows = symptom fixes. Keep going."
+
+  4_fix_forward:
+    what: "Fix the current code. NEVER revert from git history unless the user asks."
+    why: "Reverting destroys the work in the new approach and teaches nothing."
+
+  5_log_every_attempt:
+    what: "Document each attempt in the bug file in real time"
+    why: "Failed attempts prevent the next session from repeating dead ends"
+
+  6_update_solutions:
+    what: "If the fix is reusable, add it to _SOLUTIONS.yaml"
+    why: "Pattern extraction is how the bug system compounds"
+
+quality_gates:
+  - "Bug file exists in bugs/"
+  - "_SOLUTIONS.yaml checked before coding"
+  - "Fix addresses root cause, not symptom"
+  - "Attempts logged in real time"
+  - "Resolution recorded with commit hash"
+
+gotchas:
+  - pattern: "Start coding a fix immediately"
+    problem: "The same bug may have been solved in a previous session"
+    fix: "Always check _SOLUTIONS.yaml first"
+
+  - pattern: "Create the bug file after fixing"
+    problem: "You lose the debugging journey — failed attempts, dead ends"
+    fix: "Create the bug file FIRST, log as you go"
+
+  - pattern: "Stop investigating once the symptom disappears"
+    problem: "You may have fixed the symptom, not the cause"
+    fix: "Ask: if I revert this fix, does the bug come back? If yes, keep going"
+
+history: []

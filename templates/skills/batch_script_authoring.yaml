@@ -1,0 +1,87 @@
+skill: batch_script_authoring
+version: 1
+created_by: PACT template
+purpose: |
+  Required structure for any batch-processing script (>2 minutes runtime).
+  Scripts that lack these four properties WILL fail in production — by
+  network drop, console close, OS reboot, or signal — and will leave
+  unrecoverable partial state.
+
+triggers:
+  - batch script
+  - batch processing
+  - download script
+  - upload script
+  - ETL script
+  - bulk processing
+  - mass enrichment
+  - long-running script
+
+# Context: production users run scripts on flaky networks (cellular,
+# captive portals, conference wifi). Anything that runs >2 minutes will
+# get interrupted at some point. Resume must be free, not heroic.
+
+prerequisites:
+  read_first:
+    - "scripts/SCRIPT_CATALOG.yaml — check if a script already exists"
+    - "SCRIPT_CATALOG.yaml reusable_patterns section — cross-cutting solutions"
+
+procedure:
+  1_check_catalog:
+    what: "Check SCRIPT_CATALOG.yaml before writing any new script"
+    why: "Adapting an existing script takes ~5 min, debugging the same gotchas from scratch takes an hour"
+
+  2_four_requirements:
+    what: "Every batch script >2 min MUST have all four"
+    requirements:
+      line_buffered_output:
+        what: "Progress flushes to disk immediately"
+        how: "python -u or line_buffering=True on TextIOWrapper"
+        why: "Default block buffering hides progress when stdout is redirected to a log file"
+
+      graceful_sigint:
+        what: "First Ctrl-C sets shutdown flag, current item finishes. Second force-exits."
+        pattern: |
+          import signal, sys
+          _shutdown = False
+          def _handle(sig, frame):
+              global _shutdown
+              if _shutdown: sys.exit(1)
+              _shutdown = True
+              print("Stopping after current item...")
+          signal.signal(signal.SIGINT, _handle)
+
+      persistent_audit_log:
+        what: "One line per item (status, UTC timestamp, identifier, size/duration)"
+        location: ".claude/logs/{script_name}.log or scripts/.cache/{script_name}.jsonl"
+        rule: "Append across runs with clear run-boundary markers"
+
+      free_resume:
+        what: "Script checks remote state / output dir at startup, skips completed items"
+        why: "No manual 'where did we leave off' bookkeeping"
+        how: "Query the target for existing records, scan output directory, or read the audit log"
+
+  3_add_to_catalog:
+    what: "Add entry to SCRIPT_CATALOG.yaml"
+    why: "Commit-time hook blocks new scripts without catalog entries"
+
+quality_gates:
+  - "All 4 requirements met for scripts >2 min"
+  - "SCRIPT_CATALOG.yaml entry exists"
+  - "Tested with Ctrl-C mid-run (shutdown flag works, no corruption)"
+  - "Killed and restarted — picks up where it left off"
+
+gotchas:
+  - pattern: "Skip resume logic because 'it'll only run once'"
+    problem: "It won't. The network will drop, the console will close, the OS will reboot. The script WILL be interrupted."
+    fix: "Always build resume. Cost is ~10 lines. Cost of not having it is re-running from scratch every time."
+
+  - pattern: "Use stdout/stderr without -u flag"
+    problem: "Progress invisible when output is redirected — script appears hung"
+    fix: "Always run with python -u, or set line_buffering=True"
+
+  - pattern: "Single Ctrl-C immediately kills the script"
+    problem: "Mid-write state corruption: half-written rows, partial uploads"
+    fix: "Two-stage SIGINT — flag on first, exit on second, finish current item between"
+
+history: []

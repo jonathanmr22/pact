@@ -1,0 +1,93 @@
+skill: schema_change_workflow
+version: 1
+created_by: PACT template
+purpose: |
+  Standard procedure for any schema change (new table, ALTER TABLE, FK
+  added/dropped, column renamed). Combines the per-table verification from
+  the schema_verify checkpoint with broader governance updates (architecture
+  map, schema doc, feature flow).
+
+triggers:
+  - schema change
+  - new table
+  - add column
+  - rename column
+  - migration
+  - ALTER TABLE
+  - drop column
+  - foreign key change
+
+prerequisites:
+  read_first:
+    - "SYSTEM_MAP.yaml — find all wiring affected by the table you're changing"
+    - "knowledge/supabase_schema.yaml (or your project's schema doc) — current state"
+
+procedure:
+  1_ask_before_changing:
+    what: "Ask clarifying questions before ANY schema change"
+    questions:
+      - "CASCADE, SET NULL, or RESTRICT on delete? (FK behavior)"
+      - "What happens to existing rows when this column is added/changed?"
+      - "Show example data flow: BEFORE -> ACTION -> AFTER"
+    rule: "Wait for user confirmation before proceeding"
+
+  2_verify_live_schema:
+    what: "Query information_schema.columns for the table you're changing"
+    tool: "MCP execute_sql, REST query, or direct psql"
+    critical: "NEVER trust migration scripts or schema-export files — they show intent, not reality"
+    checkpoint: "schema_verify checkpoint is REQUIRED before code that references the table"
+
+  3_db_migration:
+    what: "Apply the DDL via your project's migration mechanism"
+    rules:
+      - "Split DDL from DML — large UPDATEs timeout separately and can hold locks"
+      - "Save migration files in a versioned directory (e.g. supabase/migrations/YYYYMMDD_{name}.sql)"
+      - "Test on a non-production environment first if the change is destructive"
+
+  4_local_orm_migration:
+    what: "If client-side has a local mirror (Drift, SQLite, Realm, IndexedDB), update its schema too"
+    rules:
+      - "Increment schema version number"
+      - "Use idempotent ADD COLUMN (check-and-add pattern) — failed migrations can half-apply"
+      - "Use CREATE TABLE IF NOT EXISTS for new tables"
+      - "Test by running the migration twice in a row — it must succeed both times"
+
+  5_rebuild_codegen:
+    what: "Re-run any codegen step that depends on schema (Drift build_runner, sqlc, prisma generate, etc.)"
+    why: "Stale generated code references columns that no longer exist (or vice versa)"
+
+  6_update_governance:
+    what: "Update all affected governance docs"
+    checklist:
+      - "SYSTEM_MAP.yaml — tables list, wiring sections that touch this table"
+      - "knowledge/supabase_schema.yaml — regenerate (or run /check-drift if you have the drift detector)"
+      - "Feature flow doc — if behavior changed, not just structure"
+      - "knowledge/KNOWLEDGE_DIRECTORY.yaml — if a new system was added"
+
+note_on_schema_doc_format:
+  recommended: "YAML — structured (tables.{name}.columns), parseable by yaml.safe_load, supports per-table `keep:` annotation blocks"
+  not_recommended: "Markdown tables — pipe-table format is brittle to parse, every column is a separate row of pipes, hard to extend with structured metadata"
+  why: "Schema docs are read by both humans (for reference) and tools (for drift detection, codegen, doc-currency checks). YAML serves both. Markdown only serves the first."
+
+quality_gates:
+  - "User confirmed CASCADE/SET NULL/RESTRICT before implementation"
+  - "Live schema verified (not assumed from migration files)"
+  - "Local ORM migration is idempotent (runs twice without error)"
+  - "Codegen step rebuilt clean"
+  - "SYSTEM_MAP.yaml updated"
+  - "Schema doc regenerated (if you have an automated regenerator) or manually edited"
+
+gotchas:
+  - pattern: "Trust the migration file as the current schema"
+    problem: "Migration files show intent at one point in time. The live schema may have been changed via admin console, manual SQL, or another team's migration since."
+    fix: "Always verify via information_schema.columns before writing code that references the table"
+
+  - pattern: "Skip the idempotency check on local ORM migration"
+    problem: "Failed migration can add a column then crash before the version bump commits. Next launch reruns the migration and hits 'duplicate column' errors."
+    fix: "Always check-and-add (e.g., _addColumnIfNotExists). Never bare ALTER TABLE ADD COLUMN."
+
+  - pattern: "Update one source of truth (DDL) without updating the others (governance docs, ORM, schema doc)"
+    problem: "Drift accumulates silently. Next session writes code based on stale assumptions and breaks something."
+    fix: "Use the checklist in step 6. Or use a drift detector that surfaces divergence automatically."
+
+history: []

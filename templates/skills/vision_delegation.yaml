@@ -1,0 +1,70 @@
+skill: vision_delegation
+version: 1
+created_by: PACT template
+purpose: |
+  When to route image-evaluation tasks to a vision-capable worker model
+  (Pixel) instead of asking the orchestrator to reason about images
+  text-only. Pixel is multimodal and ~98% cheaper than orchestrator
+  inference, so any task that involves looking at an image should
+  delegate.
+
+triggers:
+  - evaluate images
+  - compare photos
+  - vision task
+  - image quality
+  - pick best image
+  - rank thumbnails
+  - extract colors from screenshot
+
+prerequisites:
+  tools_needed:
+    - "pact-delegate CLI (.claude/tools/pact-delegate)"
+    - "OPENROUTER_API_KEY environment variable"
+  read_first:
+    - ".claude/tools/model_roster.yaml — Pixel (Gemini 2.5 Flash) is the vision model"
+    - ".claude/tools/prompts/vision.md — vision system prompt"
+
+procedure:
+  1_prepare_images:
+    what: "Collect image URLs to evaluate. Direct URLs to .jpg/.png/.webp files."
+    why: "Pixel needs URLs it can fetch. CDN/Wikimedia URLs work. JS-rendered pages don't."
+
+  2_delegate:
+    what: "Call pact-delegate with vision task type and --image-url flags"
+    tool: "pact-delegate vision 'prompt' --image-url URL1 --image-url URL2"
+    why: "Routes to Pixel, includes images as multimodal content parts"
+
+  3_evaluate_response:
+    what: "Pixel returns rankings, quality scores, and reasoning. Use its recommendation."
+    why: "Pixel evaluates mobile-friendliness, brand accuracy, emotional impact in ways text-only models cannot"
+
+  4_for_local_images:
+    what: "Use --image-file for local files instead of --image-url"
+    tool: "pact-delegate vision 'prompt' --image-file path/to/image.jpg"
+    why: "Base64-encodes the file and sends as data URI. Works for any image up to a few MB."
+
+quality_gates:
+  - "Pixel provided specific reasoning, not just 'looks good'"
+  - "Selected image is appropriate resolution for target context"
+  - "No watermarks, renders, or logos when real photos were requested"
+
+gotchas:
+  - pattern: "Use Pexels (or other generic stock-photo source) for branded content"
+    problem: "Stock libraries have generic photos, not specific branded imagery"
+    fix: "Scrape official websites or use Wikimedia Commons for branded photos"
+
+  - pattern: "Skip vision evaluation and pick images manually from URL alone"
+    problem: "You're choosing easy over right. Vision evaluation costs ~$0.0001 per image."
+    fix: "Always delegate image selection to Pixel — it evaluates mobile-friendliness, composition, and brand accuracy better than text reasoning"
+
+  - pattern: "Use --image-url for local files"
+    problem: "Pixel can't fetch local file paths"
+    fix: "Use --image-file for anything not on the public web"
+
+lessons:
+  - "Wikipedia/Wikimedia Commons is the most reliable fallback when official websites block scraping"
+  - "Pixel's color extraction from screenshots is more accurate than manual estimation — always delegate color sampling"
+  - "Most brand websites block automated scraping; check Wikimedia first to save time"
+
+history: []
