@@ -9,7 +9,7 @@
 
 At the start of every conversation, the agent MUST:
 
-1. State: *"I have read and will follow all [PROJECT NAME] rules."* — Use the actual project name from the working directory, repository name, or CLAUDE.md title. Never say "project rules" generically. If the project is "Force Protection Services", say "Force Protection Services". If it's "Kensic", say "Kensic". The user should hear their project's name, not a template placeholder.
+1. State: *"I have read and will follow all [PROJECT NAME] rules."* — Use the actual project name from the working directory, repository name, or CLAUDE.md title. Never say "project rules" generically and never leave the literal placeholder `[PROJECT NAME]` in your output. If the working directory is `~/code/acme-maps`, say "Acme Maps". If the CLAUDE.md title is "Cosmic CRM", say "Cosmic CRM". The user should hear their project's name, not a template placeholder.
 2. Read `.claude/memory/PENDING_WORK.yaml` — check for in-progress tasks
 3. Scan `.claude/memory/file_edit_log.yaml` — note recently-edited files, fresh-read before assuming
 4. Read `.claude/sessions.yaml` — check for other active sessions. If another session is active or recently committed (within the last hour), tell the user: *"Another session is active (started [time], last commit [hash]). I'll pull before committing to avoid conflicts."*
