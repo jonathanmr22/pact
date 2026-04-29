@@ -1,0 +1,39 @@
+# PACT Dashboard build (meta initiative — example seed file).
+#
+# This is a STARTER template. Replace these tasks with whatever you actually
+# want to track. The dashboard renders this file and lets you click any task
+# to add notes, change status, etc. Status changes auto-bump `last_touched`.
+#
+# Status vocabulary:
+#   - Tasks       : todo | in_flight | done
+#   - Nodes/feats : not_started | in_flight | blocked_user | blocked_external | done
+#
+# `last_touched` is a YYYY-MM-DD string; the dashboard parses it as LOCAL midnight.
+node:
+  name: "PACT Dashboard build (meta)"
+  status: in_flight
+  last_touched: 2026-04-29
+  plan: templates/dashboard/pact-dashboard.html
+  note: "The dashboard you're looking at right now. Multi-file YAML schema, Tetris-grid feature cards, modal flip card with tasks + PACT refs, sticky controls, sort/filter, prompt builder, themes, Archive view, status picker. This file is just the seed example — replace with your own initiatives."
+  references:
+    plans: [templates/dashboard/_index.yaml, templates/dashboard/pact-dashboard.html]
+    knowledge: []
+
+  children:
+    - name: "Replace this seed example"
+      status: not_started
+      last_touched: 2026-04-29
+      note: "When you're ready to use the dashboard for real work, delete the seed tasks below and add your own initiatives. Each child of `node` becomes a feature card; each task in a child's `tasks:` becomes a row in the modal."
+      tasks:
+        - { name: "Open this YAML file (templates/dashboard/trees/governance/streams/dashboard_build.yaml)", status: todo }
+        - { name: "Replace tasks with your own — name + status + optional note", status: todo }
+        - { name: "Add a new initiative file under trees/{tree}/streams/ for each new domain", status: todo }
+        - { name: "Wire it into _index.yaml (trees + streams)", status: todo }
+
+    - name: "Example: shipped feature you want to track in history"
+      status: done
+      last_touched: 2026-04-29
+      note: "Example pattern: keep done features visible so the dashboard remembers what was built and when. Hide-completed filter + Archive view both let you de-clutter without losing history."
+      tasks:
+        - { name: "Some task that shipped", status: done }
+        - { name: "Another task that shipped", status: done }

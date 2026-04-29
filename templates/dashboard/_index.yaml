@@ -1,0 +1,34 @@
+# Project Ledger — multi-tree dashboard index
+#
+# VOCABULARY (strict):
+#   TREE       — top-level domain of work (Frontend, Backend, Infrastructure, …).
+#                Each tree has its own intent and its own set of streams.
+#                Scroll-wheel switches between trees. No singular root above.
+#   INTENT     — the WHY for a tree (one short line + one long sentence + 1-3 metrics).
+#                Lives in trees/{id}/_intent.yaml.
+#   INITIATIVE — a major effort within a tree (e.g. "Auth rewrite").
+#                One YAML file per initiative in trees/{id}/streams/. The file's
+#                top-level `node:` becomes a top-level box on the treemap.
+#   FEATURE    — a discrete capability inside an initiative.
+#                Children of an initiative's `node`. Becomes a sub-box on the treemap.
+#   TASK       — a concrete unit of work.
+#                Lives in a feature node's `tasks:` array. Shown ONLY in the modal
+#                when you click the feature's box. Done tasks stay (history-preserving).
+#
+# BOX SIZE — auto-derived from total task count under the box (not arbitrary
+# integers). A feature with 10 tasks displays bigger than one with 2.
+#
+# HOW THE DASHBOARD READS THIS:
+#   1. fetch _index.yaml → list of trees
+#   2. for each tree: fetch its intent + each stream
+#   3. render ONE tree at a time; scroll-wheel switches between trees
+#
+# REQUIRES SERVING VIA HTTP (not file://) — browsers block fetch() for local
+# files. Run pact-server.py to start a local server + open the dashboard.
+
+trees:
+  - id: governance
+    name: "Governance & PACT"
+    intent_file: trees/governance/_intent.yaml
+    streams:
+      - trees/governance/streams/dashboard_build.yaml

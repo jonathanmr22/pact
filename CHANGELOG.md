@@ -10,6 +10,45 @@ PACT uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Multi-tree dashboard schema (BREAKING for existing dashboard users)** — `templates/dashboard/pact-dashboard.html` rewritten from a single-doc model to a multi-file YAML schema:
+  - `_index.yaml` lists trees; each tree has its own `_intent.yaml` (short + long + metrics) and a folder of `streams/*.yaml` initiative files.
+  - Vocabulary: TREE → INITIATIVE → FEATURE → TASK. Box sizes auto-derived from total task count.
+  - Scroll-wheel switches between trees; a section per tree in the Board view.
+  - Seed scaffold included: `templates/dashboard/_index.yaml` + `trees/governance/_intent.yaml` + `trees/governance/streams/dashboard_build.yaml`. Drop-in working example for fresh adopters.
+  - File grew from ~2.6k lines to ~6.8k lines as a result of the schema rewrite + the features below.
+
+- **Dashboard themes + fonts (settings panel)** — Five named dark themes (Tide & Ember default, Midnight Orchid, Sodium Rain, Neon Dive, Inkwell) each with a paired font trio. Settings panel exposes theme picker, font picker (3 roles × dynamic Google Font loading via injected `<link>`), Reset Fonts, and Align-to-theme buttons. ALL settings are per-project (keyed by project name in localStorage). Header background is theme-aware via `--header-bg` CSS variable.
+
+- **Archive view (5th view-toggle tab)** — Archive button (📁) on each initiative-header hides it from Board + Task List. Archive view shows ONLY archived initiatives with Restore (↩) buttons. Per-project state in `localStorage.pact-dashboard.archived.v1` + `pact-dashboard.archiveBaselines.v1`. Signature is a djb2 hash of sorted recursive task names + statuses + child names + length. Auto-unarchive triggers on signature drift (work resumed → resurface). View-toggle button shows count badge when n > 0.
+
+- **Status picker (direct YAML edit)** — Click any task or node status badge → overlay picker → pick new status → server writes the YAML atomically (tmp+rename) and auto-bumps the parent initiative's `last_touched`. Backed by new `POST /yaml-edit` endpoint with field whitelist (status/name/note/last_touched) and per-status-vocabulary validation. No more "ask Claude to update YAML" round-trip for routine status changes.
+
+- **Task notes + initiative notes** — Click a task name (modal OR Task List row) → inline editor → write notes that persist to `<project>/.claude/memory/dashboard_user_notes.yaml`. Writes touch a sentinel file (`dashboard_notes_unread`) so SessionStart hook surfaces the unread count via `additionalContext`. Backed by `POST /note` (level: task | initiative) and `POST /notes` (read).
+
+- **Drag to reorder** — Pointer-event tactile drag (5px movement threshold) for both card-within-feature-grid AND initiative-section-within-tree. The card translates under the cursor with tilt + lift + shadow (more tactile than HTML5 native drag). Custom orders persist per-project in localStorage; ↺ reset button restores YAML order.
+
+- **Shortcuts feature** — Floating bottom-right FAB opens a draggable-chip overlay for pinned web links. Categories are draggable too (via grip handle). Per-project persistence. Ctrl+K shortcut.
+
+- **Wave-end YAML sync enforcement** — Two new hooks form a session-scoped enforcement loop:
+  - `post-edit-dashboard-flag.sh` (PostToolUse): touches `/tmp/pact-dashboard-html-edited-$SESSION` when `pact-dashboard.html` is edited, clears it when `dashboard_build.yaml` is edited.
+  - `stop-dashboard-yaml-sync.sh` (Stop): if the flag is still set when Claude tries to end the response, BLOCKS with `decision: block` + a forced reminder to update the YAML. Without this, dashboard-HTML changes ship without their audit-log/XP entries getting written, breaking both compounding mechanisms.
+
+- **Dashboard auto-open + user-notes surfacing at session start** — Two SessionStart hooks:
+  - `session-start-open-dashboard.sh` opens the dashboard URL in the browser at session start (toggle via Dashboard Settings → Startup or `.claude/memory/dashboard_autoopen_disabled` flag). Carries directive grammar (WORK ON / REVISIT / NEED DETAILS / BUMP TASK VERSION / UPDATE SYSTEM_MAP / USER NOTES on / SWITCH PROJECT) as one-time `additionalContext` so per-copy preambles can stay short.
+  - `session-start-dashboard-notes.sh` reads `dashboard_user_notes.yaml` + the `dashboard_notes_unread` sentinel, surfaces unread count + latest note via `additionalContext`. Keeps user notes from going silent across sessions.
+
+- **`dashboard-yaml-followup.sh`** (PostToolUse soft nudge) — Reminds about the wave-end sync expectation when dashboard files are edited. Soft, not blocking; the Stop hook is the actual gate.
+
+- **`POST /open` enhancements in `pact-server.py`** — Routes `.md`, `.yaml`, `.py`, `.dart`, `.sh`, `.ts`, `.json`, `.html`, `.css`, `.txt`, `.toml`, `.ini`, `.env`, `.sql` through the VS Code `code` CLI. Falls back to `start "" <path>` for everything else. WHY: most Windows installs have no default handler for `.md`, which caused silent failures with plain `start`.
+
+- **`POST /pythons` + `POST /kill` endpoints in `pact-server.py`** — Powers the Pythons view in the dashboard: lists active python processes (PID, command, listening ports), lets the user kill stale ones from the UI without dropping to a terminal.
+
+- **`GET /system-map.yaml` virtual endpoint** — Serves `<project_root>/SYSTEM_MAP.yaml` with proper Content-Type so the System Map view can fetch + render it.
+
+- **`POST /autoopen` endpoint** — Read/write the dashboard auto-open flag (`<project>/.claude/memory/dashboard_autoopen_disabled` presence = OFF, absence = ON).
+
+- **Multi-project support in `pact-server.py`** — All YAML data fetches honor `?root=<absolute path>` so the dashboard can switch project context without re-launching the server. The HTML/CSS/JS shell stays at the host project; only data fetches re-root. Falls back to `SERVE_ROOT.parent.parent` (i.e. the project containing `plans/dashboard/serve.py`) when no `?root=` is provided.
+
 - **Project-agnosticism guard** — Two new git hooks under `.githooks/` block consuming-project names from leaking into PACT's commit history, templates, and docs:
   - `pre-commit` scans staged additions (added/modified lines only) for any term in `.githooks/forbidden_terms.txt`. Blocks with an actionable error if found.
   - `commit-msg` scans the proposed commit message for the same terms. Blocks before the commit lands.

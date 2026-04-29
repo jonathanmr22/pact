@@ -1,492 +1,511 @@
 #!/usr/bin/env python3
-"""
-PACT Dashboard Server — serves the visualizer + event feed + task ratings.
+"""Tiny dashboard server.
 
-Runs on localhost:7246 (one above TileHttpServer's 7245).
-Endpoints:
-  GET  /           — serves pact-dashboard.html
-  GET  /events     — returns new events since ?after=N as JSON array
-  GET  /ratings    — returns all task ratings as JSON array
-  POST /rate       — submit a task rating (writes to ratings JSONL + regenerates scorecard)
-  GET  /scorecard  — returns the current scorecard markdown
+Acts as a static-file server (like `python -m http.server`) for the
+dashboard files PLUS exposes a single POST /open endpoint that runs
+Windows `start "" <path>` to actually open a file in its default app.
 
-Start:  python .claude/hooks/pact-server.py &
-Stop:   kill $(cat .claude/pact-server.pid)
+The dashboard's PACT references panel POSTs here when you click a ref,
+so links actually open instead of relying on Chrome's silent vscode://
+protocol handling.
+
+Usage:
+    python serve.py [port]
+Default port: 8800. Bind: 127.0.0.1.
+
+Safety: the /open endpoint accepts ANY path and runs `start` on it.
+That's fine because this server only listens on 127.0.0.1 and is meant
+for the user's own dev machine. Don't expose to a network.
 """
+from __future__ import annotations
 
 import http.server
-import json
-import os
+import socketserver
+import subprocess
 import sys
-import threading
-import time
-from datetime import datetime, timezone
-
-PORT = 7246
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-CLAUDE_DIR = os.path.dirname(SCRIPT_DIR)
-HOME_DIR = os.path.expanduser('~')
-
-# Central user-level files (multi-project)
-PACT_DIR = os.path.join(HOME_DIR, '.claude')
-EVENTS_FILE = os.path.join(PACT_DIR, 'pact-events.jsonl')
-CONFIG_FILE = os.path.join(PACT_DIR, 'pact-config.json')
-RATINGS_FILE = os.path.join(CLAUDE_DIR, 'bugs', '_FEEDBACK.jsonl')
-LEGACY_RATINGS_FILE = os.path.join(PACT_DIR, 'pact-ratings.jsonl')  # pre-0.7.1 location
-SCORECARD_FILE = os.path.join(PACT_DIR, 'pact-scorecard.md')
-# Fallback to project-local if central doesn't exist
-LOCAL_EVENTS_FILE = os.path.join(CLAUDE_DIR, 'pact-events.jsonl')
-DASHBOARD_FILE = os.path.join(CLAUDE_DIR, 'pact-dashboard.html')
-PID_FILE = os.path.join(CLAUDE_DIR, 'pact-server.pid')
-
-# Cache events in memory, reload from file periodically
-events_cache = []
-events_lock = threading.Lock()
+from pathlib import Path
+from urllib.parse import parse_qs, urlparse
 
 
-def load_events():
-    """Load all events from central JSONL (with local fallback)."""
-    global events_cache
-    source = EVENTS_FILE if os.path.exists(EVENTS_FILE) else LOCAL_EVENTS_FILE
-    if not os.path.exists(source):
-        return
-    try:
-        with open(source, 'r', encoding='utf-8') as f:
-            lines = f.readlines()
-        new_events = []
-        for line in lines:
-            line = line.strip()
-            if line:
-                try:
-                    new_events.append(json.loads(line))
-                except json.JSONDecodeError:
-                    pass
-        with events_lock:
-            events_cache = new_events
-    except Exception:
-        pass
+SERVE_ROOT = Path(__file__).resolve().parent
+PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 8800
+HOST = "127.0.0.1"
 
 
-def load_ratings():
-    """Load all ratings from the feedback file (checks new + legacy locations)."""
-    source = RATINGS_FILE if os.path.exists(RATINGS_FILE) else LEGACY_RATINGS_FILE
-    if not os.path.exists(source):
-        return []
-    ratings = []
-    try:
-        with open(source, 'r', encoding='utf-8') as f:
-            for line in f:
-                line = line.strip()
-                if line:
-                    try:
-                        ratings.append(json.loads(line))
-                    except json.JSONDecodeError:
-                        pass
-    except Exception:
-        pass
-    return ratings
+class DashHandler(http.server.SimpleHTTPRequestHandler):
+    # Force the file-server to serve from this script's directory regardless
+    # of the cwd at launch time.
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, directory=str(SERVE_ROOT), **kwargs)
 
+    # Multi-project support: when the dashboard sends ?root=<absolute path>,
+    # we re-root file lookups to that project's plans/dashboard/ for YAML
+    # data fetches, and to that project's repo root for /system-map.yaml.
+    # The HTML/CSS/JS shell still comes from THIS serve.py's SERVE_ROOT.
+    SAFE_DATA_PATHS = ("_index.yaml", "trees/", "plans/dashboard/")
 
-def regenerate_scorecard(ratings):
-    """Regenerate the scorecard markdown that Claude reads at session start."""
-    if not ratings:
-        return
+    def _resolve_project_root(self):
+        """Return Path of the requested project root, or None for local."""
+        parsed = urlparse(self.path)
+        qs = parse_qs(parsed.query)
+        root_arg = qs.get("root", [None])[0]
+        if not root_arg:
+            return None
+        try:
+            p = Path(root_arg).resolve()
+            # Sanity: must exist and be a directory
+            if not p.exists() or not p.is_dir():
+                return None
+            return p
+        except Exception:
+            return None
 
-    recent = ratings[-10:]  # last 10
-    scores = [r['score'] for r in recent if 'score' in r]
-    avg = sum(scores) / len(scores) if scores else 0
-
-    # Streak of 4+
-    streak = 0
-    for r in reversed(recent):
-        if r.get('score', 0) >= 4:
-            streak += 1
-        else:
-            break
-
-    # Category failure frequency
-    tag_counts = {}
-    tag_examples = {}
-    for r in recent:
-        for tag in r.get('tags', []):
-            tag_counts[tag] = tag_counts.get(tag, 0) + 1
-            if r.get('wrong'):
-                tag_examples[tag] = r['wrong']
-
-    # Category averages
-    tag_scores = {}
-    tag_score_counts = {}
-    for r in recent:
-        for tag in r.get('tags', []):
-            tag_scores[tag] = tag_scores.get(tag, 0) + r.get('score', 3)
-            tag_score_counts[tag] = tag_score_counts.get(tag, 0) + 1
-
-    # What went right (from high-scoring tasks)
-    went_right = [r.get('right', '') for r in recent if r.get('score', 0) >= 4 and r.get('right')]
-
-    # Build scorecard
-    score_words = {1: 'Failed', 2: 'Poor', 3: 'Adequate', 4: 'Good', 5: 'Nailed It'}
-    lines = [
-        '# PACT Task Scorecard',
-        f'# Last updated: {datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}',
-        f'# Read this at session start. This is direct user feedback on your work.',
-        '',
-        f'## Rolling Average: {avg:.1f}/5 (last {len(recent)} tasks)',
-    ]
-
-    if streak >= 2:
-        lines.append(f'## Current Streak: {streak} consecutive 4+ ratings')
-    lines.append('')
-
-    # Weakest areas
-    if tag_counts:
-        lines.append('## Areas Needing Attention')
-        sorted_tags = sorted(tag_counts.items(), key=lambda x: -x[1])
-        for tag, count in sorted_tags:
-            tag_avg = tag_scores.get(tag, 0) / tag_score_counts.get(tag, 1)
-            example = f' — "{tag_examples[tag]}"' if tag in tag_examples else ''
-            lines.append(f'- {tag}: {count}x in last {len(recent)} tasks (avg {tag_avg:.1f}/5){example}')
-        lines.append('')
-
-    # Recent ratings
-    lines.append('## Recent Ratings')
-    for i, r in enumerate(reversed(recent)):
-        score = r.get('score', 3)
-        word = score_words.get(score, '?')
-        task = r.get('task', 'unnamed')
-        tags = ', '.join(r.get('tags', []))
-        wrong = r.get('wrong', '')
-        right = r.get('right', '')
-        line = f'{i+1}. [{score}/5 {word}] "{task}"'
-        if tags:
-            line += f' — Tags: {tags}'
-        if wrong:
-            line += f' — Wrong: "{wrong}"'
-        if right:
-            line += f' — Right: "{right}"'
-        lines.append(line)
-    lines.append('')
-
-    # What's working
-    if went_right:
-        lines.append('## What\'s Working (keep doing this)')
-        for wr in went_right[-5:]:
-            lines.append(f'- "{wr}"')
-        lines.append('')
-
-    # Action items from low scores
-    low_tasks = [r for r in recent if r.get('score', 5) <= 2]
-    if low_tasks:
-        lines.append('## Action Items From Low Scores')
-        for r in low_tasks[-5:]:
-            if r.get('wrong'):
-                lines.append(f'- [{r.get("task","?")}] {r["wrong"]}')
-        lines.append('')
-
-    lines.append('# This scorecard is auto-generated by PACT. Do not edit manually.')
-
-    try:
-        with open(SCORECARD_FILE, 'w', encoding='utf-8') as f:
-            f.write('\n'.join(lines) + '\n')
-    except Exception:
-        pass
-
-
-def event_watcher():
-    """Background thread that reloads events every second."""
-    while True:
-        load_events()
-        time.sleep(1)
-
-
-class PACTHandler(http.server.BaseHTTPRequestHandler):
-    def log_message(self, format, *args):
-        pass  # Silence request logs
+    def _serve_yaml_from(self, abs_path: Path):
+        if not abs_path.exists() or not abs_path.is_file():
+            self.send_error(404, f"Not found: {abs_path}")
+            return
+        data = abs_path.read_bytes()
+        self.send_response(200)
+        self.send_header("Content-Type", "text/yaml; charset=utf-8")
+        self.send_header("Content-Length", str(len(data)))
+        self.end_headers()
+        self.wfile.write(data)
 
     def do_GET(self):
-        if self.path == '/' or self.path == '/index.html':
-            self._serve_dashboard()
-        elif self.path.startswith('/events'):
-            self._serve_events()
-        elif self.path == '/ratings':
-            self._serve_ratings()
-        elif self.path.startswith('/recall'):
-            self._serve_recall()
-        elif self.path == '/scorecard':
-            self._serve_scorecard()
-        elif self.path == '/pact-config':
-            self._serve_config()
-        else:
-            self.send_error(404)
+        parsed = urlparse(self.path)
+        path_only = parsed.path
+        project_root = self._resolve_project_root()
+
+        # Virtual endpoint: SYSTEM_MAP.yaml lives at the project root
+        # (default project = SERVE_ROOT.parent.parent; switched project = `root` arg).
+        if path_only == "/system-map.yaml":
+            base = project_root if project_root else SERVE_ROOT.parent.parent
+            sm = base / "SYSTEM_MAP.yaml"
+            if not sm.exists():
+                self.send_error(404, f"SYSTEM_MAP.yaml not found at {base}")
+                return
+            return self._serve_yaml_from(sm)
+
+        # When a project root is specified AND the request is for a YAML/dashboard
+        # data file, re-root the read to <project_root>/plans/dashboard/<rel>.
+        # Strip query string from path_only for filesystem lookup.
+        if project_root and (path_only.endswith(".yaml") or path_only.endswith(".yml")):
+            # path_only starts with '/' — strip and join under <project>/plans/dashboard/
+            rel = path_only.lstrip("/")
+            target = project_root / "plans" / "dashboard" / rel
+            return self._serve_yaml_from(target)
+
+        return super().do_GET()
 
     def do_POST(self):
-        if self.path == '/rate':
-            self._handle_rate()
-        elif self.path == '/pact-config':
-            self._handle_config_update()
+        parsed = urlparse(self.path)
+        if parsed.path == "/open":
+            self._handle_open()
+        elif parsed.path == "/pythons":
+            self._handle_pythons_list()
+        elif parsed.path == "/kill":
+            self._handle_kill()
+        elif parsed.path == "/note":
+            self._handle_note()
+        elif parsed.path == "/notes":
+            self._handle_notes_list()
+        elif parsed.path == "/autoopen":
+            self._handle_autoopen()
+        elif parsed.path == "/yaml-edit":
+            self._handle_yaml_edit()
         else:
-            self.send_error(404)
+            self.send_error(404, f"Unknown POST endpoint: {parsed.path}")
 
-    def _serve_dashboard(self):
+    # ── User notes on tasks ────────────────────────────────────────────────
+    # Notes are appended to <project_root>/.claude/memory/dashboard_user_notes.yaml
+    # PLUS a sentinel file <project_root>/.claude/memory/dashboard_notes_unread
+    # is touched so the SessionStart hook can announce "you have N new notes
+    # from the user since last session" without disrupting active work.
+    def _project_root_for_notes(self):
+        # Honor ?root= just like other endpoints; default to SERVE_ROOT.parent.parent
+        proj = self._resolve_project_root()
+        return proj if proj else SERVE_ROOT.parent.parent
+
+    def _notes_file(self):
+        d = self._project_root_for_notes() / ".claude" / "memory"
+        d.mkdir(parents=True, exist_ok=True)
+        return d / "dashboard_user_notes.yaml"
+
+    def _notes_unread_sentinel(self):
+        return self._project_root_for_notes() / ".claude" / "memory" / "dashboard_notes_unread"
+
+    def _handle_note(self):
+        import json, datetime
+        length = int(self.headers.get("Content-Length", 0))
+        body = self.rfile.read(length).decode("utf-8", errors="replace")
         try:
-            with open(DASHBOARD_FILE, 'r', encoding='utf-8') as f:
-                content = f.read()
-            self.send_response(200)
-            self.send_header('Content-Type', 'text/html; charset=utf-8')
-            self.send_header('Cache-Control', 'no-cache')
-            self.end_headers()
-            self.wfile.write(content.encode('utf-8'))
-        except FileNotFoundError:
-            self.send_error(404, 'Dashboard file not found')
+            payload = json.loads(body)
+        except Exception as e:
+            self._json({"ok": False, "error": "invalid json: " + str(e)}, status=400)
+            return
+        tree = payload.get("tree", "").strip()
+        chain = payload.get("chain", [])  # list of node names from initiative down
+        task_name = payload.get("task", "").strip()
+        # level: "task" (default) or "initiative". For initiative-level notes,
+        # the editor doesn't bind to a specific task — it lives on the modal
+        # description area as "Your notes" alongside the YAML's `note:` field.
+        level = (payload.get("level") or "task").strip()
+        note = payload.get("note", "").strip()
+        if not (tree and note):
+            self._json({"ok": False, "error": "missing tree/note"}, status=400)
+            return
+        if level == "task" and not task_name:
+            self._json({"ok": False, "error": "task-level note requires task name"}, status=400)
+            return
+        # For initiative notes, set task_name to the chain's last element so
+        # downstream tooling has a stable identifier; mark level explicitly.
+        if level == "initiative" and not task_name:
+            task_name = chain[-1] if chain else "<initiative>"
+        nf = self._notes_file()
+        ts = datetime.datetime.now().isoformat(timespec="seconds")
+        # Append-only YAML. Format: a top-level `notes:` list of records.
+        # Read existing, append, write.
+        existing_text = nf.read_text(encoding="utf-8") if nf.exists() else ""
+        # Build a new YAML record block — keep it readable, don't roundtrip
+        # via PyYAML (preserves any user hand-edits).
+        if not existing_text.strip():
+            existing_text = (
+                "# Dashboard user notes — added by clicking a task name in the\n"
+                "# PACT Dashboard. Claude reads this file at session start.\n"
+                "# Format: append-only list of {when, tree, chain, task, note, status}.\n"
+                "# Status starts as 'unread'; flip to 'read' once Claude has\n"
+                "# acknowledged it.\n"
+                "notes:\n"
+            )
+        new_block = (
+            f"  - when: {ts}\n"
+            f"    tree: {json.dumps(tree)}\n"
+            f"    chain: {json.dumps(chain)}\n"
+            f"    task: {json.dumps(task_name)}\n"
+            f"    level: {json.dumps(level)}\n"
+            f"    note: {json.dumps(note)}\n"
+            f"    status: unread\n"
+        )
+        nf.write_text(existing_text + new_block, encoding="utf-8")
+        # Touch the sentinel so the next session-start hook surfaces it
+        sentinel = self._notes_unread_sentinel()
+        sentinel.parent.mkdir(parents=True, exist_ok=True)
+        sentinel.write_text(ts, encoding="utf-8")
+        self._json({"ok": True, "wrote_to": str(nf), "when": ts})
 
-    def _serve_events(self):
-        after = 0
-        if '?' in self.path:
-            params = self.path.split('?')[1]
-            for param in params.split('&'):
-                if param.startswith('after='):
-                    try:
-                        after = int(param.split('=')[1])
-                    except ValueError:
-                        pass
-
-        with events_lock:
-            new_events = events_cache[after:]
-
-        self.send_response(200)
-        self.send_header('Content-Type', 'application/json')
-        self.send_header('Cache-Control', 'no-cache')
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.end_headers()
-        self.wfile.write(json.dumps(new_events).encode('utf-8'))
-
-    def _serve_ratings(self):
-        ratings = load_ratings()
-        self.send_response(200)
-        self.send_header('Content-Type', 'application/json')
-        self.send_header('Cache-Control', 'no-cache')
-        self.end_headers()
-        self.wfile.write(json.dumps(ratings).encode('utf-8'))
-
-    def _serve_scorecard(self):
+    def _handle_autoopen(self):
+        """Read or write the dashboard auto-open flag.
+        POST {action: 'get'} → {enabled: bool}
+        POST {action: 'set', enabled: bool} → writes/removes the disable flag
+        File: <project_root>/.claude/memory/dashboard_autoopen_disabled
+        Presence of file = OFF; absence = ON (default).
+        """
+        import json
+        length = int(self.headers.get("Content-Length", 0))
+        body = self.rfile.read(length).decode("utf-8", errors="replace")
         try:
-            with open(SCORECARD_FILE, 'r', encoding='utf-8') as f:
-                content = f.read()
-            self.send_response(200)
-            self.send_header('Content-Type', 'text/plain; charset=utf-8')
-            self.end_headers()
-            self.wfile.write(content.encode('utf-8'))
-        except FileNotFoundError:
-            self.send_response(200)
-            self.send_header('Content-Type', 'text/plain')
-            self.end_headers()
-            self.wfile.write(b'No ratings yet.')
+            payload = json.loads(body) if body.strip() else {}
+        except Exception:
+            payload = {}
+        action = payload.get("action", "get")
+        flag_path = self._project_root_for_notes() / ".claude" / "memory" / "dashboard_autoopen_disabled"
+        if action == "set":
+            enabled = bool(payload.get("enabled", True))
+            flag_path.parent.mkdir(parents=True, exist_ok=True)
+            if enabled:
+                if flag_path.exists(): flag_path.unlink()
+            else:
+                flag_path.write_text("disabled\n", encoding="utf-8")
+            self._json({"ok": True, "enabled": enabled})
+        else:
+            self._json({"ok": True, "enabled": not flag_path.exists()})
 
-    def _serve_recall(self):
-        """Vector search across PACT knowledge. GET /recall?q=text&top=5&type=bug"""
-        params = {}
-        if '?' in self.path:
-            for p in self.path.split('?')[1].split('&'):
-                if '=' in p:
-                    k, v = p.split('=', 1)
-                    params[k] = v
+    def _handle_yaml_edit(self):
+        """Apply a scoped field edit to a tree YAML file.
+        POST {
+          stream_path: 'trees/governance/streams/dashboard_build.yaml',
+          chain: ['initiative name', 'feature name', ...],   # path from root
+          task_name: 'Some task' | null,                      # null = edit the chain's leaf node, not a task
+          field: 'status' | 'name' | 'note' | 'last_touched',
+          value: <new value>
+        }
+        Whitelist of editable fields: status, name, note, last_touched.
+        Auto-bumps the parent initiative's `last_touched` to today's date.
+        Writes via PyYAML (round-trip — comments NOT preserved).
+        """
+        import json, datetime, yaml as pyyaml
+        ALLOWED_FIELDS = {'status', 'name', 'note', 'last_touched'}
+        ALLOWED_TASK_STATUSES = {'todo', 'in_flight', 'done'}
+        ALLOWED_NODE_STATUSES = {'not_started', 'in_flight', 'blocked_user', 'blocked_external', 'done'}
 
-        query_text = params.get('q', '').replace('+', ' ').replace('%20', ' ')
-        if not query_text:
-            self.send_response(400)
-            self.send_header('Content-Type', 'application/json')
-            self.end_headers()
-            self.wfile.write(b'{"error":"missing q parameter"}')
+        length = int(self.headers.get("Content-Length", 0))
+        body = self.rfile.read(length).decode("utf-8", errors="replace")
+        try:
+            payload = json.loads(body)
+        except Exception as e:
+            self._json({"ok": False, "error": "invalid json: " + str(e)}, status=400)
+            return
+        stream_path = (payload.get("stream_path") or "").strip()
+        chain = payload.get("chain") or []
+        task_name = payload.get("task_name")  # may be None
+        field = (payload.get("field") or "").strip()
+        new_value = payload.get("value")
+
+        if field not in ALLOWED_FIELDS:
+            self._json({"ok": False, "error": f"field '{field}' not editable; allowed: {sorted(ALLOWED_FIELDS)}"}, status=400)
+            return
+        if field == 'status':
+            valid = ALLOWED_TASK_STATUSES if task_name else ALLOWED_NODE_STATUSES
+            if new_value not in valid:
+                self._json({"ok": False, "error": f"status '{new_value}' invalid; allowed: {sorted(valid)}"}, status=400)
+                return
+
+        # Resolve the stream file path (honor ?root= for cross-project)
+        proj_root = self._resolve_project_root() or SERVE_ROOT.parent.parent
+        target_file = proj_root / "plans" / "dashboard" / stream_path
+        if not target_file.exists():
+            self._json({"ok": False, "error": f"file not found: {target_file}"}, status=404)
             return
 
         try:
-            import subprocess
-            memory_script = os.path.join(SCRIPT_DIR, '..', 'memory', 'pact-memory.py')
-            if not os.path.exists(memory_script):
-                memory_script = os.path.join(SCRIPT_DIR, 'pact-memory.py')
-
-            cmd = [sys.executable, memory_script, 'query', query_text,
-                   '--top', params.get('top', '5'), '--json']
-            if params.get('type'):
-                cmd.extend(['--type', params['type']])
-
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
-            self.send_response(200)
-            self.send_header('Content-Type', 'application/json')
-            self.send_header('Cache-Control', 'no-cache')
-            self.end_headers()
-            self.wfile.write(result.stdout.encode('utf-8'))
+            doc = pyyaml.safe_load(target_file.read_text(encoding="utf-8"))
         except Exception as e:
-            self.send_response(500)
-            self.send_header('Content-Type', 'application/json')
-            self.end_headers()
-            self.wfile.write(json.dumps({'error': str(e)}).encode('utf-8'))
+            self._json({"ok": False, "error": "yaml parse failed: " + str(e)}, status=500)
+            return
 
-    def _serve_config(self):
+        # Walk the chain to the target node
+        node = doc.get('node') if isinstance(doc, dict) else None
+        if node is None:
+            self._json({"ok": False, "error": "stream missing top-level `node:` key"}, status=400)
+            return
+        # First chain element should match the initiative's name
+        if chain and node.get('name') != chain[0]:
+            self._json({"ok": False, "error": f"chain root '{chain[0]}' doesn't match initiative '{node.get('name')}'"}, status=400)
+            return
+        # Walk children for the rest of the chain
+        for child_name in chain[1:]:
+            kids = node.get('children') or []
+            found = next((c for c in kids if c.get('name') == child_name), None)
+            if not found:
+                self._json({"ok": False, "error": f"chain segment '{child_name}' not found"}, status=404)
+                return
+            node = found
+
+        # If task_name is set, find the task within the leaf node's `tasks:` list
+        target = node
+        if task_name:
+            tasks = node.get('tasks') or []
+            target = next((t for t in tasks if (t.get('name') == task_name)), None)
+            if target is None:
+                self._json({"ok": False, "error": f"task '{task_name}' not found in node"}, status=404)
+                return
+
+        # Apply the edit
+        old_value = target.get(field)
+        target[field] = new_value
+        # Auto-bump the parent INITIATIVE's last_touched on any task/node status change
+        today = datetime.date.today().isoformat()
+        if field == 'status':
+            init_node = doc.get('node')
+            init_node['last_touched'] = today
+
+        # Atomic write (write to .tmp, then rename)
+        tmp_path = target_file.with_suffix(target_file.suffix + '.tmp')
         try:
-            if os.path.exists(CONFIG_FILE):
-                with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
-                    config = json.load(f)
-            else:
-                config = {'dashboard': 'ask'}
-            self.send_response(200)
-            self.send_header('Content-Type', 'application/json')
-            self.end_headers()
-            self.wfile.write(json.dumps(config).encode('utf-8'))
+            text = pyyaml.safe_dump(doc, sort_keys=False, allow_unicode=True, width=120)
+            tmp_path.write_text(text, encoding='utf-8')
+            tmp_path.replace(target_file)
+        except Exception as e:
+            self._json({"ok": False, "error": "write failed: " + str(e)}, status=500)
+            return
+        self._json({
+            "ok": True, "field": field,
+            "old_value": old_value, "new_value": new_value,
+            "auto_bumped_last_touched": today if field == 'status' else None,
+        })
+
+    def _handle_notes_list(self):
+        # Returns the parsed notes file (used by the dashboard to show counts)
+        nf = self._notes_file()
+        if not nf.exists():
+            self._json({"ok": True, "notes": []})
+            return
+        try:
+            import yaml
+            data = yaml.safe_load(nf.read_text(encoding="utf-8")) or {}
+            self._json({"ok": True, "notes": data.get("notes", [])})
+        except Exception as e:
+            self._json({"ok": False, "error": str(e)}, status=500)
+
+    def _handle_pythons_list(self):
+        """Returns active python processes with PID, command, listening ports."""
+        rows = []
+        try:
+            tasks = subprocess.check_output(
+                ["wmic", "process", "where", "name='python.exe'",
+                 "get", "ProcessId,CommandLine", "/format:csv"],
+                text=True, timeout=8, stderr=subprocess.DEVNULL,
+            )
+            for line in tasks.splitlines():
+                parts = line.strip().split(",")
+                if len(parts) < 3 or parts[0] == "Node": continue
+                cmdline = ",".join(parts[1:-1]).strip('"')
+                pid_str = parts[-1].strip()
+                if not pid_str.isdigit(): continue
+                rows.append({"pid": int(pid_str), "cmd": cmdline})
+        except Exception as e:
+            self._json({"ok": False, "error": str(e)}, status=500)
+            return
+        # Annotate with listening port if any
+        try:
+            ns = subprocess.check_output(["netstat", "-ano"], text=True, timeout=5)
+            pid_to_ports = {}
+            for line in ns.splitlines():
+                if "LISTENING" not in line: continue
+                parts = line.split()
+                if len(parts) < 5: continue
+                addr = parts[1]
+                pid = parts[-1]
+                if not pid.isdigit(): continue
+                port = addr.rsplit(":", 1)[-1]
+                pid_to_ports.setdefault(int(pid), set()).add(port)
+            for r in rows:
+                r["ports"] = sorted(pid_to_ports.get(r["pid"], []))
         except Exception:
-            self.send_response(200)
-            self.send_header('Content-Type', 'application/json')
-            self.end_headers()
-            self.wfile.write(b'{"dashboard":"ask"}')
-
-    def _handle_config_update(self):
-        try:
-            length = int(self.headers.get('Content-Length', 0))
-            body = self.rfile.read(length).decode('utf-8')
-            updates = json.loads(body)
-            # Read existing config
-            config = {}
-            if os.path.exists(CONFIG_FILE):
-                with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
-                    config = json.load(f)
-            config.update(updates)
-            with open(CONFIG_FILE, 'w', encoding='utf-8') as f:
-                json.dump(config, f, indent=2)
-            self.send_response(200)
-            self.send_header('Content-Type', 'application/json')
-            self.end_headers()
-            self.wfile.write(json.dumps({'ok': True}).encode('utf-8'))
-        except Exception as e:
-            self.send_response(400)
-            self.send_header('Content-Type', 'application/json')
-            self.end_headers()
-            self.wfile.write(json.dumps({'error': str(e)}).encode('utf-8'))
-
-    def _handle_rate(self):
-        try:
-            length = int(self.headers.get('Content-Length', 0))
-            body = self.rfile.read(length).decode('utf-8')
-            rating = json.loads(body)
-
-            # Add server timestamp
-            rating['rated_at'] = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
-
-            # Append to feedback JSONL (ensure directory exists)
-            os.makedirs(os.path.dirname(RATINGS_FILE), exist_ok=True)
-            with open(RATINGS_FILE, 'a', encoding='utf-8') as f:
-                f.write(json.dumps(rating) + '\n')
-
-            # Store in vector index (non-blocking, best-effort)
-            try:
-                memory_script = os.path.join(SCRIPT_DIR, '..', 'memory', 'pact-memory.py')
-                if not os.path.exists(memory_script):
-                    memory_script = os.path.join(SCRIPT_DIR, 'pact-memory.py')
-                if os.path.exists(memory_script):
-                    import subprocess
-                    task = rating.get('task', '')
-                    wrong = rating.get('wrong', '')
-                    right = rating.get('right', '')
-                    tags = ' '.join(rating.get('tags', []))
-                    text = f"Task: {task}. Score: {rating.get('score',0)}/5. Wrong: {wrong}. Right: {right}. Tags: {tags}"
-                    project = rating.get('project', '')
-                    doc_id = f"feedback:{project}:{rating['rated_at']}"
-                    subprocess.Popen(
-                        [sys.executable, memory_script, 'store',
-                         '--type', 'feedback', '--id', doc_id, '--text', text,
-                         '--project', project],
-                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                    )
-            except Exception:
-                pass
-
-            # Also emit as a PACT event so the dashboard + current session see it
-            event = {
-                'ts': rating['rated_at'],
-                'type': 'task_rating',
-                'sid': rating.get('sid', 'unknown'),
-                'project': rating.get('project', ''),
-                'score': rating.get('score', 0),
-                'task': rating.get('task', ''),
-                'tags': rating.get('tags', []),
-            }
-            event_file = EVENTS_FILE if os.path.exists(EVENTS_FILE) else LOCAL_EVENTS_FILE
-            with open(event_file, 'a', encoding='utf-8') as f:
-                f.write(json.dumps(event) + '\n')
-
-            # Regenerate scorecard
-            ratings = load_ratings()
-            regenerate_scorecard(ratings)
-
-            self.send_response(200)
-            self.send_header('Content-Type', 'application/json')
-            self.end_headers()
-            self.wfile.write(json.dumps({'ok': True, 'total_ratings': len(ratings)}).encode('utf-8'))
-
-        except Exception as e:
-            self.send_response(400)
-            self.send_header('Content-Type', 'application/json')
-            self.end_headers()
-            self.wfile.write(json.dumps({'error': str(e)}).encode('utf-8'))
-
-
-def kill_existing():
-    """Kill previous PACT server via PID file only. Safe — never kills by port scan."""
-    import signal
-    if os.path.exists(PID_FILE):
-        try:
-            old_pid = int(open(PID_FILE).read().strip())
-            if old_pid != os.getpid():
-                os.kill(old_pid, signal.SIGTERM)
-                time.sleep(0.3)
-        except (ValueError, OSError):
             pass
+        self._json({"ok": True, "processes": rows})
+
+    def _handle_kill(self):
+        length = int(self.headers.get("Content-Length", 0))
+        body = self.rfile.read(length).decode("utf-8", errors="replace")
+        pid = ""
+        if body.lstrip().startswith("pid="):
+            pid = parse_qs(body).get("pid", [""])[0]
+        else:
+            pid = body.strip()
+        if not pid.isdigit():
+            self._json({"ok": False, "error": "missing or invalid pid"}, status=400)
+            return
+        try:
+            subprocess.run(["taskkill", "/F", "/PID", pid],
+                           capture_output=True, timeout=5)
+            self._json({"ok": True, "killed": int(pid)})
+        except Exception as e:
+            self._json({"ok": False, "error": str(e)}, status=500)
+
+    def _handle_open(self):
+        length = int(self.headers.get("Content-Length", 0))
+        body = self.rfile.read(length).decode("utf-8", errors="replace")
+        # Accept either form-encoded (path=...) or raw text body
+        path = ""
+        if "=" in body and body.lstrip().startswith("path="):
+            path = parse_qs(body).get("path", [""])[0]
+        else:
+            path = body.strip()
+        if not path:
+            self._json({"ok": False, "error": "missing path"}, status=400)
+            return
+        # For code-like files (.md, .yaml, .py, .ts, .dart, .sh, .json, .html, .css),
+        # prefer VS Code via the `code` CLI — most users don't have a default
+        # Windows handler registered for .md, which causes silent failure with
+        # plain `start`. Fall back to `start` for everything else.
+        code_exts = ('.md', '.yaml', '.yml', '.py', '.ts', '.tsx', '.js', '.jsx',
+                     '.dart', '.sh', '.bat', '.ps1', '.json', '.html', '.css',
+                     '.txt', '.toml', '.ini', '.env', '.sql')
+        is_code_file = path.lower().endswith(code_exts)
+        try:
+            if sys.platform.startswith("win"):
+                if is_code_file:
+                    # `code` is a .cmd shim on Windows — invoke via cmd
+                    try:
+                        subprocess.Popen(["cmd", "/c", "code", path], shell=False)
+                    except FileNotFoundError:
+                        subprocess.Popen(["cmd", "/c", "start", "", path], shell=False)
+                else:
+                    subprocess.Popen(["cmd", "/c", "start", "", path], shell=False)
+            elif sys.platform == "darwin":
+                if is_code_file:
+                    try: subprocess.Popen(["code", path])
+                    except FileNotFoundError: subprocess.Popen(["open", path])
+                else:
+                    subprocess.Popen(["open", path])
+            else:
+                if is_code_file:
+                    try: subprocess.Popen(["code", path])
+                    except FileNotFoundError: subprocess.Popen(["xdg-open", path])
+                else:
+                    subprocess.Popen(["xdg-open", path])
+            self._json({"ok": True, "opened": path, "via": "code" if is_code_file else "start"})
+        except Exception as e:
+            self._json({"ok": False, "error": str(e)}, status=500)
+
+    def _json(self, payload, status: int = 200):
+        import json
+        body = json.dumps(payload).encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        # CORS — dashboard is served from same origin (localhost:8800) so
+        # no preflight needed, but be explicit anyway.
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.end_headers()
+        self.wfile.write(body)
+
+    def end_headers(self):
+        # No-cache so dashboard.html edits show up on plain refresh too.
+        self.send_header("Cache-Control", "no-store, no-cache, must-revalidate")
+        super().end_headers()
+
+    def log_message(self, fmt, *args):
+        # Quieter logs — just the request line, no timestamp.
+        sys.stderr.write("[serve] " + (fmt % args) + "\n")
+
+
+def kill_existing_listeners(port: int):
+    """Find any process currently listening on `port` and terminate it.
+
+    Windows allows SO_REUSEADDR-style port sharing — multiple servers can
+    bind the same port and the OS picks one randomly per request. That
+    caused our dashboard to alternate between an old http.server and the
+    new serve.py. Permanent fix: at startup, scan listeners with netstat
+    + `taskkill /F /PID`, THEN bind.
+    """
+    if not sys.platform.startswith("win"):
+        return                          # Only relevant on Windows
+    try:
+        out = subprocess.check_output(["netstat", "-ano"], text=True, timeout=5)
+    except Exception:
+        return
+    pids = set()
+    needle = f":{port} "
+    for line in out.splitlines():
+        if needle in line and "LISTENING" in line:
+            parts = line.split()
+            if parts and parts[-1].isdigit():
+                pids.add(int(parts[-1]))
+    my_pid = subprocess.os.getpid() if hasattr(subprocess, "os") else None
+    for pid in pids:
+        if pid == my_pid:
+            continue
+        try:
+            subprocess.run(["taskkill", "/F", "/PID", str(pid)],
+                           capture_output=True, timeout=5)
+            sys.stderr.write(f"[serve] killed stale listener PID {pid} on port {port}\n")
+        except Exception as e:
+            sys.stderr.write(f"[serve] could not kill PID {pid}: {e}\n")
 
 
 def main():
-    # Kill any existing server first
-    kill_existing()
-
-    # Write PID file
-    with open(PID_FILE, 'w') as f:
-        f.write(str(os.getpid()))
-
-    # Ensure PACT dir exists
-    os.makedirs(PACT_DIR, exist_ok=True)
-
-    # Start event watcher thread
-    watcher = threading.Thread(target=event_watcher, daemon=True)
-    watcher.start()
-
-    # Initial load
-    load_events()
-
-    # Generate initial scorecard if ratings exist
-    ratings = load_ratings()
-    if ratings:
-        regenerate_scorecard(ratings)
-
-    # Start server
-    server = http.server.HTTPServer(('127.0.0.1', PORT), PACTHandler)
-    print(f'PACT Dashboard: http://127.0.0.1:{PORT}')
-
-    # Auto-open in VS Code Simple Browser
-    try:
-        import subprocess
-        subprocess.Popen(
-            ['code', '--reuse-window', f'--open-url=http://127.0.0.1:{PORT}'],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-        )
-    except Exception:
-        pass
-    try:
-        server.serve_forever()
-    except KeyboardInterrupt:
-        pass
-    finally:
-        server.server_close()
-        if os.path.exists(PID_FILE):
-            os.remove(PID_FILE)
+    kill_existing_listeners(PORT)
+    # Don't allow_reuse — we want a hard "already in use" failure if our
+    # cleanup missed something, instead of silently sharing the port.
+    socketserver.TCPServer.allow_reuse_address = False
+    with socketserver.TCPServer((HOST, PORT), DashHandler) as httpd:
+        sys.stderr.write(f"[serve] Dashboard server on http://{HOST}:{PORT}/dashboard.html\n")
+        sys.stderr.write(f"[serve] Static root: {SERVE_ROOT}\n")
+        sys.stderr.write(f"[serve] POST /open accepts a path body; runs `start \"\" <path>` to open it.\n")
+        httpd.serve_forever()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -1,0 +1,13 @@
+# Governance & PACT — the WHY for this tree
+intent:
+  short: "Process / governance / dashboard meta-work"
+  long: "Anything that shapes HOW the project gets built — the PACT framework itself, the dashboard you're looking at, the hooks, the skills, the knowledge directory. Distinct from product trees (which deliver user-facing features)."
+  metrics:
+    - name: "Initiatives in flight"
+      description: "Active governance initiatives (PACT changes, dashboard improvements, etc.)"
+      current: "TBD"
+      target: "≤3 concurrent"
+    - name: "Hooks documented"
+      description: "Hooks listed in CLAUDE.md hook-enforced-rules table"
+      current: "TBD"
+      target: "All shipped hooks documented within 24h"

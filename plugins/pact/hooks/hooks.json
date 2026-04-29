@@ -42,6 +42,14 @@
         {
           "type": "command",
           "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/post-edit-progress-check.sh"
+        },
+        {
+          "type": "command",
+          "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/dashboard-yaml-followup.sh"
+        },
+        {
+          "type": "command",
+          "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/post-edit-dashboard-flag.sh"
         }
       ]
     },
@@ -79,6 +87,35 @@
           "type": "command",
           "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/session-status-check.sh",
           "timeout": 8000
+        }
+      ]
+    },
+    {
+      "hooks": [
+        {
+          "type": "command",
+          "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/session-start-dashboard-notes.sh",
+          "timeout": 5000
+        }
+      ]
+    },
+    {
+      "hooks": [
+        {
+          "type": "command",
+          "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/session-start-open-dashboard.sh",
+          "timeout": 8000
+        }
+      ]
+    }
+  ],
+  "Stop": [
+    {
+      "hooks": [
+        {
+          "type": "command",
+          "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/stop-dashboard-yaml-sync.sh",
+          "timeout": 3000
         }
       ]
     }
