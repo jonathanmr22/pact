@@ -37,6 +37,7 @@ trees:
       - trees/governance/streams/system_map_decomposition.yaml
       - trees/governance/streams/hook_redirect_fix.yaml
       - trees/governance/streams/version_bump_v0_11.yaml
+      - trees/governance/streams/update_notifier.yaml
 
   - id: product
     name: "Product (example tree)"

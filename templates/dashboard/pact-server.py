@@ -93,6 +93,12 @@ class DashHandler(http.server.SimpleHTTPRequestHandler):
         path_only = parsed.path
         project_root = self._resolve_project_root()
 
+        # /dashboard-version → returns the SHELL's VERSION (PACT itself, not the
+        # project being viewed). Powers the in-dashboard update notifier so it
+        # can compare against the latest GitHub Release.
+        if path_only == "/dashboard-version":
+            return self._handle_dashboard_version()
+
         # When a project root is specified AND the request is for a YAML/dashboard
         # data file, re-root the read to the project's dashboard scaffold.
         # Strip query string from path_only for filesystem lookup.
@@ -102,6 +108,28 @@ class DashHandler(http.server.SimpleHTTPRequestHandler):
             return self._serve_yaml_from(target)
 
         return super().do_GET()
+
+    def _handle_dashboard_version(self):
+        """Read the VERSION file colocated with the PACT install (the shell's
+        own version, NOT the project being displayed via ?root=). The file
+        sits two levels up from SERVE_ROOT (templates/dashboard/) → PACT root.
+        Returns {version: "X.Y.Z"} or {version: null} if not found. Never 500s
+        — the update notifier silently no-ops on missing version."""
+        import json
+        version_file = SERVE_ROOT.parent.parent / "VERSION"
+        version = None
+        if version_file.is_file():
+            try:
+                version = version_file.read_text(encoding="utf-8").strip() or None
+            except Exception:
+                version = None
+        body = json.dumps({"version": version}).encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(body)
 
     def do_POST(self):
         parsed = urlparse(self.path)

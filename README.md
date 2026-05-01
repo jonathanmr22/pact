@@ -51,7 +51,7 @@ PACT has 6 major features:
 There are also many minor features:
 - **Multi-Agent Resilience** — When Claude is down, switch to Gemini (or vice versa) with zero context loss. An auto-detection banner fires on Claude degradation with exact instructions to continue working.
 - **Multi-Model Delegation** — Claude Opus costs $15/M input and $75/M output tokens. That's the right price for architecture and security decisions, but overkill for reading a changelog or generating boilerplate tests. `pact-delegate` routes those tasks to specialized worker models: research to Arcee Trinity ($0.90/M output — 98% cheaper) and boilerplate code to MiniMax M2.5 ($0.99/M output — 99% cheaper). Claude orchestrates, reviews, and commits. Workers execute. Hooks verify all output regardless of which model wrote it. When Claude is unavailable, Gemini (free tier available) takes over as orchestrator and manages the same workers. Swap models by editing one line in `model_roster.yaml`.
-- **Observability & Feedback** — Real-time dashboard that visualizes agent activity, captures user prompts, tracks tasks, and feeds user ratings back into future sessions.
+- **Observability & Codebase Intent** — Real-time dashboard with multi-tree status board (Kanban-style initiative cards), flat task list, and an Aider-style Repo Map of your codebase with four sub-tabs (List / Graph / Flows / Drift). Auto-rebuilds on every file edit.
 - **Distributed Cognition** — Auto-dispatched subagents for dependency tracing, knowledge research, and pre-commit review so the main session stays focused on the user's task.
 - **Cutting Room Floor** —  Complex visuals (heat maps, animations, shaders, charts) can be prototyped *outside* the app framework before committing.
 - **Project Philosophy** — Define what your product *believes* — core principles, decision filters, and anti-patterns that govern every product decision across sessions. The counterpart to the aesthetic skill: aesthetics govern how things look, philosophy governs why things exist.
@@ -185,11 +185,13 @@ PACT's dashboard is the single pane of glass for what your agent is doing AND wh
 
 **Pythons** — running Python process inventory (kill switch + protected-row badges).
 
-**Pythons / Sessions sidebar** — scorecard, metrics, vector-search recall, generate-feedback-report button.
+**Direct YAML editing from the dashboard.** Click any task or initiative status badge → overlay status picker → pick new status → server writes the YAML atomically (tmp+rename) and auto-bumps the parent's `last_touched`. Click any task name → inline notes editor → notes persist to `<project>/.claude/memory/dashboard_user_notes.yaml` and the SessionStart hook surfaces unread counts to the agent.
+
+**Themes + Google Fonts.** Five named dark themes (Tide & Ember default) each with paired font trios. Per-project state in localStorage. Settings panel exposes theme picker + per-role font picker (UI / monospace / display) with dynamic Google Fonts loading.
+
+**Drag-to-reorder + Archive.** Pointer-event tactile drag (5px movement threshold) for both card-within-feature-grid AND initiative-section-within-tree. Archive button (📁) on each initiative hides it from Board + Task List; auto-resurfaces if its tasks change.
 
 **Real-time auto-rebuild.** Every Edit/Write to a tracked source file triggers a background `repo_map.json` rebuild (~1-3s, dedupe-batched via loop-while-dirty pattern). The dashboard always reflects current code state — no manual `python scripts/repo_map.py build` needed.
-
-**Task rating system** — Click "Track Next Task" on any session, describe what you're asking the agent to do, all subsequent events flow into that task's sub-row. Rate 1-5 with category tags (UI, Backend, Logic, Missed Requirements, Hallucination, etc.) and free-text feedback. Ratings compile into a `~/.claude/pact-scorecard.md` the agent reads at session start — past ratings directly shape future behavior.
 
 **Validator integration.** A pre-commit hook runs `verify_feature_flow_schema.py` and BLOCKS commits with broken intent-layer claims (e.g., a flow's `participating_files` references a deleted path, or a `declared_dependencies.via:` symbol no longer exists). Warnings are advisory; errors block.
 
@@ -247,7 +249,7 @@ This gives you:
 - **14 hooks** — automatically active (read-before-write, secrets blocker, git safety, multi-session coordination, edit warnings, PreFlight architectural checks, feature flow protection, issue tracker gate, knowledge directory pairing, progress breadcrumb staleness, session tracking, timestamps, status page health check, prompt capture, PACT event logging)
 - **3 subagents** — auto-dispatched for dependency tracing, research, and pre-commit review
 - **5 slash commands** — `/pact-init`, `/pact-check`, `/pact-flow`, `/pact-bug`, `/pact-recall`
-- **Live dashboard** — real-time visualization of agent activity, task tracking, and rating system
+- **Live dashboard** — multi-tree status board (Kanban initiative cards) + flat task list + Repo Map (List/Graph/Flows/Drift) over your codebase, auto-rebuilding on every file edit
 
 Then run `/pact-init` in your project to scaffold the governance files. The init process will:
 1. **Assess project scale** — recommend Seed, Growth, or Full tier based on project complexity
@@ -388,9 +390,9 @@ Claude Opus ($75/M output) orchestrates and reviews. Trinity ($0.90/M — 98% ch
 
 **[Delegation guide with CLI reference →](docs/delegation.md)**
 
-### Dashboard — Real-time observability + task rating
+### Dashboard — Multi-tree status board + Codebase Intent Map
 
-Live visualization of every file edit, hook block, preflight check, and commit as a horizontal timeline. Task rating system (1-5) feeds a scorecard the agent reads at session start. Diagnosis panels show which PACT subsystems were exercised.
+Multi-tree governance board (TREE → INITIATIVE → FEATURE → TASK) with Kanban-style horizontal-strip initiative cards. Click any task or initiative status badge to write back to YAML directly — no agent round-trip for routine status changes. Repo Map view surfaces an Aider-style symbol index over your codebase with four sub-tabs (List, Graph, Flows, Drift) that auto-rebuilds on every file edit. Themes + per-project font picker, drag-to-reorder, archive view, task notes that surface to the agent at session start.
 
 **[Dashboard setup and features →](docs/dashboard.md)**
 
@@ -483,7 +485,6 @@ PACT generates some files that should be committed (hooks, architecture maps, kn
 PACT collects anonymous feedback at two milestones — **Day 2** and **Week 2** of use. Your Claude will ask if you'd like to generate a report. The report captures:
 
 - Which PACT subsystems you used vs ignored
-- Task rating averages and common issue categories
 - What helped (from you and Claude's perspective)
 - What caused friction
 - **Workarounds Claude had to invent** — these are the most valuable signal because they show exactly where PACT has gaps that should become hooks, checks, or templates

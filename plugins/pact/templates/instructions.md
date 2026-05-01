@@ -14,7 +14,7 @@ At the start of every conversation, the agent MUST:
 3. Scan `.claude/memory/file_edit_log.yaml` — note recently-edited files, fresh-read before assuming
 4. Read `.claude/sessions.yaml` — check for other active sessions. If another session is active or recently committed (within the last hour), tell the user: *"Another session is active (started [time], last commit [hash]). I'll pull before committing to avoid conflicts."*
 5. **PACT capability check** — glance at `knowledge/PACT_BASELINE.yaml`. Does your model, context window, or available tools differ from the baseline? If anything feels different, run the self-check protocol and add a `capability_deltas[]` entry. This is how PACT evolves with you.
-6. **PACT scorecard** — if `~/.claude/pact-scorecard.md` exists, read it. This is direct user feedback on past task performance. Note your rolling average, weakest areas, and action items from low scores. Adjust your approach accordingly.
+6. **Dashboard user notes** — if `<project>/.claude/memory/dashboard_user_notes.yaml` has unread notes (the SessionStart hook will surface them in `additionalContext`), read them BEFORE acting and mark them `status: read` once acknowledged.
 7. List the cognitive redirections below from memory
 
 ---

@@ -20,7 +20,7 @@ There are a lot of tools in the Claude Code ecosystem now. This document explain
 | [memsearch](https://github.com/zilliztech/memsearch) | 1K+ | Markdown-first memory with vector search | Medium — both do memory |
 | [code-review](https://github.com/anthropics/claude-code/tree/main/plugins/code-review) | Official | 4 parallel review agents (compliance, bugs, git history) | Low |
 | [claude-code-workflows](https://github.com/shinpr/claude-code-workflows) | 254 | Dev workflow recipes (frontend, backend, fullstack) | Low |
-| **PACT** | — | Cross-session governance: knowledge accumulation, mechanical enforcement, architecture maps, live dashboard with task rating | — |
+| **PACT** | — | Cross-session governance: knowledge accumulation, mechanical enforcement, multi-tree status board + Aider-style Codebase Intent Map (auto-rebuilding) | — |
 
 ---
 
@@ -116,7 +116,7 @@ Looking across all these tools, PACT occupies a space that none of them individu
 
 6. **Multi-agent with shared governance** — Claude and Gemini share the same hooks, rules, and knowledge base. Switching agents means zero context loss.
 
-7. **Live dashboard with task rating** — Real-time visualization of every agent action (edits, preflight checks, commits, hook blocks) with per-type animated icons. Users rate tasks 1-5 with category tags, and the scorecard feeds back into the next session — creating a conditioning loop where past ratings directly shape future behavior. No other plugin has a feedback system that crosses sessions.
+7. **Live multi-tree status board + Codebase Intent Map** — Multi-tree Kanban-style status board (TREE → INITIATIVE → FEATURE → TASK) with click-to-edit YAML status (no agent round-trip), drag-to-reorder, themes, archive view, and task notes that surface to the agent at session start. Plus an Aider-style Repo Map of the codebase (List / Graph / Flows / Drift sub-tabs) with PageRank + symbol index + drift detection that auto-rebuilds on every file edit. No other plugin offers a codebase intent map at this depth.
 
 8. **Auto-dispatched subagents** — Three Sonnet subagents (tracer, researcher, reviewer) that the main session dispatches proactively. Dependency tracing, knowledge research, and pre-commit review happen in isolated contexts so the main session's context window stays focused on the user's task. Other plugins do multi-agent orchestration at the workflow level; PACT does it at the governance level.
 

@@ -1,0 +1,109 @@
+# In-dashboard "What's New" update notifier.
+#
+# WHY: PACT users currently have no way to know a new version shipped.
+# They installed the plugin once and the dashboard never tells them their
+# install is stale. We want a small notification dot on the gear icon +
+# a "What's New" overlay rendered from the latest GitHub Release body,
+# with skip-this-version + remind-me-later affordances.
+#
+# DECISION: GitHub Releases API as canonical (vs. static JSON manifest).
+# The release body IS the "What's New" content — single source of truth,
+# no drift between CHANGELOG and notification copy. Optional out-of-band
+# advisory channel deferred until a real critical-bug scenario forces it
+# (YAGNI). Full reasoning: see in-conversation discussion 2026-05-01.
+#
+# FOUNDATION ALREADY SHIPPED (commit 9970826 + the post-9970826 edit):
+#   - GET /dashboard-version endpoint in templates/dashboard/pact-server.py.
+#     Reads VERSION file at SERVE_ROOT.parent.parent/VERSION → returns
+#     {version: "X.Y.Z"} or {version: null} on missing/error. Never 500s.
+#
+# TO DO: build the dashboard-side notifier on top of that endpoint.
+
+node:
+  name: "Dashboard update notifier (in-dashboard 'What's New')"
+  status: in_flight
+  last_touched: 2026-05-01
+  note: "GitHub Releases API as canonical source. /dashboard-version endpoint already shipped in pact-server.py. Remaining work is dashboard-side: fetch + semver compare + overlay + state. Estimated ~250 lines in pact-dashboard.html, all isolated."
+  references:
+    plans: [templates/dashboard/pact-dashboard.html, templates/dashboard/pact-server.py]
+
+  children:
+    # ─── Wave 1: Core comparison + silent failure ─────────────────────────
+    - name: "Wave 1 — Fetch + compare + dot indicator"
+      status: not_started
+      last_touched: 2026-05-01
+      note: "Wire the GitHub fetch + version compare. Silent on failure. Notification dot on gear icon when newer release available. No overlay yet — that's wave 2. Land this first so the silent path is proven."
+      tasks:
+        - { name: "Async fetch GET /dashboard-version on init → cache local VERSION in JS state", status: todo }
+        - { name: "Async fetch https://api.github.com/repos/jonathanmr22/pact/releases/latest → cache release object", status: todo }
+        - { name: "ETag-based caching: read If-None-Match from localStorage, send on next fetch (be a polite GitHub citizen vs the 60 req/hr unauth rate limit)", status: todo }
+        - { name: "Throttle: don't re-fetch if last check < 6 hours ago (localStorage timestamp guard)", status: todo }
+        - { name: "Semver compare util (parseInt'd, NOT string compare) — handles 0.11.0 > 0.9.5 correctly", status: todo }
+        - { name: "Add notification dot CSS to gear-icon area (red pulse, top-right corner badge)", status: todo }
+        - { name: "Show dot when latest_release_tag > local_VERSION AND not in dismissedVersions[]", status: todo }
+        - { name: "Graceful failure: silent on offline / GitHub down / rate-limited / no VERSION file (no console spam, no UI flicker)", status: todo }
+        - { name: "First-launch grace: don't fire on first dashboard open after install (localStorage flag — set on first ever visit, only check thereafter)", status: todo }
+
+    # ─── Wave 2: Overlay UI ───────────────────────────────────────────────
+    - name: "Wave 2 — 'What's New' overlay modal"
+      status: not_started
+      last_touched: 2026-05-01
+      note: "Click the dot → overlay modal. Renders the release body as markdown (small inline subset, no 80KB lib). Includes 'Got it' / 'Skip this version' / 'Remind me later' / 'View on GitHub' actions."
+      tasks:
+        - { name: "Modal scaffold (overlay backdrop + centered card + close-on-Esc + close-on-backdrop-click) — match existing modal styling", status: todo }
+        - { name: "Header: 'PACT vX.Y.Z is available' + your-version chip + release date + 'View on GitHub →' link (target=_blank, rel=noopener)", status: todo }
+        - { name: "Inline safe markdown renderer (~50 lines) — handles: # ## ### headers, **bold**, *italic*, `code`, [text](url), - lists, paragraphs. Escapes raw HTML first to prevent XSS via release body.", status: todo }
+        - { name: "Render the rel.body as HTML in the overlay scrollable area", status: todo }
+        - { name: "Buttons: 'Got it' (close + record last-shown timestamp), 'Skip vX.Y.Z' (add to dismissedVersions[], close), 'Remind me later' (close + set 7-day suppress timestamp)", status: todo }
+        - { name: "Clicking the gear-icon dot opens the overlay (separate handler from settings click)", status: todo }
+        - { name: "Severity convention: parse `<!-- pact-severity: major|minor|patch -->` HTML comment in release body. 'major' → red banner tone + 'breaking changes' lead-in label. Default 'minor'.", status: todo }
+
+    # ─── Wave 3: Polish + the publishing-side workflow ────────────────────
+    - name: "Wave 3 — Polish + first real release"
+      status: not_started
+      last_touched: 2026-05-01
+      note: "User-facing polish + actually cut the v0.11.0 GitHub Release so the system has something to detect."
+      tasks:
+        - { name: "Cut v0.11.0 GitHub Release: gh release create v0.11.0 --notes-file <CHANGELOG-section>. Use the [0.11.0] section of CHANGELOG.md as the body. Tag matches the VERSION file.", status: todo }
+        - { name: "Add docs/release_workflow.md: how to cut a release (gh CLI command + body conventions + severity comment)", status: todo }
+        - { name: "Add a CHANGELOG entry for the update notifier itself in the next release", status: todo }
+        - { name: "Test: temporarily set local VERSION to 0.10.99 + reload dashboard → dot should appear, overlay should render", status: todo }
+        - { name: "Test: click 'Skip this version' → reload → dot should NOT appear", status: todo }
+        - { name: "Test: clear localStorage → reload → first-launch grace prevents dot on very first visit", status: todo }
+        - { name: "Test: throw GitHub fetch into a network-blocked state → no console error, no UI artifact, dashboard loads normally", status: todo }
+        - { name: "Optional: extension point for out-of-band advisory channel (static JSON manifest at https://jonathanmr22.github.io/pact/notices.json) — design only, don't build", status: todo }
+
+# ─── Engineering decisions baked into the plan ──────────────────────────
+#
+# 1. GitHub Releases > static JSON manifest. Single source of truth.
+#    Advisory channel deferred until needed (YAGNI).
+#
+# 2. Semver compare (parseInt-based), not lexical. 0.11.0 > 0.9.5 correctly.
+#
+# 3. ETag caching + 6-hour throttle = polite GitHub citizen; unauth rate
+#    limit (60/hr) is plenty for individual user dashboards.
+#
+# 4. Inline ~50-line markdown renderer instead of marked+DOMPurify (~80KB).
+#    Escape HTML first → safe by construction. The release body trust
+#    boundary is the GitHub repo (anyone with push access can do worse than
+#    inject XSS), but defense in depth is cheap.
+#
+# 5. localStorage state shape:
+#      pact-update.dismissed   : ["0.11.0", "0.11.1"]   // skip-this-version
+#      pact-update.lastChecked : 1730000000000          // ms since epoch
+#      pact-update.lastEtag    : "W/\"abc123...\""     // GitHub ETag
+#      pact-update.firstLaunch : 1729999000000          // grace-period anchor
+#      pact-update.snoozeUntil : 1730604800000          // remind-me-later
+#
+# 6. First-launch grace: prevents the first-ever dashboard open from
+#    showing an "update available" the moment they install. They JUST
+#    installed; let them feel the new install is fresh. Subsequent loads
+#    poll normally.
+#
+# 7. /dashboard-version endpoint reads VERSION from PACT root (the shell's
+#    own version, NOT the project being viewed via ?root=). This keeps the
+#    notifier consistent across project-switcher contexts.
+#
+# 8. Severity convention via HTML comment in release body lets non-major
+#    releases stay quiet and major releases shout, without a separate
+#    metadata channel.
