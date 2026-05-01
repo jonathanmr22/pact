@@ -28,7 +28,27 @@
 
 trees:
   - id: governance
-    name: "Governance & PACT"
+    name: "Governance & PACT framework"
     intent_file: trees/governance/_intent.yaml
     streams:
       - trees/governance/streams/dashboard_build.yaml
+      - trees/governance/streams/repo_map_v1.yaml
+      - trees/governance/streams/cognitive_redirect_system.yaml
+      - trees/governance/streams/system_map_decomposition.yaml
+      - trees/governance/streams/hook_redirect_fix.yaml
+      - trees/governance/streams/version_bump_v0_11.yaml
+
+  - id: product
+    name: "Product (example tree)"
+    intent_file: trees/product/_intent.yaml
+    streams:
+      - trees/product/streams/onboarding_v2.yaml
+      - trees/product/streams/dashboard_themes.yaml
+      - trees/product/streams/landing_copy_fix.yaml
+
+  - id: infra
+    name: "Infrastructure (example tree)"
+    intent_file: trees/infra/_intent.yaml
+    streams:
+      - trees/infra/streams/ci_cd_overhaul.yaml
+      - trees/infra/streams/observability_stack.yaml

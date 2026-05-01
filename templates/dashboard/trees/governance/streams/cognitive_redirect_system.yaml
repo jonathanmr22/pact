@@ -1,0 +1,64 @@
+# Cognitive Redirect System — pattern-matched behavior intervention
+#
+# Real history mined from PACT development sessions (2026-04-29 → 2026-04-30).
+# A PostToolUse hook that scans the agent's most recent assistant turn and
+# emits Dumbledore-voice SystemReminders on failure-mode language. Designed
+# as behavior change, NOT regex enforcement — precision is the existential
+# metric (false positives erode trust → agent ignores even true positives).
+node:
+  name: "Cognitive Redirect System"
+  status: in_flight
+  last_touched: 2026-04-30
+  plan: templates/hooks/lib/COGNITIVE_REDIRECT_DESIGN.md
+  note: "Backed by EmotionPrompt (8-115% LLM gain from emotional framing) + Anthropic 'Claude's Character' + Kunda 1990 (accuracy goals vs directional goals). Pairs with the new clone-framing redirection: past sessions are clones-of-me, treat their work with investment AND verification."
+  references:
+    plans: [templates/hooks/lib/COGNITIVE_REDIRECT_DESIGN.md]
+    knowledge: [docs/redirections.md]
+    code: [templates/hooks/cognitive-redirect.sh, templates/hooks/cognitive-outcome-tag.sh]
+
+  children:
+    - name: "Hook + library scaffold"
+      status: done
+      last_touched: 2026-04-30
+      tasks:
+        - { name: "cognitive-redirect.sh — PostToolUse entry point", status: done }
+        - { name: "cognitive-outcome-tag.sh — tag self-corrections", status: done }
+        - { name: "lib/scan_triggers.py — pattern matcher with use-vs-mention preprocessing", status: done }
+        - { name: "lib/cognitive_triggers.yaml — live trigger library (small by design)", status: done }
+        - { name: "harness_adapters/claude_code.py — get_last_assistant_artifacts()", status: done }
+
+    - name: "Validation pipeline"
+      status: done
+      last_touched: 2026-04-30
+      note: "Precision/support measurement against session corpus. Promotion gate: triggers must score >0.85 precision over ≥10 hits before going live."
+      tasks:
+        - { name: "validate_triggers.py — measure each candidate against corpus", status: done }
+        - { name: "learn_triggers.py — mine candidates from session JSONL", status: done }
+        - { name: "v3 validation report (current trigger set)", status: done }
+
+    - name: "Brag scoring + recognition loop"
+      status: done
+      last_touched: 2026-04-30
+      note: "When the agent does something well (self-correction, verify-before-trust, citing sources), inject a brief positive recognition. Counterbalances the redirection-on-failure loop so the system isn't pure scolding."
+      tasks:
+        - { name: "brag_scoring.py — score wins from session artifacts", status: done }
+        - { name: "inject_brag_citation.py — emit recognition", status: done }
+        - { name: "tag_outcomes.py — link redirections to subsequent self-corrections", status: done }
+
+    - name: "Clone-framing + Kunda accuracy-goals redirection"
+      status: done
+      last_touched: 2026-04-30
+      note: "Embedded in templates/instructions.md cognitive-redirections list. Frames past sessions as clones-of-me (Mickey 17 analogy: same source/dispositions, distinct instances) AND invokes Kunda's accuracy-goals lens to defuse the directional-bias trap (defending past calls because they're 'mine')."
+      tasks:
+        - { name: "Cognitive redirection added to templates/instructions.md", status: done }
+        - { name: "Kunda 1990 paper read + synthesis written to knowledge/research/", status: done }
+        - { name: "Thesis attribution corrected across 4 files (Kunda primary, G+L mechanism, Dweck outcome)", status: done }
+
+    - name: "Adopter onboarding"
+      status: in_flight
+      last_touched: 2026-04-30
+      note: "Trigger library is currently small (high-precision, not high-coverage). Adopters may need to add their own triggers as failure modes surface in their workflow."
+      tasks:
+        - { name: "Document trigger authoring procedure in docs/redirections.md", status: in_flight }
+        - { name: "Add 'how to mine your own triggers from session JSONL' walkthrough", status: todo }
+        - { name: "Reach trigger count of 25 with avg precision >0.90", status: todo }

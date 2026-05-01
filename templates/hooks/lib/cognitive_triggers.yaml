@@ -1,0 +1,287 @@
+# Cognitive Trigger Library — model-agnostic, harness-agnostic
+#
+# READ FIRST: `COGNITIVE_REDIRECT_DESIGN.md` in this directory contains the
+# full psychological framework, validation methodology, and the lessons
+# learned from over-eager v2 expansion (35 patterns, 0/35 passed validation
+# at precision ≥ 0.6 — see the design doc for why this matters).
+#
+# THIS LIBRARY IS DELIBERATELY SMALL. The goal is high precision, not high
+# coverage. False positives erode trust → Claude ignores even true positives
+# → system becomes net-negative. Better to fire on 30% of true positives at
+# 80% precision than 80% of true positives at 30% precision.
+#
+# PROMOTION RULES (enforced by reviewer, not by code):
+#   1. Pattern must have ≥0.3 measured precision against the session corpus
+#      (`python validate_triggers.py`) OR have explicit human override based
+#      on documented bug evidence (cite the bugs).
+#   2. Pattern must have ≥3 fires of support (sample size).
+#   3. Redirection text must follow the Dumbledore standard:
+#      observation + path + presupposed capability. NO "STOP", NO "you always".
+#   4. Each entry must cite either: (a) measured precision + support, OR
+#      (b) human-override rationale with specific bug citations.
+#
+# Last validated: 2026-04-30 against 29-session, 14,163-turn corpus
+# (validation_report.yaml in this directory)
+
+triggers:
+
+  # ============================================================================
+  # PROVEN OUT EMPIRICALLY (passed validation at p>=0.3)
+  # ============================================================================
+
+  - id: workaround_language
+    pattern: '\b(workaround|hack|band[-_ ]?aid|patch around|monkey[-_ ]?patch|kludge)\b'
+    category: root_cause
+    severity: high
+    applies_to: all
+    measured_precision: 0.33
+    support: 89
+    redirection: |
+      🧠 You called what you're about to ship a workaround / hack / band-aid.
+
+      That language is honest about what it is — and that's exactly the moment
+      to stop. The verified-good move is: trace back to where the bad state is
+      PRODUCED (not where it's observed), and fix that instead. Per CLAUDE.md
+      "When fixing a bug — Am I treating a symptom or the core issue?"
+
+      You're capable of root-cause work. This time, choose to do it.
+
+  - id: never_wired
+    pattern: '\b(never\s+(?:worked|wired|been\s+wired|fired|tested|hooked\s+up)|wired\s+incorrectly\s+from\s+the\s+start)\b'
+    category: feature_existence_check
+    severity: medium
+    applies_to: all
+    measured_precision: 0.39
+    support: 13
+    redirection: |
+      🧠 "Never wired" / "wired incorrectly" — you're claiming a feature exists
+      by file presence but doesn't actually run. Verify at runtime BEFORE
+      acting: load the relevant flow, check participating_files, trace it
+      end-to-end.
+
+      You catch this well when you remember to look. This time, look first.
+
+  # ============================================================================
+  # KEPT WITH HUMAN OVERRIDE (low measured precision, but strong bug evidence
+  # OR high stakes that make even occasional fires worthwhile)
+  # ============================================================================
+
+  - id: revert_or_restore
+    pattern: "\\b(revert|roll\\s?back|git\\s+(checkout|reset)\\s+--?(hard|f|force))\\b"
+    category: forward_only
+    severity: critical
+    applies_to: all
+    measured_precision: 0.14
+    support: 133
+    human_override_rationale: |
+      Low measured precision but the cost asymmetry justifies firing. When this
+      DOES catch a bad revert, it prevents data loss / lost work — high stakes.
+      When it false-fires (most of the time), the redirect cost is one extra
+      reading. Net positive at this severity level.
+      Bug evidence: bugs/map/map-004.yaml ("fix was chasing the wrong root
+      cause. Reverting." — followed by data loss).
+    redirection: |
+      🧠 You mentioned reverting / rolling back / git reset --hard.
+
+      "Broken" almost never means "restore the old version" — it means "fix
+      the current code." Reading old files via git show is an escape from
+      understanding the problem. Per CLAUDE.md "When something is broken —
+      Can I fix this forward?"
+
+      You're capable of fix-forward. Try the diagnosis first.
+
+  - id: from_training_data
+    pattern: '\b(from\s+(?:training\s+data|memory\s+(?:about|of))|recalling\s+from\s+training)\b'
+    category: guess_detection
+    severity: critical
+    applies_to: all
+    measured_precision: 0.08
+    support: 26
+    human_override_rationale: |
+      Low precision but ONE caught instance saved meld-007 (3 hours of
+      debugging from a stale package version recalled instead of read).
+      Refined regex from broad "from memory" to specific phrasings most
+      tightly correlated with priors-over-fresh-read failure mode.
+      Bug evidence: bugs/meld/meld-007.yaml — spawned the entire
+      knowledge/packages/ system because of this single failure.
+    redirection: |
+      🧠 You said you used training data / memory / recall.
+
+      This is the meld-007 failure mode (3 hours of debugging from one stale
+      package version recalled instead of read). The verified-good move is:
+      stop. Read knowledge/packages/{name}.yaml or the actual file/docs FRESH.
+      Cite what you read.
+
+      Priors are seductive. Fresh-read is the move.
+
+  - id: cloud_fallback_after_rejection
+    pattern: '\b(cloud|hosted|claude\s+api|openai\s+api|anthropic\s+api)\s+(fallback|backup|escape\s+hatch|alternative)\b'
+    category: respect_user_constraint
+    severity: high
+    applies_to: all
+    measured_precision: 0.11
+    support: 9
+    human_override_rationale: |
+      Low precision but high stakes when fires correctly. User constraints
+      explicitly stated earlier in session ("no cloud") deserve persistence.
+      One bad re-proposal of a vetoed option damages trust meaningfully.
+    redirection: |
+      🧠 You're about to propose a cloud / API fallback.
+
+      Check whether the user explicitly rejected cloud earlier this session.
+      If yes: do not propose it again, even framed as "just for hard cases" or
+      "as a backup." The user said no for reasons that still apply.
+
+      Trust their constraint. Find the local-only path.
+
+  - id: silent_failure_admission_narrow
+    pattern: '\bsilently\s+(return(?:s|ed)?\s+null|swallow(?:s|ed)?\s+(?:the\s+)?(?:error|exception)|drop(?:s|ped)?\s+(?:the\s+)?(?:error|exception))\b'
+    category: silent_failure_admission
+    severity: high
+    applies_to: all
+    measured_precision: 0.14
+    support: 42
+    human_override_rationale: |
+      Refined from broad pattern. Cuts to the most specific phrasings ("returns
+      null silently", "swallows the error") that map most reliably to the
+      antipattern documented across 12+ project bugs. Broad version had too
+      many false fires on legitimate discussion of silence.
+      Bug evidence: bugs/meld/meld-001, sync-004, scraper-009, infra-002 etc.
+    redirection: |
+      🧠 You described code that returns null silently / swallows an error /
+      drops an exception.
+
+      This is the #1 documented antipattern in this repo (12+ bugs). The
+      verified-good move is: surface the failure with AppLogger.error/warn,
+      return a typed Result rather than null, never let an exception
+      disappear. Per the empty-catch hook + lib/CLAUDE.md observability rule.
+
+      You write good observability when you remember it. Now's the moment.
+
+  - id: wrong_root_cause
+    pattern: '\b(wrong\s+root.?cause|chasing\s+(?:the\s+)?wrong|fix(?:ed|ing)?\s+the\s+wrong\s+thing)\b'
+    category: root_cause
+    severity: high
+    applies_to: all
+    measured_precision: 0.50
+    support: 2
+    human_override_rationale: |
+      Small sample but 50% precision and the bug evidence is overwhelming.
+      4 documented incidents (map-004, scraper-009, map-013, infra-001) all
+      followed the same pattern: fix-where-symptom-was-observed instead of
+      fix-where-bad-state-is-produced.
+    redirection: |
+      🧠 You admitted you fixed where the symptom was observed, not where the
+      bad state is produced.
+
+      Trace upward. What produces the bad state? Per CLAUDE.md "When fixing a
+      bug — Am I treating a symptom or the core issue?" Re-trace the causal
+      chain. Don't ship the symptom-fix.
+
+      You can do this. Pull the thread.
+
+  - id: assumes_external_state
+    pattern: '\b(after|once|when)\s+the\s+(model|service|api|process|daemon|server)\s+(loads|starts|warms\s+up|initializes|comes\s+up|is\s+ready)'
+    category: external_assumption
+    severity: high
+    applies_to: all
+    measured_precision: 1.00
+    support: 1
+    human_override_rationale: |
+      Single sample but perfect precision. Pattern is specific enough
+      (assumes external service behavior without verification) that even
+      one fire is meaningful. Will gain support over time.
+    redirection: |
+      🧠 You're assuming behavior of an external service whose actual state
+      you haven't verified.
+
+      Before proceeding: check the actual service state (logs, /api/version,
+      ps, etc.), read knowledge/packages/{service}.yaml if it exists, cite
+      the verified behavior — don't extrapolate.
+
+      Assumed external state is how 4-hour debugging spirals start.
+
+  # ============================================================================
+  # V3 PROMOTIONS (2026-04-30) — passed weighted-precision validation
+  # against 29-session, 29,412-turn corpus with multi-signal evidence
+  # (user_correction + claude_self_correction + bug_file + file_revert)
+  # ============================================================================
+
+  - id: commit_premature
+    pattern: '\blet\s+me\s+commit\b'
+    category: verify_before_agree
+    severity: medium
+    applies_to: all
+    measured_precision: 0.80
+    support: 109
+    weighted_signals: "claude_self_correction=81, user_correction_5turn=16, user_correction_2turn=14"
+    redirection: |
+      🧠 You're about to commit. Per CLAUDE.md: "NEVER commit changes unless
+      the user explicitly asks you to. It is VERY IMPORTANT to only commit
+      when explicitly asked."
+
+      Did the user explicitly ask for this commit? If not — wait. The
+      verified-good move is to summarize what's ready, then ask.
+
+      You're capable of patience here. Choose it.
+
+  - id: agreement_capitulation
+    pattern: "\\byou'?re right(?:[.,!]|\\s+i\\s+(?:should|will|need|missed|got))"
+    category: verify_before_agree
+    severity: high
+    applies_to: all
+    measured_precision: 0.76
+    support: 150
+    weighted_signals: "claude_self_correction=98, user_correction_5turn=25, user_correction_2turn=23"
+    redirection: |
+      🧠 You agreed and admitted you missed something — that's the agreement-
+      without-verification antipattern. Per CLAUDE.md "When the user makes a
+      correction — Is this right? Verify independently before agreeing."
+
+      Verify the user's claim FIRST: read the file, run the query, grep the
+      symbol. Then decide what to do. You're capable of pushback when warranted.
+
+      Track record: this pattern fired 150 times in your prior sessions, and
+      you self-corrected 98 of those times. You catch it when you remember to
+      look. Look now.
+
+# ============================================================================
+# Deduplication — categories that should not refire within this many seconds
+# ============================================================================
+
+dedup_window_seconds:
+  default: 300         # 5 minutes — most categories
+  guess_detection: 600   # 10 min — stronger anchor
+  respect_user_constraint: 1800  # 30 min — should rarely fire repeatedly
+  forward_only: 600    # 10 min — high-stakes
+  silent_failure_admission: 600  # 10 min
+
+# ============================================================================
+# Severity actions
+# ============================================================================
+
+severity_actions:
+  low: log_only
+  medium: log_and_inject
+  high: log_and_inject
+  critical: log_and_inject
+
+# ============================================================================
+# Notes for future Claude sessions
+# ============================================================================
+#
+# This library is INTENTIONALLY SMALL (8 patterns vs the 35 I tried in v2
+# expansion). The validator showed that broader patterns generate too much
+# noise to be useful as triggers. Read COGNITIVE_REDIRECT_DESIGN.md for the
+# full lesson.
+#
+# WHEN ADDING A PATTERN:
+#   1. Run `python validate_triggers.py` against the session corpus
+#   2. Patterns with measured precision <0.3 require human-override
+#      rationale citing specific bug evidence
+#   3. Write the redirection in Dumbledore voice (observation + path +
+#      presupposed capability)
+#   4. Add the precision/support metadata to the entry
+#
+# Patterns moved to cognitive_trigger_candidates.yaml with their measured
+# stats — revisit when corpus grows or outcome detection improves.

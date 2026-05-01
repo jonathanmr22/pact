@@ -10,8 +10,13 @@
 
 <p align="center">
   <a href="https://buymeacoffee.com/jonathanmr22" target="_blank"><img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black" alt="Buy Me A Coffee"/></a>
-  <img src="https://img.shields.io/badge/version-0.10.0-blue?style=for-the-badge" alt="Version 0.10.0"/>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-0.11.0-blue?style=for-the-badge" alt="Version 0.11.0 — see CHANGELOG"/></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/changelog-current-orange?style=for-the-badge" alt="Changelog"/></a>
   <img src="https://img.shields.io/badge/license-MIT-green?style=for-the-badge" alt="MIT License"/>
+</p>
+
+<p align="center">
+  📜 <a href="CHANGELOG.md"><b>What's new in 0.11.0</b></a> — Repo Map (Aider-style symbol index, real-time auto-rebuild, drift detection), cognitive-redirect hook system, SYSTEM_MAP retired in favor of auto-derived structural truth, clone-framing + Kunda accuracy-goals cognitive redirection.
 </p>
 
 ---
@@ -168,21 +173,54 @@ Three systems make this work:
 
 ## Live Dashboard
 
-PACT includes a real-time dashboard that visualizes everything your AI agent does — every file edit, preflight check, hook block, commit, and governance update appears as a card in a horizontal timeline. Your own prompts show up too, so you can see the full conversation flow alongside the agent's actions.
+PACT's dashboard is the single pane of glass for what your agent is doing AND what it's working over. Five views across the top:
 
-**Task Rating System** — Click "Track Next Task" on any session, describe what you're asking the agent to do, and all subsequent events flow into that task's sub-row. When the task is done, rate it 1-5 with category tags (UI, Backend, Logic, Missed Requirements, Hallucination, etc.) and free-text feedback on what went right and wrong. Ratings are stored permanently and compiled into a **scorecard** (`~/.claude/pact-scorecard.md`) that the agent reads at the start of every session — creating a feedback loop where past ratings directly shape future behavior.
+**Board / Task List** — multi-tree status view with TREE → INITIATIVE → FEATURE → TASK hierarchy. Drag-to-reorder, status picker (clicks write back to YAML atomically — no agent round-trip needed for routine status changes), task notes that surface to the agent at session start, archive view, themes + Google Fonts integration, per-project state.
 
-**What you see:**
-- Session lanes with model identity (Claude/Gemini) and project name
-- Task sub-rows with collapse/expand, diagnosis, and rating
-- Per-type animated icons (the pencil writes while editing, the lightning strikes on preflight checks)
-- Activity timeline, sidebar metrics, scorecard with rolling average and streak tracking
-- "Track From Here" on any prompt card to retroactively mark where a new task started
-- Diagnosis per session or per task — coverage analysis of which PACT subsystems were exercised
+**Repo Map** — Aider-style symbol index over your codebase with four sub-tabs:
+- **List** — searchable, sortable, kind-filtered file list ranked by import-graph PageRank. Each row shows symbols, doc snippets, est-tokens. Click any file → side detail panel surfaces top symbols + docs + imports + importers + flow membership + drift schema (FK cascades, columns) for Drift tables + edge-function action lists for `supabase/functions/*/index.ts` + provider cache shapes + cross-cutting hook callsites. Replaces the most-common grep patterns the agent burns time on.
+- **Graph** — d3-force layout of the top 100 most-central files. Click a node → same detail panel.
+- **Flows** — feature-flow card stack. Each card: purpose, triggers, lifecycle states, participating files (grouped by architectural layer), declared cross-flow dependencies, invariants, references (plan_doc / design_manifest / figma / spec), embedded Mermaid diagram with full-screen expand + zoom. Replaces hand-curated wiring docs.
+- **Drift** — orphan-file detection, broken declared-dependency surfacing, undocumented cross-flow imports, claimed-files-missing-in-repo, sparkline trend chart of drift counts over recent builds (so the agent can answer "is orphan count rising?" in one glance).
+
+**Pythons** — running Python process inventory (kill switch + protected-row badges).
+
+**Pythons / Sessions sidebar** — scorecard, metrics, vector-search recall, generate-feedback-report button.
+
+**Real-time auto-rebuild.** Every Edit/Write to a tracked source file triggers a background `repo_map.json` rebuild (~1-3s, dedupe-batched via loop-while-dirty pattern). The dashboard always reflects current code state — no manual `python scripts/repo_map.py build` needed.
+
+**Task rating system** — Click "Track Next Task" on any session, describe what you're asking the agent to do, all subsequent events flow into that task's sub-row. Rate 1-5 with category tags (UI, Backend, Logic, Missed Requirements, Hallucination, etc.) and free-text feedback. Ratings compile into a `~/.claude/pact-scorecard.md` the agent reads at session start — past ratings directly shape future behavior.
+
+**Validator integration.** A pre-commit hook runs `verify_feature_flow_schema.py` and BLOCKS commits with broken intent-layer claims (e.g., a flow's `participating_files` references a deleted path, or a `declared_dependencies.via:` symbol no longer exists). Warnings are advisory; errors block.
 
 <p align="center">
-  <img src="assets/pact-dashboard.png" alt="PACT Dashboard" width="800"/>
+  <img src="assets/pact-dashboard.png" alt="PACT Dashboard — Board view" width="800"/>
+  <br>
+  <em>Board view — multi-tree, Kanban-style initiative cards (PACT dogfooded as a project)</em>
 </p>
+
+<details>
+<summary><b>📸 More views</b> — Task List, Repo Map (List, Graph, Flows, Drift)</summary>
+<br>
+<p align="center">
+  <img src="assets/pact-dashboard-tasks.png" alt="Task List view" width="700"/>
+  <br><em>Task List — flat searchable view across every initiative</em>
+</p>
+<p align="center">
+  <img src="assets/pact-dashboard-repomap-list.png" alt="Repo Map — List sub-tab" width="700"/>
+  <br><em>Repo Map · List — searchable file inventory ranked by PageRank</em>
+</p>
+<p align="center">
+  <img src="assets/pact-dashboard-repomap-flows.png" alt="Repo Map — Flows sub-tab" width="700"/>
+  <br><em>Repo Map · Flows — feature-flow cards with anchor verification, files grouped by layer</em>
+</p>
+<p align="center">
+  <img src="assets/pact-dashboard-repomap-drift.png" alt="Repo Map — Drift sub-tab" width="700"/>
+  <br><em>Repo Map · Drift — orphans, broken deps, claimed-missing files, sparkline trends</em>
+</p>
+
+<sub>The <b>Graph</b> sub-tab is omitted from this gallery: PACT's reference scaffold is small (~19 files) and most lib scripts intentionally communicate via JSON-on-disk rather than Python imports, so the d3-force layout shows isolated nodes — which is honest, but a poor demo of what the feature does on a real codebase. Graph value scales with import density.</sub>
+</details>
 
 **Start the dashboard:**
 ```shell
@@ -191,6 +229,8 @@ python .claude/hooks/pact-server.py &
 ```
 
 Or set `"dashboard": "auto"` in `~/.claude/pact-config.json` to start it automatically every session.
+
+**Porting to other stacks:** see [`docs/repo_map_porting.md`](docs/repo_map_porting.md). The Repo Map system is project-agnostic at the core; project-specific extractors (drift_schema, edge_functions, etc.) gracefully no-op when their target paths don't exist.
 
 ---
 

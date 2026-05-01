@@ -1,0 +1,16 @@
+# v0.11.0 release prep — example tiny initiative (1 task)
+#
+# Demonstrates the dashboard's smallest box rendering ("Tiny" tier:
+# <3 tasks → 1×1 grid cell). Real one-liner from the v0.11 release.
+node:
+  name: "v0.11.0 release prep"
+  status: in_flight
+  last_touched: 2026-04-30
+  note: "Bump VERSION + CHANGELOG entry + tag the release once Repo Map + cognitive-redirect ports finish merging."
+
+  children:
+    - name: "Cut the release"
+      status: in_flight
+      last_touched: 2026-04-30
+      tasks:
+        - { name: "VERSION → 0.11.0 + CHANGELOG entry + git tag", status: in_flight }

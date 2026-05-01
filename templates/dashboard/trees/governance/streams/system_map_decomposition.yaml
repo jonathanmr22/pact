@@ -1,0 +1,55 @@
+# SYSTEM_MAP retirement — replaced by auto-derived structural truth
+#
+# Real history mined from PACT development sessions (2026-04-29 → 2026-04-30).
+# The hand-curated SYSTEM_MAP.yaml drifted because it was Claude-narrated
+# (not user-authored). 9 auto-extractor passes in repo_map.py replaced its
+# content; editorial got distributed into feature_flow YAMLs; the file is
+# now archived. Three phases shipped over 2 days.
+node:
+  name: "SYSTEM_MAP retirement (hand-curated → auto-derived)"
+  status: done
+  last_touched: 2026-04-30
+  plan: docs/repo_map_porting.md
+  note: "Frozen plugins decay; auto-derived sources stay fresh. The 633-line hand-curated wiring file became 9 fields in repo_map.json + intent claims in feature_flows/. Original archived for forensic reference."
+  references:
+    plans: [docs/repo_map_porting.md]
+
+  children:
+    - name: "Phase 1 — 9 auto-extractor passes"
+      status: done
+      last_touched: 2026-04-29
+      note: "All 9 extractors degrade gracefully on projects without those subsystems (return {} when target paths don't exist)."
+      tasks:
+        - { name: "extract_drift_schema (Drift tables: columns, FKs, cascade rules)", status: done }
+        - { name: "extract_drift_migrations (onUpgrade history)", status: done }
+        - { name: "extract_supabase_migrations (date-prefixed SQL files)", status: done }
+        - { name: "extract_edge_function_actions (actions/secrets/buckets/RPCs/external_hosts)", status: done }
+        - { name: "extract_anomaly_catalog (instrumented anomaly types + callsites)", status: done }
+        - { name: "extract_provider_caches (Riverpod ChangeNotifier field shapes)", status: done }
+        - { name: "extract_cross_cutting_calls (known hook classes' callsites)", status: done }
+        - { name: "build_postgres_objects (inverted index by SQL object type)", status: done }
+        - { name: "extract_env_var_usage (Deno.env.get / String.fromEnvironment / os.environ)", status: done }
+
+    - name: "Phase 2 — editorial migration"
+      status: done
+      last_touched: 2026-04-29
+      note: "Distill what's testable (anchored to symbols), discard the rest as noise. 31 flow YAMLs got system_map_section: pointers stripped + comment cleanup."
+      tasks:
+        - { name: "Authored 4 cross-cutting flow files (auto_privacy_tagger, people_preferences, map_screenshot, data_improvement)", status: done }
+        - { name: "Invariants audit — tested claims migrated to flow `invariants:` lists", status: done }
+        - { name: "External-API gotchas → knowledge/packages/{name}.yaml", status: done }
+        - { name: "Plan/spec/figma pointers → flow `references:` field", status: done }
+        - { name: "Conventions → CLAUDE.md / lib/CLAUDE.md / scripts/CLAUDE.md", status: done }
+
+    - name: "Phase 3 — archive + redirect"
+      status: done
+      last_touched: 2026-04-30
+      note: "Net 614-line removal in dashboard.html. Original at plans/archive/ for forensic reference."
+      tasks:
+        - { name: "Replace SYSTEM_MAP.yaml with thin pointer to repo_map.json + flows/", status: done }
+        - { name: "Move original to plans/archive/SYSTEM_MAP_2026-04-29.yaml", status: done }
+        - { name: "Remove dashboard SYSTEM_MAP visualization tab + 614 lines of supporting code", status: done }
+        - { name: "Remove /system-map.yaml endpoint from serve.py", status: done }
+        - { name: "Archive scripts/merge_system_map_to_flows.py", status: done }
+        - { name: "Promote pre-commit feature flow validator hook from warn-only to BLOCKING", status: done }
+        - { name: "Delete SYSTEM_MAP.yaml + dashboard tab + serve endpoint", status: done }

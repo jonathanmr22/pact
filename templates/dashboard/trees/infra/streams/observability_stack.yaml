@@ -1,0 +1,61 @@
+# Observability stack v1 — example large initiative
+#
+# Demonstrates the dashboard's larger box rendering. Many features, many
+# tasks. Auto-derived box sizing means this initiative renders bigger
+# than smaller ones in the same tree.
+node:
+  name: "Observability stack v1 (example large)"
+  status: in_flight
+  last_touched: 2026-04-29
+  note: "End-to-end observability rollout: structured logging across all services, distributed tracing for request chains, metrics + dashboards, alert routing, on-call rotations, runbooks. Large initiative — demonstrates that high task counts produce visibly bigger treemap boxes."
+  references:
+    plans: []
+
+  children:
+    - name: "Structured logging across services"
+      status: done
+      last_touched: 2026-04-15
+      note: "Migrate from print/console.log to JSON-structured logs across 8 services. Single shared logger config + Loki ingestion."
+      tasks:
+        - { name: "Pick logger library + format spec (JSON, ISO timestamps, trace_id)", status: done }
+        - { name: "Migrate auth service", status: done }
+        - { name: "Migrate user service", status: done }
+        - { name: "Migrate billing service", status: done }
+        - { name: "Migrate notifications + 4 remaining services", status: done }
+        - { name: "Loki ingestion config + retention policy (30 days hot, 90 days cold)", status: done }
+        - { name: "Decommission legacy log endpoints", status: done }
+
+    - name: "Distributed tracing"
+      status: in_flight
+      last_touched: 2026-04-29
+      note: "OpenTelemetry SDK across services with auto-instrumentation for HTTP + DB. Tempo for storage, Grafana for visualization."
+      tasks:
+        - { name: "OpenTelemetry SDK in 3 highest-traffic services", status: done }
+        - { name: "Auto-instrument HTTP + DB clients", status: done }
+        - { name: "Tempo backend setup + retention policy", status: done }
+        - { name: "Grafana datasource + first dashboard (request flow heatmap)", status: in_flight }
+        - { name: "Roll out to remaining 5 services", status: in_flight }
+        - { name: "Trace sampling strategy: 100% errors, 1% non-errors", status: todo }
+
+    - name: "Metrics + dashboards"
+      status: in_flight
+      last_touched: 2026-04-28
+      note: "Prometheus + Grafana. Golden-signals dashboard per service (latency, traffic, errors, saturation). Business metrics dashboard at the top."
+      tasks:
+        - { name: "Prometheus deployment + service-discovery config", status: done }
+        - { name: "Grafana provisioning (themes, datasources, folder structure)", status: done }
+        - { name: "Golden-signals dashboard template", status: done }
+        - { name: "Per-service dashboards from template (8 services)", status: in_flight }
+        - { name: "Business metrics dashboard (DAU, conversion, revenue)", status: in_flight }
+        - { name: "Embed dashboards in team Confluence runbooks", status: todo }
+
+    - name: "Alert routing + on-call"
+      status: blocked_user
+      last_touched: 2026-04-25
+      note: "Blocked on PagerDuty contract renewal — finance is reviewing. Provisional plan is ready; can ship within 2 days of approval."
+      tasks:
+        - { name: "Alert rule definitions (latency p99, error rate, saturation)", status: done }
+        - { name: "PagerDuty schedule design (week-long primary + secondary)", status: done }
+        - { name: "PagerDuty contract renewal (finance review)", status: in_flight }
+        - { name: "Wire Alertmanager → PagerDuty webhook", status: todo }
+        - { name: "Run a fire drill to verify the full chain", status: todo }

@@ -1,0 +1,51 @@
+# Onboarding v2 — example product initiative
+#
+# This is example content shipped with the PACT seed scaffold. Status
+# values + last_touched dates are illustrative — adapt or delete when
+# tracking real work.
+node:
+  name: "Onboarding v2 (example)"
+  status: in_flight
+  last_touched: 2026-04-28
+  note: "Reduce time-to-first-value from current 8min median to <3min. Three-screen welcome → personalize → first-action flow. Prior version had a 4-screen carousel with 17% completion."
+  references:
+    plans: []
+    knowledge: []
+
+  children:
+    - name: "Welcome screen redesign"
+      status: done
+      last_touched: 2026-04-22
+      note: "Single hero illustration + one-line value prop + CTA. Cut from carousel to single screen."
+      tasks:
+        - { name: "Design review + 3 mockup variants", status: done }
+        - { name: "Pick winning variant (variant B — 'Your space, your rhythm')", status: done }
+        - { name: "Implement + replace existing welcome carousel", status: done }
+        - { name: "Analytics: completion event renamed for new funnel", status: done }
+
+    - name: "Personalization quick-pick"
+      status: in_flight
+      last_touched: 2026-04-28
+      note: "5-question personalization that feeds the home feed's initial seed. Current: 12 questions across 3 screens; new: 5 questions on one screen with chip selectors."
+      tasks:
+        - { name: "Question selection (down from 12 → 5 highest-correlation with retention)", status: done }
+        - { name: "Chip-selector widget shared with the interest picker", status: done }
+        - { name: "Save flow + skip-CTA for users who don't want to answer", status: in_flight }
+        - { name: "A/B test setup (variant: skip lets you in vs. answer-required)", status: todo }
+
+    - name: "First-action prompt (deferred)"
+      status: blocked_external
+      last_touched: 2026-04-25
+      note: "Blocked on the recommendation engine update (infra tree, ML pipeline initiative). Without ranked content, 'first action' is too random to surface."
+      tasks:
+        - { name: "Wait for recommendation API v2", status: todo }
+        - { name: "Wire prompt to top-3 ranked items", status: todo }
+
+    - name: "Onboarding analytics"
+      status: in_flight
+      last_touched: 2026-04-28
+      note: "New funnel: welcome_seen → personalize_started → personalize_completed → first_action_taken. Compare against v1's 4-step funnel."
+      tasks:
+        - { name: "Define event taxonomy + dashboard query", status: done }
+        - { name: "Backfill 30 days of v1 data for comparison", status: in_flight }
+        - { name: "First weekly report after v2 ships to 100% rollout", status: todo }

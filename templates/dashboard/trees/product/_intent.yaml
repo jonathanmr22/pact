@@ -1,0 +1,18 @@
+# Product — example tree (delete or rename for your project)
+#
+# This tree is included in the seed scaffold to show new adopters what
+# product/feature work tracking looks like alongside the governance tree.
+# Replace these initiatives with your actual product work, or delete the
+# tree entirely (also remove the entry from _index.yaml).
+intent:
+  short: "User-facing product work (example tree — adapt or delete)"
+  long: "Anything that ships visible value to users — features, flows, UX changes, copy revisions, A/B tests. Distinct from infra (which keeps the lights on) and governance (which shapes HOW the project gets built)."
+  metrics:
+    - name: "Initiatives in flight"
+      description: "Concurrent active product features"
+      current: "TBD"
+      target: "≤4 concurrent"
+    - name: "Time to ship"
+      description: "Median days from in_flight → done per feature"
+      current: "TBD"
+      target: "≤14 days"

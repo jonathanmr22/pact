@@ -1,0 +1,111 @@
+# Repo Map v1 — Aider-style symbol index for AI agents
+#
+# Real history mined from PACT development sessions (2026-04-28 → 2026-04-30).
+# This is an EXAMPLE initiative — mostly authentic, slightly summarized for
+# brevity. New adopters: keep it as a reference for what a substantive
+# initiative looks like, or delete and replace with your own work.
+node:
+  name: "Repo Map v1 — Aider-style symbol index"
+  status: done
+  last_touched: 2026-04-30
+  plan: docs/repo_map_porting.md
+  note: |
+    Replaces grep-spawning when the agent navigates an unfamiliar codebase.
+    Single JSON file (repo_map.json) carries: file inventory, top symbols,
+    import graph, drift schema, edge-function metadata, anomaly catalog,
+    provider caches, cross-cutting hook callsites, env var usage, static
+    data maps, symbol_index (definitions), symbol_callers (call graph),
+    class_hierarchy, class_usage, asset_paths, ui_strings, test_pairing,
+    bug_catalog, est_tokens. The dashboard's Repo Map view reads it.
+  references:
+    plans: [docs/repo_map_porting.md]
+    code: [templates/scripts/repo_map.py, templates/scripts/verify_feature_flow_schema.py]
+
+  children:
+    - name: "Tier 1 — file inventory + import graph + PageRank"
+      status: done
+      last_touched: 2026-04-29
+      note: "tree-sitter-language-pack parses every source file; networkx PageRank ranks files by import-graph centrality (recent edits seeded as personalization vector)."
+      tasks:
+        - { name: "Walk INCLUDE_DIRS recursively, exclude generated files", status: done }
+        - { name: "Extract symbols (classes/functions/methods) per file via tree-sitter", status: done }
+        - { name: "Build import edges (Dart, Python, TS/JS, Java)", status: done }
+        - { name: "Personalized PageRank on the import graph", status: done }
+        - { name: "Token-budgeted Markdown render for in-context use", status: done }
+
+    - name: "Tier 2 — pre-write existence-check hook"
+      status: done
+      last_touched: 2026-04-29
+      note: "Before allowing creation of a new *_service / *_provider / *_screen file, the hook scores it against repo_map.json + flow_index. Blocks at confidence threshold + offers the existing similarly-named file."
+      tasks:
+        - { name: "Hook: score new-file attempts against repo_map node names", status: done }
+        - { name: "Bypass: PACT_FEATURE_OVERRIDE=1 for legitimate new features", status: done }
+
+    - name: "Tier A — symbol enrichment (the grep replacers)"
+      status: done
+      last_touched: 2026-04-30
+      note: "Per-symbol leading doc-comment + line + kind. Plus four global indexes: symbol_index (defs), symbol_callers (call graph), class_usage (per-class call sites), class_hierarchy (extends/implements/with for Dart/Python/TS/JS)."
+      tasks:
+        - { name: "_extract_leading_doc — Dart `///`, Python `\"\"\"...\"\"\"`, TS/JS `/** */`", status: done }
+        - { name: "Fix get_node_name to recurse into wrapper signatures (caught static methods being silently dropped)", status: done }
+        - { name: "Default --include-private TRUE (private symbols are real grep targets)", status: done }
+        - { name: "extract_class_hierarchy — multi-language regex pass", status: done }
+        - { name: "extract_call_graph — Class.method( + bare name( with known-symbol filter", status: done }
+        - { name: "build_class_usage — inverse aggregation", status: done }
+
+    - name: "Tier A++ — second pass extractors"
+      status: done
+      last_touched: 2026-04-30
+      note: "asset_paths, ui_strings, test_pairing, bug_catalog, est_tokens. Acknowledged 'marginal ROI' framing was too conservative — auto-rebuild + dedupe make per-build cost ≈ zero."
+      tasks:
+        - { name: "asset_paths — `assets/foo.png` references", status: done }
+        - { name: "ui_strings — multi-word user-facing prose literals", status: done }
+        - { name: "test_pairing — lib/x.dart ↔ test/.../x_test.dart", status: done }
+        - { name: "bug_catalog — bugs/{system}/*.yaml linked to source files", status: done }
+        - { name: "est_tokens per node (byte_count / 4)", status: done }
+
+    - name: "Real-time auto-rebuild"
+      status: done
+      last_touched: 2026-04-30
+      note: "post-edit-repo-map-dirty.sh PostToolUse hook. Loop-while-dirty pattern collapses rapid-fire edits into a single tail rebuild. ~1-3s end-to-end."
+      tasks:
+        - { name: "Touch dirty flag on tracked-file Edit/Write", status: done }
+        - { name: "Spawn detached background builder", status: done }
+        - { name: "Loop while dirty; consume flag before each iteration", status: done }
+        - { name: "PID-tracked lock prevents concurrent builders", status: done }
+
+    - name: "History log + Drift sparkline"
+      status: done
+      last_touched: 2026-04-30
+      note: "repo_map_history.jsonl appends one ~250-byte line per meaningfully-changed build. Drives the dashboard's Drift tab sparkline."
+      tasks:
+        - { name: "Append summary at end of cmd_build", status: done }
+        - { name: "Dedupe — skip if identical to previous line", status: done }
+        - { name: "Dashboard: 4-line SVG sparkline (orphans / broken_deps / undocumented / flows_red)", status: done }
+
+    - name: "Dashboard Repo Map view (List / Graph / Flows / Drift sub-tabs)"
+      status: done
+      last_touched: 2026-04-30
+      note: "Card-stack design for Flows after the swimlane attempt was rejected as illegible. d3-force layout for Graph. Drift sub-tab surfaces orphans + broken deps."
+      tasks:
+        - { name: "List: searchable, sortable, kind-filtered file list with detail panel", status: done }
+        - { name: "Graph: d3-force on top-100 PageRank, click-to-detail", status: done }
+        - { name: "Flows: card stack with files-by-architectural-layer + Mermaid diagram + zoom overlay", status: done }
+        - { name: "Drift: orphans/broken/undocumented/missing + sparkline", status: done }
+
+    - name: "Pre-commit validator hook (BLOCKING)"
+      status: done
+      last_touched: 2026-04-30
+      note: "Promoted from warn-only to blocking after Phase-2 backfill. Errors stop commits; warnings are advisory."
+      tasks:
+        - { name: "verify_feature_flow_schema.py validates flow YAMLs against repo_map.json", status: done }
+        - { name: "Hook: pre-commit, returns exit 2 on errors", status: done }
+
+    - name: "Porting documentation"
+      status: done
+      last_touched: 2026-04-30
+      note: "docs/repo_map_porting.md — per-language extension table for Dart/Python/TS/JS done; Go/Rust/Java sketched."
+      tasks:
+        - { name: "Schema reference (every JSON field with type)", status: done }
+        - { name: "Per-extractor port equivalents (Prisma/Knex/SQLAlchemy/Rails/Express/Sequelize)", status: done }
+        - { name: "Per-language patterns table for class hierarchy + doc comments", status: done }

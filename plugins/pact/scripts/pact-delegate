@@ -374,7 +374,7 @@ START_TIME=$(date +%s%N 2>/dev/null || python -c "import time; print(int(time.ti
 RESPONSE=$(curl -s "https://openrouter.ai/api/v1/chat/completions" \
   -H "Authorization: Bearer $OPENROUTER_API_KEY" \
   -H "Content-Type: application/json" \
-  -H "HTTP-Referer: https://kensic.app" \
+  -H "HTTP-Referer: https://github.com/jonathanmr22/PACT" \
   -H "X-Title: PACT Delegation" \
   -d @"$TMPFILE")
 

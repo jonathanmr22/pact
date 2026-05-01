@@ -1,0 +1,20 @@
+# CLAUDE.md governance lock — redirect instead of freeze
+#
+# Example small initiative (4 tasks → "Small" tier: 2×1 grid cell).
+# Real PACT history: this session, 2026-04-30.
+node:
+  name: "CLAUDE.md lock: redirect instead of freeze"
+  status: done
+  last_touched: 2026-04-30
+  note: "PreToolUse lock-check used {continue:false, stopReason:'...'} which hard-stopped the agent's response — required user re-prompting every session. Switched to permissionDecision:'deny' + a redirect message: denies the one tool call but the response continues, agent self-redirects (Read CLAUDE.md), lock releases via PostToolUse Read hook, agent retries the original action automatically."
+
+  children:
+    - name: "Hook + redirect text"
+      status: done
+      last_touched: 2026-04-30
+      note: "SessionStart inlines the absolute CLAUDE.md path so the agent's first instinct is the Read that releases the lock. PreToolUse uses permissionDecision:deny instead of continue:false."
+      tasks:
+        - { name: "SessionStart: inline absolute CLAUDE.md path in additionalContext", status: done }
+        - { name: "PreToolUse: switch to permissionDecision:'deny' + permissionDecisionReason redirect", status: done }
+        - { name: "Path transform via sed for cross-env compatibility (/c/ → c:/)", status: done }
+        - { name: "Validate JSON output + smoke-test the chain (lock → Read → release → retry)", status: done }

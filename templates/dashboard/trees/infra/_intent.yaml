@@ -1,0 +1,13 @@
+# Infra — example tree (delete or rename for your project)
+intent:
+  short: "Infrastructure & platform work (example tree — adapt or delete)"
+  long: "CI/CD pipelines, observability, data platform, dev environment, build performance, secrets rotation. Distinct from product (user-facing) and governance (process)."
+  metrics:
+    - name: "CI median runtime"
+      description: "P50 of pipeline duration end-to-end"
+      current: "TBD"
+      target: "<6 min"
+    - name: "Deploy frequency"
+      description: "Production deploys per week"
+      current: "TBD"
+      target: "≥5/week"

@@ -1,0 +1,358 @@
+# Auto-generated trigger candidates from session mining.
+# Generated: 2026-04-30T21:52:57.866135
+# Sessions analyzed: 35
+# Correction events found: 181
+# Min event count threshold: 5
+#
+# Each candidate shows: event_count (times this phrase appeared in a turn
+# that was followed by user correction), distinct_sessions (how many
+# different sessions exhibited this), and 1-3 sample correction excerpts.
+#
+# REVIEW WORKFLOW: Read the samples. If the phrase looks like a real
+# failure-mode trigger, copy it into cognitive_triggers.yaml as a regex
+# pattern with appropriate severity. Delete from this file once promoted.
+
+candidates:
+  - phrase: "let me"
+    event_count: 106
+    distinct_sessions: 16
+    samples:
+      - "/ide_opened_file>\nYes please, but not blindly. Question each part of the checklist and walk me t"
+      - "No, design a long term solution. Don't just take the cheap route"
+      - "tes with consistent templates but no structured data. It cannot replace regex for pattern-based "
+
+  - phrase: "let me check"
+    event_count: 43
+    distinct_sessions: 12
+    samples:
+      - " you are talking about.\" and \"Why are you making this complicated? You found issues, so go fix the is"
+      - "on. Only shows a few records, but that's not true"
+      - "ase\n     - This edit was made but NOT yet built or committed\n\n4. Errors and Fixes:\n   - **Docume"
+
+  - phrase: "i should"
+    event_count: 31
+    distinct_sessions: 11
+    samples:
+      - "ese are claims a human made\". But no, like I already told you, that's all Claude's assumptions a"
+      - "No. No. No. No. No. The whole point of this is AI BUBBLE POPPING. "
+      - " you are talking about.\" and \"Why are you making this complicated? You found issues, so go fix the is"
+
+  - phrase: "i can"
+    event_count: 28
+    distinct_sessions: 9
+    samples:
+      - " you are going. But I need to verify that we are both discussing the same thing: real time analysis o"
+      - " you are talking about.\" and \"Why are you making this complicated? You found issues, so go fix the is"
+      - "on. Only shows a few records, but that's not true"
+
+  - phrase: "now let me"
+    event_count: 26
+    distinct_sessions: 11
+    samples:
+      - "nsaction, void_invoice, etc.) but no generic void or update\n   - No sync_after_write tool exists"
+      - "ase\n     - This edit was made but NOT yet built or committed\n\n4. Errors and Fixes:\n   - **Docume"
+      - "0. **User said \"PLEASE double check that the new toggle for check extraction truly does NOT create n"
+
+  - phrase: "you're right"
+    event_count: 17
+    distinct_sessions: 8
+    samples:
+      - " to include some skills maybe BUT not the webscraping skill. I am going to treat that as proprie"
+      - "No, my concern comes from the email I got from Supabase saying w"
+      - " able to trust you\" - do real research instead of jumping to conclusions\n     - \"Free or near free options"
+
+  - phrase: "let me check the"
+    event_count: 15
+    distinct_sessions: 6
+    samples:
+      - "ase\n     - This edit was made but NOT yet built or committed\n\n4. Errors and Fixes:\n   - **Docume"
+      - "0. **User said \"PLEASE double check that the new toggle for check extraction truly does NOT create n"
+      - " and posted_status = 'posted' but no join table entry yet.\r\n-- This is a one-time data migration"
+
+  - phrase: "let me verify"
+    event_count: 14
+    distinct_sessions: 7
+    samples:
+      - " you are talking about.\" and \"Why are you making this complicated? You found issues, so go fix the is"
+      - "plicate keys. Finally, please check that there is a method for pairing a journal entry from QBO to a"
+      - " I want you to tell me yes or no, don't go run to correct immediately.\n\nClaude\n\n3/18 3:22 AM\n\n\nYes."
+
+  - phrase: "let me fix"
+    event_count: 12
+    distinct_sessions: 9
+    samples:
+      - "tes with consistent templates but no structured data. It cannot replace regex for pattern-based "
+      - "dPushToUser\n       ```\n     - Same pattern for failure notifications\n\n   - **`src/pages/admin/bookkeep"
+      - " \u2014 NON-NEGOTIABLE\"\n   - Added CHECK BEFORE CREATE duplicate prevention rule\n   - Created knowledge bas"
+
+  - phrase: "let me add"
+    event_count: 12
+    distinct_sessions: 6
+    samples:
+      - " you are talking about.\" and \"Why are you making this complicated? You found issues, so go fix the is"
+      - "on. Only shows a few records, but that's not true"
+      - "ase\n     - This edit was made but NOT yet built or committed\n\n4. Errors and Fixes:\n   - **Docume"
+
+  - phrase: "let me check if"
+    event_count: 12
+    distinct_sessions: 6
+    samples:
+      - " you are talking about.\" and \"Why are you making this complicated? You found issues, so go fix the is"
+      - "ase\n     - This edit was made but NOT yet built or committed\n\n4. Errors and Fixes:\n   - **Docume"
+      - "last updated: 3 minutes\" ago, but no \"you should redeploy\" option, then I litearlly had my hands"
+
+  - phrase: "i think"
+    event_count: 12
+    distinct_sessions: 6
+    samples:
+      - " you are talking about.\" and \"Why are you making this complicated? You found issues, so go fix the is"
+      - "yourself as the orchestrator, but not the designer. We have multiple agent support for a reason."
+      - "yourself as the orchestrator, but not the designer. We have multiple agent support for a reason."
+
+  - phrase: "i just"
+    event_count: 10
+    distinct_sessions: 7
+    samples:
+      - "ese are claims a human made\". But no, like I already told you, that's all Claude's assumptions a"
+      - " to include some skills maybe BUT not the webscraping skill. I am going to treat that as proprie"
+      - " you are going. But I need to verify that we are both discussing the same thing: real time analysis o"
+
+  - phrase: "should have"
+    event_count: 10
+    distinct_sessions: 7
+    samples:
+      - "ese are claims a human made\". But no, like I already told you, that's all Claude's assumptions a"
+      - "No. No. No. No. No. The whole point of this is AI BUBBLE POPPING. "
+      - " you are going. But I need to verify that we are both discussing the same thing: real time analysis o"
+
+  - phrase: "not just"
+    event_count: 9
+    distinct_sessions: 8
+    samples:
+      - " you are going. But I need to verify that we are both discussing the same thing: real time analysis o"
+      - "Why did you just create a memory file even though you admitted that is "
+      - " \"living\"/ in motion. We have too many static elements in [project] already. Also, we have Pexels, not"
+
+  - phrase: "let me think"
+    event_count: 9
+    distinct_sessions: 5
+    samples:
+      - " you are talking about.\" and \"Why are you making this complicated? You found issues, so go fix the is"
+      - " \u2014 NON-NEGOTIABLE\"\n   - Added CHECK BEFORE CREATE duplicate prevention rule\n   - Created knowledge bas"
+      - "No, like I said, this isn't \"rounds\" it's brain to hands communi"
+
+  - phrase: "i can't"
+    event_count: 9
+    distinct_sessions: 5
+    samples:
+      - " you are talking about.\" and \"Why are you making this complicated? You found issues, so go fix the is"
+      - "0. **User said \"PLEASE double check that the new toggle for check extraction truly does NOT create n"
+      - "yourself as the orchestrator, but not the designer. We have multiple agent support for a reason."
+
+  - phrase: "let me think about"
+    event_count: 9
+    distinct_sessions: 5
+    samples:
+      - " you are talking about.\" and \"Why are you making this complicated? You found issues, so go fix the is"
+      - " \u2014 NON-NEGOTIABLE\"\n   - Added CHECK BEFORE CREATE duplicate prevention rule\n   - Created knowledge bas"
+      - "No, like I said, this isn't \"rounds\" it's brain to hands communi"
+
+  - phrase: "let me update"
+    event_count: 8
+    distinct_sessions: 5
+    samples:
+      - " you are talking about.\" and \"Why are you making this complicated? You found issues, so go fix the is"
+      - "ase\n     - This edit was made but NOT yet built or committed\n\n4. Errors and Fixes:\n   - **Docume"
+      - " I want you to tell me yes or no, don't go run to correct immediately.\n\nClaude\n\n3/18 3:22 AM\n\n\nYes."
+
+  - phrase: "what actually"
+    event_count: 8
+    distinct_sessions: 5
+    samples:
+      - " you are talking about.\" and \"Why are you making this complicated? You found issues, so go fix the is"
+      - " \u2014 NON-NEGOTIABLE\"\n   - Added CHECK BEFORE CREATE duplicate prevention rule\n   - Created knowledge bas"
+      - "why did you not resolve the tile issue?"
+
+  - phrase: "let me also"
+    event_count: 8
+    distinct_sessions: 5
+    samples:
+      - "ase\n     - This edit was made but NOT yet built or committed\n\n4. Errors and Fixes:\n   - **Docume"
+      - "0. **User said \"PLEASE double check that the new toggle for check extraction truly does NOT create n"
+      - "MAIL. THIS IS JUST A PLUG IN. WHY ARE YOU TRYING TO DOX ME."
+
+  - phrase: "might not"
+    event_count: 8
+    distinct_sessions: 4
+    samples:
+      - "on. Only shows a few records, but that's not true"
+      - " \u2014 NON-NEGOTIABLE\"\n   - Added CHECK BEFORE CREATE duplicate prevention rule\n   - Created knowledge bas"
+      - "MAIL. THIS IS JUST A PLUG IN. WHY ARE YOU TRYING TO DOX ME."
+
+  - phrase: "let me find"
+    event_count: 7
+    distinct_sessions: 4
+    samples:
+      - "ks (was in original migration but not applied to live DB)\r\nALTER TABLE public.qbo_claude_tasks E"
+      - "dPushToUser\n       ```\n     - Same pattern for failure notifications\n\n   - **`src/pages/admin/bookkeep"
+      - "y. So guards are doing shifts but not attached to any shift. So we need to use their active rout"
+
+  - phrase: "now let me check"
+    event_count: 7
+    distinct_sessions: 2
+    samples:
+      - "d meld today. Your questions: no, no devices connected. For testing for meld, I was using a sams"
+      - " The application may be doing too much work on its main thread.\nD/Sentry  ( 1804): Unable to find "
+      - "ntException: Advertising data too big` (Issue #206) when you exceed limits.\n- iOS: Only UUID adve"
+
+  - phrase: "let me commit"
+    event_count: 6
+    distinct_sessions: 5
+    samples:
+      - "in the chat. it's huge. Also, why did you insert \"[Name]:\" into the chat message when we can already "
+      - "MAIL. THIS IS JUST A PLUG IN. WHY ARE YOU TRYING TO DOX ME."
+      - "st the beginning. You need to think more critically about this and research creative solutions. Look"
+
+  - phrase: "should work"
+    event_count: 6
+    distinct_sessions: 4
+    samples:
+      - "rlay with zoom control\"\n   - \"Why did you stop rendering the mermaid diagram in the preview window? A"
+      - " you are going. But I need to verify that we are both discussing the same thing: real time analysis o"
+      - " you are talking about.\" and \"Why are you making this complicated? You found issues, so go fix the is"
+
+  - phrase: "let me verify the"
+    event_count: 6
+    distinct_sessions: 4
+    samples:
+      - " you are talking about.\" and \"Why are you making this complicated? You found issues, so go fix the is"
+      - "plicate keys. Finally, please check that there is a method for pairing a journal entry from QBO to a"
+      - " I want you to tell me yes or no, don't go run to correct immediately.\n\nClaude\n\n3/18 3:22 AM\n\n\nYes."
+
+  - phrase: "let me check what"
+    event_count: 6
+    distinct_sessions: 4
+    samples:
+      - "on. Only shows a few records, but that's not true"
+      - " \"living\"/ in motion. We have too many static elements in [project] already. Also, we have Pexels, not"
+      - " The application may be doing too much work on its main thread."
+
+  - phrase: "looks like"
+    event_count: 6
+    distinct_sessions: 3
+    samples:
+      - "yourself as the orchestrator, but not the designer. We have multiple agent support for a reason."
+      - "No, like I said, this isn't \"rounds\" it's brain to hands communi"
+      - "yourself as the orchestrator, but not the designer. We have multiple agent support for a reason."
+
+  - phrase: "let me update the"
+    event_count: 5
+    distinct_sessions: 5
+    samples:
+      - " I want you to tell me yes or no, don't go run to correct immediately.\n\nClaude\n\n3/18 3:22 AM\n\n\nYes."
+      - "n flutter on my phone?\"\n   - \"wtf. That's an old rule. And don't ever tell me know\"\n   - Debu"
+      - " The application may be doing too much work on its main thread.\n2026-03-23 23:15:47.025 31551-3155"
+
+  - phrase: "i could"
+    event_count: 5
+    distinct_sessions: 5
+    samples:
+      - "fantastic. We are very close. But now you need to create three difficult stress tests. And prete"
+      - "no image show up on the samsung phone but at least both phones "
+      - "ribing what to verify (e.g. \\\"Verify that unit tests ran and passed.\\\"). Use $ARGUMENTS placeholder f"
+
+  - phrase: "i should have"
+    event_count: 5
+    distinct_sessions: 4
+    samples:
+      - "ese are claims a human made\". But no, like I already told you, that's all Claude's assumptions a"
+      - "No. No. No. No. No. The whole point of this is AI BUBBLE POPPING. "
+      - "Yes to 1, 2, 3, but no to 4 and 5. Instead, map them where they should go and scra"
+
+  - phrase: "you should"
+    event_count: 5
+    distinct_sessions: 4
+    samples:
+      - "No. You should be able to figure this out. It should not require"
+      - " asking for its training data wtf?"
+      - "at all, or may appear to work but not actually write. You must use `https://mcp.figma.com/mcp` ("
+
+  - phrase: "let me think about this"
+    event_count: 5
+    distinct_sessions: 4
+    samples:
+      - " you are talking about.\" and \"Why are you making this complicated? You found issues, so go fix the is"
+      - "No, like I said, this isn't \"rounds\" it's brain to hands communi"
+      - "No, like I said, this isn't \"rounds\" it's brain to hands communi"
+
+  - phrase: "let me do"
+    event_count: 5
+    distinct_sessions: 4
+    samples:
+      - "nsaction, void_invoice, etc.) but no generic void or update\n   - No sync_after_write tool exists"
+      - "No, like I said, this isn't \"rounds\" it's brain to hands communi"
+      - "No, like I said, this isn't \"rounds\" it's brain to hands communi"
+
+  - phrase: "let me check if there's"
+    event_count: 5
+    distinct_sessions: 4
+    samples:
+      - "ase\n     - This edit was made but NOT yet built or committed\n\n4. Errors and Fixes:\n   - **Docume"
+      - "t Horizon and instead focused too much on the brand in general on some of these. And cruise_excurs"
+      - "t Horizon and instead focused too much on the brand in general on some of these. And cruise_excurs"
+
+  - phrase: "what actually happened"
+    event_count: 5
+    distinct_sessions: 4
+    samples:
+      - " \u2014 NON-NEGOTIABLE\"\n   - Added CHECK BEFORE CREATE duplicate prevention rule\n   - Created knowledge bas"
+      - "why did you not resolve the tile issue?"
+      - "ign system itself. Dont focus too much on the task. It's about making this work extremel well each"
+
+  - phrase: "actually happened"
+    event_count: 5
+    distinct_sessions: 4
+    samples:
+      - " \u2014 NON-NEGOTIABLE\"\n   - Added CHECK BEFORE CREATE duplicate prevention rule\n   - Created knowledge bas"
+      - "why did you not resolve the tile issue?"
+      - "ign system itself. Dont focus too much on the task. It's about making this work extremel well each"
+
+  - phrase: "what's actually"
+    event_count: 5
+    distinct_sessions: 4
+    samples:
+      - " asking for its training data wtf?"
+      - "Stop gaslighting me You havent made any changes"
+      - "Stop gaslighting me You havent made any changes"
+
+  - phrase: "i'll add"
+    event_count: 5
+    distinct_sessions: 3
+    samples:
+      - " to include some skills maybe BUT not the webscraping skill. I am going to treat that as proprie"
+      - "dPushToUser\n       ```\n     - Same pattern for failure notifications\n\n   - **`src/pages/admin/bookkeep"
+      - "our history most of the time, but not every time of course. The way we use to interact 10 weeks "
+
+  - phrase: "i shouldn't"
+    event_count: 5
+    distinct_sessions: 2
+    samples:
+      - "y is PACT failing to make you think more constructively and apply better top down reasoning? PACT is"
+      - "t Horizon and instead focused too much on the brand in general on some of these. And cruise_excurs"
+      - "No, like I said, this isn't \"rounds\" it's brain to hands communi"
+
+  - phrase: "i'm going to"
+    event_count: 5
+    distinct_sessions: 2
+    samples:
+      - "Why did you remove the GPS button from the top left corner of the map s"
+      - "Yes to 1, 2, 3, but no to 4 and 5. Instead, map them where they should go and scra"
+      - " to CLAUDE.md\n   - **Captured but not fixed**: Seed data loss on relaunch (4 hypotheses, emulato"
+
+  - phrase: "you're right i"
+    event_count: 5
+    distinct_sessions: 2
+    samples:
+      - "t Horizon and instead focused too much on the brand in general on some of these. And cruise_excurs"
+      - "yourself as the orchestrator, but not the designer. We have multiple agent support for a reason."
+      - "t Horizon and instead focused too much on the brand in general on some of these. And cruise_excurs"

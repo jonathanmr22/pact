@@ -1,0 +1,38 @@
+# CI/CD overhaul — example infrastructure initiative
+#
+# Example content shipped with the PACT seed scaffold.
+node:
+  name: "CI/CD overhaul (example)"
+  status: in_flight
+  last_touched: 2026-04-29
+  note: "Cut median CI from 14 min → <6 min. Parallelize integration tests, cache build artifacts, drop the slow E2E suite to nightly only."
+  references:
+    plans: []
+
+  children:
+    - name: "Parallelize integration tests"
+      status: done
+      last_touched: 2026-04-23
+      note: "8 sharded workers vs prior single-runner. Saved ~5 min per pipeline."
+      tasks:
+        - { name: "Test sharding via pytest-xdist (Python) / Jest --shard (JS)", status: done }
+        - { name: "Restructure flaky tests that depended on shared state", status: done }
+        - { name: "Update CI config + verify on a representative branch", status: done }
+
+    - name: "Build artifact caching"
+      status: in_flight
+      last_touched: 2026-04-29
+      note: "Cache npm/pip dependency dirs + intermediate compile outputs. Cache key includes lockfile hash for safety."
+      tasks:
+        - { name: "Add cache step for npm + pip", status: done }
+        - { name: "Add cache step for compiled assets", status: in_flight }
+        - { name: "Verify cache hit-rate on main branch (target: >75%)", status: todo }
+
+    - name: "Move E2E suite to nightly"
+      status: blocked_user
+      last_touched: 2026-04-25
+      note: "Blocked on stakeholder sign-off — some PMs want E2E on every PR. Need data showing PR-level E2E catches <5% of bugs that wouldn't be caught by integration tests."
+      tasks:
+        - { name: "Pull 90 days of E2E failure data + categorize by root cause", status: done }
+        - { name: "Present analysis at next eng-PM sync", status: todo }
+        - { name: "If approved: move E2E to nightly + add manual-trigger button on PRs", status: todo }

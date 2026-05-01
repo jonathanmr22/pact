@@ -1,0 +1,19 @@
+# Landing copy fix — example small initiative
+#
+# Demonstrates the dashboard's smallest box rendering. Single feature,
+# few tasks. Adopters should see at a glance that small initiatives
+# produce small boxes — auto-derived from task count.
+node:
+  name: "Landing copy refresh (example small)"
+  status: done
+  last_touched: 2026-04-21
+  note: "Quick copy revision after the brand-voice doc landed. Single feature, 3 tasks. Demonstrates that small initiatives produce small treemap boxes."
+
+  children:
+    - name: "Hero + footer copy"
+      status: done
+      last_touched: 2026-04-21
+      tasks:
+        - { name: "Replace hero subtitle (per brand-voice doc)", status: done }
+        - { name: "Update footer tagline", status: done }
+        - { name: "Spot-check on mobile + desktop breakpoints", status: done }

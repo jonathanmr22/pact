@@ -1,0 +1,68 @@
+# Repo Map Pipeline — Lifecycle Flow
+# Last updated: 2026-04-30
+#
+# DO NOT duplicate wiring here. repo_map.json owns structure (symbol index,
+# imports, PageRank, drift). This file owns BEHAVIOR — what triggers a
+# rebuild, how concurrent edits collapse, how the dashboard stays current.
+
+purpose: >
+  Aider-style symbol index over the codebase, auto-rebuilt in real time as
+  files change. Replaces grep-spawning by giving Claude a single JSON oracle
+  for "what symbols exist, who calls whom, what flows does this file
+  participate in." The dashboard's Repo Map tab reads the same JSON.
+
+flow_kind: infrastructure
+
+participating_files:
+  - templates/scripts/repo_map.py
+  - templates/scripts/verify_feature_flow_schema.py
+
+invariants:
+  - "Every Edit/Write to a tracked source file marks the build dirty"
+  - "Concurrent edits collapse into ONE tail rebuild via loop-while-dirty pattern"
+  - "Only one builder runs at a time — PID-tracked lockfile prevents concurrent builds"
+  - "History is JSONL append-only; identical consecutive lines are deduped"
+  - "repo_map.json is the single source of truth for the dashboard's Repo Map tab"
+  - "Dashboard polls the JSON via fetch — no IPC, no websocket, no shared memory"
+
+states:
+  fresh_clone:
+    repo_map_json: "Absent"
+    behavior: >
+      Dashboard's Repo Map tab shows 'Run python scripts/repo_map.py build'
+      banner. First manual build seeds the file; the post-edit hook takes
+      over from there.
+
+  steady_state:
+    repo_map_json: "Present and current"
+    behavior: >
+      User edits a tracked file → PostToolUse hook touches a dirty marker →
+      builder process picks it up → rebuild completes → dashboard's next
+      poll sees the new mtime and re-fetches.
+
+  rapid_edits_burst:
+    repo_map_json: "Lagging by one tail rebuild"
+    behavior: >
+      During a wave of 5+ edits in <1s, the loop-while-dirty pattern lets
+      the FIRST builder absorb all subsequent dirty marks. Builders 2-N
+      see the lock and exit immediately. After the first build finishes,
+      it re-checks dirty and rebuilds ONCE more. Net: 2 builds for N
+      edits, regardless of N.
+
+declared_dependencies:
+  - kind: depends_on
+    target: tree-sitter
+    why: "Symbol extraction relies on tree-sitter language parsers"
+
+  - kind: depends_on
+    target: networkx
+    why: "PageRank computation over the import graph"
+
+triggers:
+  - event: "PostToolUse on Edit/Write to *.py / *.dart / *.ts / feature_flows/*.yaml"
+    handler: post-edit-repo-map-dirty.sh
+    consequence: "Marks build dirty + spawns builder if no lock held"
+
+  - event: "Manual: python scripts/repo_map.py build"
+    handler: repo_map.py
+    consequence: "Synchronous full rebuild; logs to history JSONL"

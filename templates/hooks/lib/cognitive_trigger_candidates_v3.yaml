@@ -1,0 +1,75 @@
+# V3 candidates — TEMP file for weighted validation only
+# Source: trigger_candidates_clustered.md (Build B from 2026-04-30)
+# Promote to live cognitive_triggers.yaml ONLY after weighted validation passes.
+
+triggers:
+
+  # === STRONG candidates (Build B recommended for promotion) ===
+
+  - id: agreement_capitulation
+    pattern: "\\byou'?re right(?:[.,!]|\\s+i\\s+(?:should|will|need|missed|got))"
+    category: verify_before_agree
+    severity: high
+    applies_to: all
+    redirection: |
+      🧠 You agreed and admitted you missed something — that's the agreement-
+      without-verification antipattern. Per CLAUDE.md "When the user makes a
+      correction — Is this right? Verify independently before agreeing."
+
+      Verify the user's claim FIRST: read the file, run the query, grep the
+      symbol. Then decide what to do. You're capable of pushback when warranted.
+
+  - id: hedge_or_capability_disclaim
+    pattern: "\\b(i can'?t|cannot|impossible|won'?t work|isn'?t possible)\\b(?!\\s+(?:promise|guarantee|tell|wait))"
+    category: cli_check
+    severity: high
+    applies_to: all
+    redirection: |
+      🧠 You said something can't be done / is impossible.
+
+      Per CLAUDE.md "When about to say 'I can't do X' — What CLI tool handles
+      this?" Check knowledge/cli_tools_guide.yaml. If not covered, search
+      (winget, npm, pip, brew). Default to capability, not refusal.
+
+      The harder-but-correct path is usually possible. Try it first.
+
+  - id: commit_premature
+    pattern: '\blet\s+me\s+commit\b'
+    category: verify_before_agree
+    severity: medium
+    applies_to: all
+    redirection: |
+      🧠 You're about to commit. Per CLAUDE.md: "NEVER commit changes unless
+      the user explicitly asks you to. It is VERY IMPORTANT to only commit
+      when explicitly asked."
+
+      Did the user explicitly ask for this commit? If not — wait. The
+      verified-good move is to summarize what's ready, then ask.
+
+  # === HOLD candidates (validate first, decide later) ===
+
+  - id: complexity_inflation
+    pattern: '\b(let me think (?:about|through)|i should (?:also|probably)|let me also (?:add|check|verify))\b'
+    category: solution_compare
+    severity: medium
+    applies_to: all
+    redirection: |
+      🧠 You're adding complexity post-decision ("let me also add", "I should
+      probably also"). The user already accepted a scope — bolting on extras
+      after the fact is scope creep.
+
+      Either fix what you committed to OR raise the additional concern as a
+      separate question. Don't silently expand.
+
+  - id: should_speculation
+    pattern: '\b(should\s+(?:work|be\s+fine|fit|handle)|might\s+not|probably\s+(?:works?|fine))\b'
+    category: guess_detection
+    severity: medium
+    applies_to: all
+    redirection: |
+      🧠 "Should work / probably fine / might not" — speculation about your own
+      changes without verifying. Distinct from external-service assumption —
+      this is your code working as expected without test/check.
+
+      Run a verification: load the screen, run the test, query the result.
+      Then assert. Or hedge honestly ("I haven't verified this yet").

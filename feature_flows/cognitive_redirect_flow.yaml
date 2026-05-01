@@ -1,0 +1,68 @@
+# Cognitive Redirect — Lifecycle Flow
+# Last updated: 2026-04-30
+#
+# Behavior of the EmotionPrompt-backed cognitive-redirection system: how
+# Claude's user-prompt text is scanned for failure-mode patterns, how
+# matching patterns inject SystemReminders, and how outcomes feed the
+# trigger-learning loop.
+
+purpose: >
+  Real-time detection of Claude's documented failure-mode language (e.g.
+  "let me just", "I'll work around", "this should be fine") with a
+  SystemReminder that fires on the NEXT turn. Pulls Claude back to the
+  PACT-correct path before the wrong action ships. Brag-citation system
+  appends a track-record line when Claude has heeded the same pattern
+  with high precision before — recognition that earns trust.
+
+flow_kind: cross_cutting_concern
+
+participating_files:
+  - templates/hooks/lib/scan_triggers.py
+  - templates/hooks/lib/inject_brag_citation.py
+  - templates/hooks/lib/brag_scoring.py
+  - templates/hooks/lib/learn_triggers.py
+  - templates/hooks/lib/detect_self_correction.py
+  - templates/hooks/lib/tag_outcomes.py
+  - templates/hooks/lib/validate_triggers.py
+
+invariants:
+  - "Pattern matching is regex-based — fast (<5ms) and deterministic"
+  - "Only triggers with weighted precision >= 0.6 are active by default"
+  - "Brag citations append, never replace, the redirect message"
+  - "Outcome tagging closes the loop: heeded vs ignored feeds trigger weights"
+  - "Learn-triggers job runs on a cadence — promotes/demotes patterns based on observed outcomes"
+
+states:
+  cold_start:
+    triggers_yaml: "Seeded with hand-curated patterns from past failure post-mortems"
+    behavior: >
+      Patterns fire on every assistant turn that contains user-prompt text.
+      Precision is unknown until outcomes accumulate.
+
+  steady_state:
+    triggers_yaml: "Mixed: some patterns at 0.9 precision, some at 0.5, some pruned"
+    behavior: >
+      Brag citations on Claude's better track records make the redirects
+      land harder. Low-precision patterns get demoted to 'shadow' status
+      where they log without firing.
+
+  pattern_drift:
+    triggers_yaml: "Stale — Claude has stopped exhibiting an old failure mode"
+    behavior: >
+      learn_triggers.py demotes the pattern after enough no-fire weeks.
+      Replaced by whatever new mode Claude has drifted into; the cycle
+      continues.
+
+declared_dependencies:
+  - kind: depends_on
+    target: anthropic
+    why: "EmotionPrompt research foundation; documented in cognitive_redirect_system.yaml stream"
+
+triggers:
+  - event: "UserPromptSubmit"
+    handler: cognitive-redirect.sh
+    consequence: "Scans the prompt; if a pattern matches, queues a SystemReminder for next turn"
+
+  - event: "Stop (turn end)"
+    handler: cognitive-outcome-tag.sh
+    consequence: "Tags whether the previous redirect was heeded or ignored — feeds learning loop"

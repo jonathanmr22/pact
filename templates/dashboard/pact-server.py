@@ -40,8 +40,8 @@ class DashHandler(http.server.SimpleHTTPRequestHandler):
 
     # Multi-project support: when the dashboard sends ?root=<absolute path>,
     # we re-root file lookups to that project's plans/dashboard/ for YAML
-    # data fetches, and to that project's repo root for /system-map.yaml.
-    # The HTML/CSS/JS shell still comes from THIS serve.py's SERVE_ROOT.
+    # data fetches. The HTML/CSS/JS shell still comes from THIS serve.py's
+    # SERVE_ROOT.
     SAFE_DATA_PATHS = ("_index.yaml", "trees/", "plans/dashboard/")
 
     def _resolve_project_root(self):
@@ -71,28 +71,34 @@ class DashHandler(http.server.SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(data)
 
+    # Where the dashboard scaffold lives within a project root. Most projects
+    # use plans/dashboard/ — that's the convention. PACT itself uses
+    # templates/dashboard/ (the scaffold IS the deliverable). We probe in
+    # priority order; first one with an _index.yaml wins. New layouts can
+    # be added here without touching call sites.
+    DASHBOARD_LAYOUTS = ("plans/dashboard", "templates/dashboard")
+
+    def _resolve_dashboard_dir(self, project_root: Path) -> Path:
+        """Pick the project's dashboard scaffold directory. Falls back to
+        the first layout in DASHBOARD_LAYOUTS so a 404 path is still
+        deterministic when no layout matches."""
+        for layout in self.DASHBOARD_LAYOUTS:
+            candidate = project_root / layout
+            if (candidate / "_index.yaml").is_file():
+                return candidate
+        return project_root / self.DASHBOARD_LAYOUTS[0]
+
     def do_GET(self):
         parsed = urlparse(self.path)
         path_only = parsed.path
         project_root = self._resolve_project_root()
 
-        # Virtual endpoint: SYSTEM_MAP.yaml lives at the project root
-        # (default project = SERVE_ROOT.parent.parent; switched project = `root` arg).
-        if path_only == "/system-map.yaml":
-            base = project_root if project_root else SERVE_ROOT.parent.parent
-            sm = base / "SYSTEM_MAP.yaml"
-            if not sm.exists():
-                self.send_error(404, f"SYSTEM_MAP.yaml not found at {base}")
-                return
-            return self._serve_yaml_from(sm)
-
         # When a project root is specified AND the request is for a YAML/dashboard
-        # data file, re-root the read to <project_root>/plans/dashboard/<rel>.
+        # data file, re-root the read to the project's dashboard scaffold.
         # Strip query string from path_only for filesystem lookup.
         if project_root and (path_only.endswith(".yaml") or path_only.endswith(".yml")):
-            # path_only starts with '/' — strip and join under <project>/plans/dashboard/
             rel = path_only.lstrip("/")
-            target = project_root / "plans" / "dashboard" / rel
+            target = self._resolve_dashboard_dir(project_root) / rel
             return self._serve_yaml_from(target)
 
         return super().do_GET()
@@ -260,9 +266,11 @@ class DashHandler(http.server.SimpleHTTPRequestHandler):
                 self._json({"ok": False, "error": f"status '{new_value}' invalid; allowed: {sorted(valid)}"}, status=400)
                 return
 
-        # Resolve the stream file path (honor ?root= for cross-project)
+        # Resolve the stream file path (honor ?root= for cross-project).
+        # Probe both standard layouts so PACT-style templates/dashboard/
+        # projects work too.
         proj_root = self._resolve_project_root() or SERVE_ROOT.parent.parent
-        target_file = proj_root / "plans" / "dashboard" / stream_path
+        target_file = self._resolve_dashboard_dir(proj_root) / stream_path
         if not target_file.exists():
             self._json({"ok": False, "error": f"file not found: {target_file}"}, status=404)
             return

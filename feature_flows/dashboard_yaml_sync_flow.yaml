@@ -1,0 +1,62 @@
+# Dashboard YAML Sync — Lifecycle Flow
+# Last updated: 2026-04-30
+#
+# How the dashboard.html (codebase) and dashboard_build.yaml (audit log +
+# XP source) stay in lockstep. Without this gate, you can ship HTML
+# without logging — which breaks both the audit trail and the XP banner.
+
+purpose: >
+  Wave-end gate that prevents the assistant from ending a response when
+  dashboard.html has been edited but dashboard_build.yaml hasn't been
+  updated to log the work. Soft nudge during the wave; hard block at the
+  Stop hook. Ensures every visible feature change has a corresponding
+  audit-log entry that drives the project's XP economy.
+
+flow_kind: infrastructure
+
+participating_files:
+  - templates/dashboard/pact-server.py
+
+invariants:
+  - "PostToolUse on dashboard.html sets a session-scoped flag"
+  - "PostToolUse on dashboard_build.yaml CLEARS that flag"
+  - "Stop hook blocks turn-end if flag is still set"
+  - "Soft reminder during the wave (followup hook) — non-blocking"
+  - "Block message points the assistant directly at dashboard_build.yaml with the exact YAML stub to add"
+
+states:
+  clean:
+    flag_file: "Absent"
+    behavior: >
+      Either no dashboard work happened this session, or every HTML edit
+      has been mirrored in YAML. Stop hook is a no-op.
+
+  dirty_within_wave:
+    flag_file: "Present"
+    behavior: >
+      HTML was edited; YAML hasn't caught up yet. Soft nudge fires on
+      the next post-edit. If the wave keeps going without a YAML edit,
+      the Stop hook will block turn-end.
+
+  blocked_at_stop:
+    flag_file: "Present at Stop"
+    behavior: >
+      Stop hook returns decision:'block' with a forced reminder.
+      Assistant must update dashboard_build.yaml before they can end
+      the response. Once the YAML edit lands, the flag clears and the
+      next Stop succeeds.
+
+declared_dependencies: []
+
+triggers:
+  - event: "PostToolUse on Edit/Write to pact-dashboard.html"
+    handler: post-edit-dashboard-flag.sh
+    consequence: "Touches the flag file"
+
+  - event: "PostToolUse on Edit/Write to dashboard_build.yaml"
+    handler: post-edit-dashboard-flag.sh
+    consequence: "Removes the flag file"
+
+  - event: "Stop"
+    handler: stop-dashboard-yaml-sync.sh
+    consequence: "Blocks if flag is still set"

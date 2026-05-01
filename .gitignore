@@ -1,1 +1,15 @@
 __pycache__/
+
+# Session-local state — leaks absolute paths and edit timestamps from
+# whoever happens to be working on PACT in their own working tree.
+.claude/memory/
+.claude/cache/
+
+# Local dashboard runtime state
+.claude/pact-events.jsonl
+.claude/pact-server.pid
+.claude/sessions.yaml
+
+# Build / temp
+*.pyc
+.DS_Store

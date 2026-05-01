@@ -1,39 +1,108 @@
 # PACT Dashboard build (meta initiative — example seed file).
 #
-# This is a STARTER template. Replace these tasks with whatever you actually
-# want to track. The dashboard renders this file and lets you click any task
-# to add notes, change status, etc. Status changes auto-bump `last_touched`.
+# This initiative deliberately spans the full feature-tier range so adopters
+# see the auto-derived box sizing system in action. Each child of `node`
+# becomes a feature CARD on the treemap; box size is derived from the
+# task count under it (Tiny <3 / Small 3-5 / Medium 6-12 / Large 13-25 /
+# Massive 26+).
 #
 # Status vocabulary:
 #   - Tasks       : todo | in_flight | done
 #   - Nodes/feats : not_started | in_flight | blocked_user | blocked_external | done
-#
-# `last_touched` is a YYYY-MM-DD string; the dashboard parses it as LOCAL midnight.
 node:
-  name: "PACT Dashboard build (meta)"
-  status: in_flight
-  last_touched: 2026-04-29
+  name: "PACT Dashboard v0.10 → v0.11"
+  status: done
+  last_touched: 2026-04-30
   plan: templates/dashboard/pact-dashboard.html
-  note: "The dashboard you're looking at right now. Multi-file YAML schema, Tetris-grid feature cards, modal flip card with tasks + PACT refs, sticky controls, sort/filter, prompt builder, themes, Archive view, status picker. This file is just the seed example — replace with your own initiatives."
+  note: "The dashboard you're looking at right now. Multi-tree YAML schema, Tetris-grid feature cards, modal flip card with tasks + PACT refs, sticky controls, sort/filter, prompt builder, themes + Google Fonts, Archive view, status picker, drag-to-reorder, task notes — all shipped in v0.10–v0.11. The features below are sized by task count to show the auto-tier system."
   references:
     plans: [templates/dashboard/_index.yaml, templates/dashboard/pact-dashboard.html]
-    knowledge: []
+    knowledge: [docs/dashboard.md]
 
   children:
-    - name: "Replace this seed example"
-      status: not_started
-      last_touched: 2026-04-29
-      note: "When you're ready to use the dashboard for real work, delete the seed tasks below and add your own initiatives. Each child of `node` becomes a feature card; each task in a child's `tasks:` becomes a row in the modal."
-      tasks:
-        - { name: "Open this YAML file (templates/dashboard/trees/governance/streams/dashboard_build.yaml)", status: todo }
-        - { name: "Replace tasks with your own — name + status + optional note", status: todo }
-        - { name: "Add a new initiative file under trees/{tree}/streams/ for each new domain", status: todo }
-        - { name: "Wire it into _index.yaml (trees + streams)", status: todo }
-
-    - name: "Example: shipped feature you want to track in history"
+    # MASSIVE tier (26+ tasks) — the headline feature
+    - name: "Repo Map view (List / Graph / Flows / Drift)"
       status: done
-      last_touched: 2026-04-29
-      note: "Example pattern: keep done features visible so the dashboard remembers what was built and when. Hide-completed filter + Archive view both let you de-clutter without losing history."
+      last_touched: 2026-04-30
+      note: "The marquee feature of v0.11. Aider-style symbol map over the codebase with four sub-tabs. Real-time auto-rebuild via post-edit hook (loop-while-dirty pattern). 30+ implementation tasks total. See repo_map_v1 initiative for the underlying engine."
       tasks:
-        - { name: "Some task that shipped", status: done }
-        - { name: "Another task that shipped", status: done }
+        - { name: "List sub-tab — searchable, sortable, kind-filtered file list", status: done }
+        - { name: "List detail panel — top symbols + imports + importers + flow membership", status: done }
+        - { name: "List detail panel — drift_schema for Drift table files (columns + FKs)", status: done }
+        - { name: "List detail panel — edge_function metadata for index.ts files", status: done }
+        - { name: "List detail panel — provider cache shape for *_provider.dart", status: done }
+        - { name: "List detail panel — cross-cutting hook callsites", status: done }
+        - { name: "List detail panel — anomalies emitted from this file", status: done }
+        - { name: "List detail panel — env vars read from this file", status: done }
+        - { name: "Graph sub-tab — d3-force layout of top 100 PageRank nodes", status: done }
+        - { name: "Graph: click-to-detail, no-jiggle drag (alphaTarget only on movement)", status: done }
+        - { name: "Flows sub-tab — feature-flow card stack design", status: done }
+        - { name: "Flows: files grouped by architectural layer", status: done }
+        - { name: "Flows: declared dependencies (outbound + inbound auto-computed)", status: done }
+        - { name: "Flows: invariants list with anchor verification", status: done }
+        - { name: "Flows: Mermaid diagram (lazy-rendered) with full-screen zoom overlay", status: done }
+        - { name: "Flows: references field (plan_doc / design_manifest / figma / spec)", status: done }
+        - { name: "Drift sub-tab — orphans / broken-deps / undocumented-pairs / missing", status: done }
+        - { name: "Drift: per-flow status pills (red / amber / info / green)", status: done }
+        - { name: "Drift: 4-line SVG sparkline trend (orphans/broken/undoc/red)", status: done }
+        - { name: "Search wired across all 4 tabs with tab-specific behavior", status: done }
+        - { name: "Click-handlers: row click → side panel update", status: done }
+        - { name: "Click-handlers: chip click → directive added to prompt builder", status: done }
+        - { name: "Real-time auto-rebuild via post-edit-repo-map-dirty.sh hook", status: done }
+        - { name: "Loop-while-dirty pattern (rapid edits collapse into one tail rebuild)", status: done }
+        - { name: "PID-tracked lock file prevents concurrent builders", status: done }
+        - { name: "History JSONL with dedupe (skip identical consecutive lines)", status: done }
+        - { name: "Per-symbol leading doc-comment capture (Dart /// + Python \"\"\"... + TS /** */)", status: done }
+        - { name: "symbol_index, symbol_callers, class_usage, class_hierarchy globals", status: done }
+
+    # LARGE tier (13-25 tasks)
+    - name: "Multi-tree schema + view-toggle"
+      status: done
+      last_touched: 2026-04-25
+      note: "Single-doc → multi-file schema. Vocabulary: TREE → INITIATIVE → FEATURE → TASK. Box sizes auto-derived. Scroll-wheel switches trees."
+      tasks:
+        - { name: "_index.yaml + per-tree _intent.yaml schema", status: done }
+        - { name: "streams/*.yaml format (top-level node + children)", status: done }
+        - { name: "Scroll-wheel switches between trees", status: done }
+        - { name: "Section per tree in Board view", status: done }
+        - { name: "Seed scaffold for fresh adopters", status: done }
+        - { name: "View-toggle: Board / Task List / Repo Map / Pythons / Archive", status: done }
+        - { name: "Hide-completed filter (per-project state)", status: done }
+        - { name: "Layout-fixed body class (1280px max width)", status: done }
+        - { name: "Header sticky-on-scroll (smooth shadow at scroll-y > 8)", status: done }
+        - { name: "Project switcher (multi-project support via ?root= query param)", status: done }
+        - { name: "Title field per tree (Governance & PACT, etc.)", status: done }
+        - { name: "Box-size tier system (Tiny / Small / Medium / Large / Massive)", status: done }
+        - { name: "Modal flip card (front: feature info, back: PACT references)", status: done }
+
+    # SMALL tier (3-5 tasks)
+    - name: "Themes + Google Fonts"
+      status: done
+      last_touched: 2026-04-26
+      note: "Five named dark themes (Tide & Ember default) each with paired font trios. Per-project state."
+      tasks:
+        - { name: "Theme picker UI + per-theme color preview", status: done }
+        - { name: "Per-role font picker (UI / monospace / display)", status: done }
+        - { name: "Dynamic <link> injection for Google Fonts", status: done }
+        - { name: "Reset Fonts + Align-to-theme buttons", status: done }
+        - { name: "Per-project state in localStorage", status: done }
+
+    # SMALL tier (3-5 tasks)
+    - name: "Status picker + task notes"
+      status: done
+      last_touched: 2026-04-28
+      note: "Click status badge → overlay picker → atomic YAML write. Click task name → inline notes editor."
+      tasks:
+        - { name: "POST /yaml-edit endpoint (atomic tmp+rename)", status: done }
+        - { name: "Status picker overlay UI", status: done }
+        - { name: "POST /note + /notes endpoints (level: task | initiative)", status: done }
+        - { name: "dashboard_notes_unread sentinel for SessionStart hook", status: done }
+
+    # TINY tier (<3 tasks) — demonstrates smallest box
+    - name: "Drag to reorder"
+      status: done
+      last_touched: 2026-04-28
+      note: "Pointer-event tactile drag with 5px movement threshold. Tilt + lift + shadow on grab. Per-project order in localStorage; reset button restores YAML order."
+      tasks:
+        - { name: "Card-within-feature-grid + initiative-section drag handlers", status: done }
+        - { name: "Reset button restores YAML order", status: done }

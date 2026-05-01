@@ -56,7 +56,7 @@ python pact-memory.py store \
   --id "meld-007" \
   --text "BLE advertising fails when Bluetooth audio is connected" \
   --file "bugs/meld/meld-007.yaml" \
-  --project "kensic"
+  --project "myapp"
 ```
 
 ### Query (semantic search)
@@ -68,7 +68,7 @@ python pact-memory.py query "stale cache after provider update"
 python pact-memory.py query "encryption key derivation" --type research
 
 # Filter by project
-python pact-memory.py query "backup restore" --project kensic
+python pact-memory.py query "backup restore" --project myapp
 
 # JSON output (for programmatic use)
 python pact-memory.py query "sync conflict" --json --top 10

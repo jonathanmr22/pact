@@ -1,0 +1,25 @@
+# Dashboard themes — example product initiative
+#
+# Example content shipped with the PACT seed scaffold.
+node:
+  name: "Dashboard themes + fonts (example)"
+  status: done
+  last_touched: 2026-04-26
+  note: "Five named dark themes (Tide & Ember default, Midnight Orchid, Sodium Rain, Neon Dive, Inkwell), each paired with a font trio. Per-project state."
+
+  children:
+    - name: "Theme picker UI"
+      status: done
+      last_touched: 2026-04-26
+      tasks:
+        - { name: "Settings panel layout + theme card grid", status: done }
+        - { name: "Live preview on hover", status: done }
+        - { name: "Per-project state via localStorage", status: done }
+
+    - name: "Google Fonts integration"
+      status: done
+      last_touched: 2026-04-26
+      tasks:
+        - { name: "Dynamic <link> injection per font choice", status: done }
+        - { name: "Font role split (UI / monospace / display)", status: done }
+        - { name: "Reset Fonts + Align-to-theme buttons", status: done }

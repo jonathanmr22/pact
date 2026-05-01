@@ -1,0 +1,86 @@
+generated: '2026-04-30T22:06:54.922447'
+method: weighted
+corpus:
+  sessions: 29
+  assistant_turns: 29412
+thresholds:
+  min_precision: 0.6
+  min_support: 5
+  correction_window: 2
+  lookahead_turns: 3
+signal_weights:
+  user_correction_2turn: 1.0
+  user_correction_5turn: 0.5
+  claude_self_correction: 0.8
+  bug_file_within_24h: 1.5
+  file_revert_within_5: 1.2
+results:
+- id: commit_premature
+  category: verify_before_agree
+  method: weighted
+  total_fires: 109
+  weighted_score: 86.8
+  weighted_precision: 0.796
+  support: 109
+  signal_breakdown:
+    claude_self_correction: 81
+    user_correction_5turn: 16
+    user_correction_2turn: 14
+  passes_gate: true
+  recommended_action: keep
+  severity: medium
+- id: agreement_capitulation
+  category: verify_before_agree
+  method: weighted
+  total_fires: 150
+  weighted_score: 113.9
+  weighted_precision: 0.759
+  support: 150
+  signal_breakdown:
+    user_correction_5turn: 25
+    claude_self_correction: 98
+    user_correction_2turn: 23
+  passes_gate: true
+  recommended_action: keep
+  severity: high
+- id: should_speculation
+  category: guess_detection
+  method: weighted
+  total_fires: 214
+  weighted_score: 56.6
+  weighted_precision: 0.264
+  support: 214
+  signal_breakdown:
+    user_correction_5turn: 42
+    user_correction_2turn: 34
+    claude_self_correction: 2
+  passes_gate: false
+  recommended_action: demote
+  severity: medium
+- id: hedge_or_capability_disclaim
+  category: cli_check
+  method: weighted
+  total_fires: 208
+  weighted_score: 47.0
+  weighted_precision: 0.226
+  support: 208
+  signal_breakdown:
+    user_correction_5turn: 34
+    user_correction_2turn: 30
+  passes_gate: false
+  recommended_action: demote
+  severity: high
+- id: complexity_inflation
+  category: solution_compare
+  method: weighted
+  total_fires: 518
+  weighted_score: 91.5
+  weighted_precision: 0.177
+  support: 518
+  signal_breakdown:
+    user_correction_5turn: 88
+    bug_file_within_24h: 1
+    user_correction_2turn: 46
+  passes_gate: false
+  recommended_action: demote
+  severity: medium
