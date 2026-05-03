@@ -174,8 +174,8 @@ fi
 # ============================================================================
 
 # ---- Forbidden imports ----
-# if echo "$NEW_STRING" | grep -qi 'import.*hive'; then
-#   VIOLATIONS="${VIOLATIONS}BLOCKED: Hive is forbidden. Use Drift.\n"
+# if echo "$NEW_STRING" | grep -qi 'import.*deprecated_package'; then
+#   VIOLATIONS="${VIOLATIONS}BLOCKED: deprecated_package is forbidden. Use the canonical replacement.\n"
 # fi
 
 # ---- Forbidden logging ----

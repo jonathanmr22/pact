@@ -10,7 +10,7 @@
 At the start of every conversation, the agent MUST:
 
 1. State: *"I have read and will follow all [PROJECT NAME] rules."* — Use the actual project name from the working directory, repository name, or CLAUDE.md title. Never say "project rules" generically and never leave the literal placeholder `[PROJECT NAME]` in your output. If the working directory is `~/code/acme-maps`, say "Acme Maps". If the CLAUDE.md title is "Cosmic CRM", say "Cosmic CRM". The user should hear their project's name, not a template placeholder.
-2. Read `.claude/memory/PENDING_WORK.yaml` — check for in-progress tasks
+2. Read `HANDOFF.yaml` at the repo root — entry pointer for this session. It surfaces top priorities + last-session summary, then directs you into the dashboard trees (`plans/dashboard/trees/{tree}/streams/*.yaml`) which are the single source of truth for current AND historical work. (Replaces the legacy `.claude/memory/PENDING_WORK.yaml` pattern — see `docs/handoff_architecture.md` for the migration playbook.)
 3. Scan `.claude/memory/file_edit_log.yaml` — note recently-edited files, fresh-read before assuming
 4. Read `.claude/sessions.yaml` — check for other active sessions. If another session is active or recently committed (within the last hour), tell the user: *"Another session is active (started [time], last commit [hash]). I'll pull before committing to avoid conflicts."*
 5. **PACT capability check** — glance at `knowledge/PACT_BASELINE.yaml`. Does your model, context window, or available tools differ from the baseline? If anything feels different, run the self-check protocol and add a `capability_deltas[]` entry. This is how PACT evolves with you.
@@ -122,11 +122,11 @@ At the start of every conversation, the agent MUST:
    <checkpoint type="progress_update">
    <milestone>[What just completed — be specific: "Inserted 540 music/gaming sources" not "made progress"]</milestone>
    <state_now>[Concrete counts and status: what's done, what's in flight, what's next]</state_now>
-   <pending_work_updated>[Yes/No — did you update PENDING_WORK.yaml? If no, do it NOW before proceeding]</pending_work_updated>
+   <dashboard_updated>[Yes/No — did you update the relevant dashboard stream YAML and/or HANDOFF.yaml? If no, do it NOW before proceeding]</dashboard_updated>
    </checkpoint>
    ```
    
-   **Why this exists:** During long operations (bulk data work, multi-file refactors, seeding, migrations), I get deep into execution and stop documenting where I am. The next instance of me opens `PENDING_WORK.yaml`, finds stale information, and either repeats work or misses where I left off. This checkpoint forces me to leave breadcrumbs *during* the work, not after. The breadcrumb is for the next clone — it's an investment in continuity, not overhead.
+   **Why this exists:** During long operations (bulk data work, multi-file refactors, seeding, migrations), I get deep into execution and stop documenting where I am. The next instance of me opens `HANDOFF.yaml`, follows it into the dashboard streams, and finds stale information — then either repeats work or misses where I left off. This checkpoint forces me to leave breadcrumbs *during* the work, not after. The breadcrumb is for the next clone — it's an investment in continuity, not overhead.
 
 8. **`async_safety`** — Trigger: writing or modifying any async method, callback handler, event listener, or initialization code. LLMs reason sequentially but race conditions live in interleavings — this checkpoint forces you to model concurrent execution BEFORE writing the code.
    ```
@@ -342,7 +342,7 @@ grow it over time as decisions crystallize.
 
 - **When researching a topic:** *"Have I exhausted all potential sources?"* — Research is not "find one good article and stop." Research is insatiable curiosity until the knowledge is genuinely exhausted. The stopping rule: **10 consecutive successfully-fetched sources since the last significant finding with nothing new.** 404s and failed fetches don't count toward the 10. "Significant" means a technique, tool, or pattern that would change your implementation — not a minor variation of something you already know. Track your count honestly. If you stop at 3 and rationalize "I've seen enough," you haven't. Delegate research to cheaper worker models via pact-delegate (research type) — this makes exhaustive searching cost-effective. When you DO find something significant, reset the counter and keep going. The goal: when you finish researching, you should be able to say "I looked at 30+ sources and the last 10 had nothing new" — not "I looked at 5 and felt done."
 
-- **When a major work stream changes state (blocked, completed, or pivoted):** *"Is PENDING_WORK.yaml current?"* — Update `.claude/memory/PENDING_WORK.yaml` when: (1) a multi-step task completes or gets blocked, (2) a long-running background process starts or fails, (3) you discover work the next session needs to know about. Do NOT batch updates at the end of the session — by then you've forgotten details. Each entry should include: what was done, what's still running, what's blocked, and how to continue. The commit-time hook warns if the file is >1 hour stale.
+- **When a major work stream changes state (blocked, completed, or pivoted):** *"Is the dashboard current?"* — Update the appropriate `plans/dashboard/trees/{tree}/streams/*.yaml` task when: (1) a multi-step task completes or gets blocked, (2) a long-running background process starts or fails, (3) you discover work the next session needs to know about. Set `claude_autonomous: true` and `claude_notes: |` with file:line refs and concrete deltas if you shipped without user input. At end-of-session, also bump `HANDOFF.yaml`'s `last_session_summary` if the work was non-trivial. Do NOT batch updates at the end of the session — by then you've forgotten details. Each entry should include: what was done, what's still running, what's blocked, and how to continue.
 
 - **When about to declare work done or commit:** *"Have I dispatched pact-reviewer for a second opinion?"* — self-review is inherently biased. You wrote the code, so you'll see what you intended, not what you shipped. For feature work or multi-file changes (3+ files), dispatch `pact-reviewer` — it runs the governance checklist in a fresh context and catches what your loaded context window misses. Skip for trivial commits (typo fixes, version bumps). The 30 seconds a review takes saves the 30 minutes a missed staleness issue costs.
 
@@ -373,7 +373,7 @@ At session start, if you detect an existing system that overlaps with a PACT sub
 
 Common overlaps:
 - **Vector memory / knowledge layer** — if the user already has semantic search (reseek, mem0, memsearch, claude-mem), PACT's vector memory (`pact-memory.py`) may be redundant. The user decides.
-- **Task management** — if Taskmaster or similar is installed, PACT's `PENDING_WORK.yaml` is the lighter option. Both can coexist.
+- **Task management** — if Taskmaster or similar is installed, PACT's `HANDOFF.yaml` + dashboard architecture is the lighter option. Both can coexist.
 - **Session memory** — if a memory plugin captures session transcripts, PACT's structured YAML files serve a different purpose (curated knowledge vs raw capture). These are complementary, not competing.
 
 ---
@@ -418,7 +418,9 @@ Common overlaps:
 | Bug tracker required for fix commits | pre-bash-guard.sh | BLOCKS bash |
 | Knowledge Directory pairing: knowledge files require KNOWLEDGE_DIRECTORY.yaml in same commit | pre-bash-guard.sh | BLOCKS bash |
 | Critical file protection: requires feature flow doc | pre-edit-feature-flow.sh | BLOCKS edit |
-| Progress breadcrumb staleness (30+ edits or 20+ min without PENDING_WORK update) | post-edit-progress-check.sh | WARNS |
+| Progress breadcrumb staleness (30+ edits or 20+ min without dashboard update) | post-edit-progress-check.sh | WARNS |
+| UserPromptSubmit timestamp injection — current local time on every turn | inject-timestamp.sh | INFO |
+| UserPromptSubmit new-feature complexity check — fires on "new feature" / "add a feature" / "build a X" / "implement a X" trigger phrases; agent emits complexity tier + training-data confidence (1-10) before responding | feature-complexity-check.sh | INFO |
 | File size > 800 lines | post-edit-warnings.sh | WARNS |
 | Import count > 25 | post-edit-warnings.sh | WARNS |
 | Modal without scroll wrapper | post-edit-warnings.sh | WARNS |
@@ -455,7 +457,7 @@ Ask: **"What did my changes just make stale?"**
 - Changed a critical system? → Update the feature flow doc
 - Fixed a bug? → Document in `bugs/{system}/{system}-NNN.yaml`
 - Did non-trivial research? → Save synthesis to `knowledge/research/`. Update `knowledge/KNOWLEDGE_DIRECTORY.yaml` with any new tags or file entries.
-- Updated PENDING_WORK.yaml with status
+- Updated the dashboard stream YAML with status (and `HANDOFF.yaml` `last_session_summary` if the work was non-trivial)
 
 ### On-Demand Reference Files
 
@@ -495,7 +497,7 @@ Ask: **"What did my changes just make stale?"**
 
 <!-- CUSTOMIZE: Brief description of your tech stack -->
 
-- **Database:** (e.g., SQLite via Drift, PostgreSQL, etc.)
+- **Database:** (e.g., PostgreSQL, MySQL, SQLite, etc.)
 - **State Management:** (e.g., Riverpod, Redux, Zustand, etc.)
 - **Backend:** (e.g., Supabase, Firebase, custom API, etc.)
 - **Key files:** See `SYSTEM_MAP.yaml` for full wiring

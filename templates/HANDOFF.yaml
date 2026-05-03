@@ -1,0 +1,65 @@
+# HANDOFF.yaml — Session entry pointer
+#
+# READ FIRST at session start. This file is INTENTIONALLY THIN.
+#
+# The dashboard at plans/dashboard/trees/{tree}/streams/*.yaml is the
+# SINGLE SOURCE OF TRUTH for current AND historical work. This file just
+# tells the next session where to look first — what's awaiting verification,
+# what's blocked, what was last touched, what's been autonomously shipped
+# without user review.
+#
+# This replaces the legacy .claude/memory/PENDING_WORK.yaml pattern. If you
+# have an existing project with a heavyweight PENDING_WORK.yaml, see the
+# migration playbook in docs/handoff_architecture.md (TBD as of v0.12.0).
+#
+# DO NOT add open task content here. If you have new work, add it as a
+# task on the appropriate dashboard stream YAML. The dashboard renders
+# every status, every claude_autonomous flag, every note — it's already
+# better than this file would ever be.
+#
+# DO update the `top_priorities` and `last_session_summary` sections at
+# the END of every session if you shipped non-trivial work.
+
+last_updated: YYYY-MM-DD
+
+# ────────────────────────────────────────────────────────────────────────
+# TOP PRIORITIES (read these dashboard tasks first)
+# ────────────────────────────────────────────────────────────────────────
+# Each entry: tree → stream → task. Click the dashboard chip to jump.
+# Rotate as items resolve; keep this list ≤ 8 items.
+#
+top_priorities: []
+  # Example structure — replace with real entries:
+  # - tree: governance
+  #   stream: pact_remediation.yaml
+  #   task: "Component N — feature X awaiting human verification"
+  #   why: "Built autonomously last session; needs review before next layer."
+
+# ────────────────────────────────────────────────────────────────────────
+# LAST SESSION SUMMARY (one entry per session, newest first, max ~5)
+# ────────────────────────────────────────────────────────────────────────
+last_session_summary: []
+  # Example structure — replace with real entries:
+  # - date: YYYY-MM-DD
+  #   session_id_prefix: abcd1234
+  #   headline: "One-sentence summary of what shipped"
+  #   what_changed: |
+  #     - Multi-line description of concrete deltas
+  #     - File paths, key behaviors, why it matters
+  #   awaiting_user:
+  #     - Items needing human decision/test before next session continues
+
+# ────────────────────────────────────────────────────────────────────────
+# DASHBOARD TREE INDEX (informational — auto-derived from _index.yaml)
+# ────────────────────────────────────────────────────────────────────────
+# Open the dashboard at http://localhost:8800/dashboard.html or read the
+# raw YAMLs directly under plans/dashboard/trees/.
+#
+# The trees you ship with depend on your project's domain decomposition.
+# A typical structure:
+#   - governance/    — agent governance, system maps, infrastructure
+#   - {domain_a}/    — feature work in domain A
+#   - {domain_b}/    — feature work in domain B
+#   - qa_bugs/       — open bugs, needs_verification queue
+#
+# Index file: plans/dashboard/_index.yaml (defines tree names + intents)

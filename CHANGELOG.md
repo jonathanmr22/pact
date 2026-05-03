@@ -7,6 +7,34 @@ PACT uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.12.0] — 2026-05-03
+
+### Added
+
+- **UserPromptSubmit hook category** — First pre-response cognitive redirect direction in PACT. All prior triggers in `templates/hooks/lib/cognitive_triggers.yaml` fire PostToolUse on the agent's own output; this new category fires on the USER's incoming message and injects context BEFORE the agent responds. Two hooks ship with v0.12:
+
+  - **`templates/hooks/inject-timestamp.sh`** — Injects current local time as `additionalContext` on every user message. Replaces the failing pattern of asking the agent to call `date` / `Get-Date` itself every turn (agents skip that often, but a hook never forgets). Cross-platform: PowerShell on Windows (Git Bash / Cygwin / MSYS), `date` on Linux/macOS. Configurable via three env vars: `PACT_TIMEZONE_LABEL` (e.g. "CST" — empty default means no label, just the bracketed time), `PACT_TIME_FORMAT` (platform-specific format string), `PACT_TIME_LOCATION_HINT` (parenthetical suffix). Why a label override instead of `date +%Z`? Some users want a stable label year-round even when the wall clock crosses DST boundaries. Single shell script, no Python, no YAML, no external deps.
+
+  - **`templates/hooks/feature-complexity-check.sh` + `templates/hooks/lib/feature_request_triggers.yaml`** — Fires on user phrases like "new feature", "add a feature", "build a [noun]", "implement a [noun]". On match, injects an instruction telling the agent to self-classify complexity (Low / Moderate / High using 7 signals: native APIs, multi-service, auth/security, new tables/EFs, unfamiliar UI patterns, background lifecycle, ≥3 files non-trivial) AND score training-data confidence 1-10 with a one-sentence rationale. At Moderate+, the agent emits the assessment block + offers to run online research before planning. At Low (0-1 signals), the block is omitted entirely — no friction for trivial requests. Reuses the existing `scan_triggers.py` for pattern matching (DRY with PostToolUse hooks). Per-session 120s dedup. Telemetry to `.claude/memory/feature_check_log.jsonl`. Origin: real-world failure mode where agents shipped code referencing deprecated package signatures because they never paused to ask "do I actually know this domain currently?"
+
+- **HANDOFF.yaml + dashboard entry-pointer architecture** — Replaces the legacy heavyweight `.claude/memory/PENDING_WORK.yaml` pattern with a thin entry pointer at repo root (`HANDOFF.yaml`, ~80 lines max) that surfaces top priorities + last-session summary, then directs sessions into the dashboard streams under `plans/dashboard/trees/{tree}/streams/*.yaml` as the single source of truth. The session-start oath now reads HANDOFF.yaml first instead of PENDING_WORK.yaml. Why two files instead of one: HANDOFF is small enough to load every turn without burning context, the dashboard is structured for visualization (treemap, status filters, claude_autonomous flag), and separating entry from storage prevents the drift that grew old PENDING_WORK files to thousands of lines with 60-80% silent duplication of dashboard content. Full migration playbook: `docs/handoff_architecture.md` (covers audit-what-where, migrate-to-dashboard, back-up-original, replace-with-stub, update-CLAUDE.md-references). Template: `templates/HANDOFF.yaml`.
+
+### Changed
+
+- **`templates/instructions.md` + `plugins/pact/templates/instructions.md`** — Session-start step 2 now reads `HANDOFF.yaml` instead of `.claude/memory/PENDING_WORK.yaml`. Cognitive redirection for major-stream-state-change updated to "Is the dashboard current?" (was "Is PENDING_WORK.yaml current?"). `progress_update` checkpoint field renamed `<pending_work_updated>` → `<dashboard_updated>`. "When a doc says X but you haven't verified" updated to use generic example. Hook-enforced rules table gains rows for `inject-timestamp.sh` and `feature-complexity-check.sh`. End-of-session checklist updated: "Updated PENDING_WORK.yaml" → "Updated the dashboard stream YAML (and HANDOFF.yaml last_session_summary if non-trivial)".
+
+- **`README.md`** — Progress Tracking section rewritten to describe the HANDOFF + dashboard architecture instead of PENDING_WORK. Points readers at `docs/handoff_architecture.md` for migration.
+
+- **Drift-the-Flutter-package references scrubbed from generic templates** — Project-agnostic templates should not assume readers use the Flutter Drift ORM. Three specific leaks fixed: `templates/instructions.md` Architecture example ("SQLite via Drift, PostgreSQL" → "PostgreSQL, MySQL, SQLite"); `templates/agents/pact-researcher.md` "be concrete" example (Drift-specific upsert example → generic Postgres ON CONFLICT); `templates/hooks/pre-edit-rules.sh` commented forbidden-import example ("Hive is forbidden. Use Drift." → generic "deprecated_package is forbidden"). Mirrored in `plugins/pact/` duplicates. **NOTE:** Generic uses of "drift" (schema drift detection, doc drift, implementation drift, the dashboard's Drift sub-tab, the `<last_drift_check>` checkpoint field) are intentionally kept — they're the cross-language concept, not the Flutter package. The Flutter stack-recipe (`templates/stack-recipes/flutter/`) intentionally still references Drift since that recipe IS Flutter-specific.
+
+### Why this matters
+
+The two-file architecture (HANDOFF entry + dashboard storage) is the third major iteration of cross-session work tracking in PACT, and the most stable. The first version (single `pending_work.md`) lost structure once projects matured. The second version (`PENDING_WORK.yaml` with sections like in_progress / todo / bugs / needs_verification / completed) gave structure but couldn't compete with a real treemap visualization once the dashboard shipped in v0.10. The third version recognizes that the dashboard IS the right interface for human eyes, the agent just needs a thin pointer at session start, and forces those two responsibilities to live in different files so they can't drift apart.
+
+The UserPromptSubmit hook direction is a categorically new tool. Until v0.12, every cognitive redirect was reactive — the agent says something concerning, the hook injects a redirect on the next turn. UserPromptSubmit hooks are proactive — the user's question itself can trigger preparation. The two hooks shipped here are the most universally useful (current time, complexity check) but the pattern generalizes: any time you want the agent to behave differently for a specific class of incoming request, a UserPromptSubmit hook is the right tool.
+
+---
+
 ## [0.11.0] — 2026-05-01
 
 ### Added

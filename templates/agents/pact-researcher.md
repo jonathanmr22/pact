@@ -118,9 +118,9 @@ Return to the main session:
 - **Save after researching.** Never skip Phase 3. Knowledge that dies
   with your context window is waste. The whole point of you is that
   the main session doesn't have to carry this.
-- **Be concrete about your project.** "Drift supports upserts" is generic.
-  "Drift's `insertOnConflictUpdate` handles our dedup pattern in
-  SurveillanceEventDao" is useful.
+- **Be concrete about your project.** "The ORM supports upserts" is generic.
+  "Postgres's `INSERT ... ON CONFLICT (key) DO UPDATE` handles our dedup
+  pattern in SurveillanceEventDao" is useful.
 - **Admit gaps.** If you can't verify something, say so. "Unverified —
   needs device testing" is better than a confident guess.
 - **Depth tags.** When saving research, tag the depth level:

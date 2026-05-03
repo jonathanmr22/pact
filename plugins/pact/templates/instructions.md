@@ -10,7 +10,7 @@
 At the start of every conversation, the agent MUST:
 
 1. State: *"I have read and will follow all [PROJECT NAME] rules."* — Use the actual project name from the working directory, repository name, or CLAUDE.md title. Never say "project rules" generically and never leave the literal placeholder `[PROJECT NAME]` in your output. If the working directory is `~/code/acme-maps`, say "Acme Maps". If the CLAUDE.md title is "Cosmic CRM", say "Cosmic CRM". The user should hear their project's name, not a template placeholder.
-2. Read `.claude/memory/PENDING_WORK.yaml` — check for in-progress tasks
+2. Read `HANDOFF.yaml` at the repo root — entry pointer for this session. It surfaces top priorities + last-session summary, then directs you into the dashboard trees (`plans/dashboard/trees/{tree}/streams/*.yaml`) which are the single source of truth for current AND historical work. (Replaces the legacy `.claude/memory/PENDING_WORK.yaml` pattern — see `docs/handoff_architecture.md` for the migration playbook.)
 3. Scan `.claude/memory/file_edit_log.yaml` — note recently-edited files, fresh-read before assuming
 4. Read `.claude/sessions.yaml` — check for other active sessions. If another session is active or recently committed (within the last hour), tell the user: *"Another session is active (started [time], last commit [hash]). I'll pull before committing to avoid conflicts."*
 5. **PACT capability check** — glance at `knowledge/PACT_BASELINE.yaml`. Does your model, context window, or available tools differ from the baseline? If anything feels different, run the self-check protocol and add a `capability_deltas[]` entry. This is how PACT evolves with you.
@@ -109,7 +109,7 @@ At session start, if you detect an existing system that overlaps with a PACT sub
 
 Common overlaps:
 - **Vector memory / knowledge layer** — if the user already has semantic search (reseek, mem0, memsearch, claude-mem), PACT's vector memory (`pact-memory.py`) may be redundant. The user decides.
-- **Task management** — if Taskmaster or similar is installed, PACT's `PENDING_WORK.yaml` is the lighter option. Both can coexist.
+- **Task management** — if Taskmaster or similar is installed, PACT's `HANDOFF.yaml` + dashboard architecture is the lighter option. Both can coexist.
 - **Session memory** — if a memory plugin captures session transcripts, PACT's structured YAML files serve a different purpose (curated knowledge vs raw capture). These are complementary, not competing.
 
 ---
@@ -189,7 +189,7 @@ Ask: **"What did my changes just make stale?"**
 - Changed a critical system? → Update the feature flow doc
 - Fixed a bug? → Document in `bugs/{system}/{system}-NNN.yaml`
 - Did non-trivial research? → Save synthesis to `knowledge/research/`. Update `knowledge/KNOWLEDGE_DIRECTORY.yaml` with any new tags or file entries.
-- Updated PENDING_WORK.yaml with status
+- Updated the dashboard stream YAML with status (and `HANDOFF.yaml` `last_session_summary` if the work was non-trivial)
 
 ### On-Demand Reference Files
 
@@ -214,7 +214,7 @@ Ask: **"What did my changes just make stale?"**
 
 <!-- CUSTOMIZE: Brief description of your tech stack -->
 
-- **Database:** (e.g., SQLite via Drift, PostgreSQL, etc.)
+- **Database:** (e.g., PostgreSQL, MySQL, SQLite, etc.)
 - **State Management:** (e.g., Riverpod, Redux, Zustand, etc.)
 - **Backend:** (e.g., Supabase, Firebase, custom API, etc.)
 - **Key files:** See `SYSTEM_MAP.yaml` for full wiring

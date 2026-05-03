@@ -1,0 +1,101 @@
+# Feature Request Trigger Library — fires on USER INPUT, not agent output.
+#
+# This is a NEW CATEGORY of cognitive trigger for PACT. All entries in
+# cognitive_triggers.yaml are POST-agent-output (PostToolUse hook scans
+# what the agent just said). This file is consumed by a UserPromptSubmit
+# hook (feature-complexity-check.sh) that scans what the USER just said
+# and injects an instruction telling the agent to self-classify complexity
+# and confidence BEFORE responding.
+#
+# WHEN A TRIGGER FIRES:
+#   The hook injects an additionalContext block instructing the agent to:
+#     1. Classify complexity: Low / Moderate / High using the signal list
+#     2. Score training-data confidence 1-10 with a one-line rationale
+#     3. At Moderate+ complexity: offer to run online research before proceeding
+#     4. At Low complexity: skip the assessment block entirely, respond normally
+#
+# DEDUP WINDOW: 120s — feature discussions span multiple turns; don't refire
+# within the same conversation thread.
+#
+# Origin: A real Anthropic-API user noticed the agent kept building features
+# from training-data assumptions without flagging when the underlying APIs
+# had changed. The agent would happily ship code referencing deprecated
+# package signatures because it never paused to ask "do I actually know
+# this domain currently, or am I extrapolating from old training data?"
+# This hook forces that pause exactly when it matters: at the start of a
+# new feature request.
+
+triggers:
+
+  - id: feature_request
+    pattern: '\b(new\s+features?|add\s+a\s+feature|can\s+we\s+add|i\s+want\s+to\s+add|build\s+a\s+\w+|implement\s+a\s+\w+)\b'
+    category: feature_complexity_check
+    severity: medium
+    applies_to: all
+    redirection: |
+      🧠 The user just asked for a new feature. Before responding with a plan
+      or implementation, you must self-assess and emit this block at the TOP
+      of your response — verbatim format:
+
+        ## Feature complexity check
+        **Complexity:** [Low / Moderate / High]
+        **Training data confidence:** [N]/10 — [one-sentence rationale]
+
+        [If Moderate or High ONLY — include this paragraph:]
+        This touches [brief reason: native APIs / multi-service / auth-security /
+        new tables / unfamiliar UI pattern / background lifecycle]. I'd recommend
+        running online research first to verify current best practices. Want me
+        to research before planning?
+
+        ---
+
+      Then continue with your normal response. If Low complexity, OMIT the
+      entire block and respond normally — no friction for trivial requests.
+
+      COMPLEXITY SIGNALS (count how many apply to this project):
+        - Involves a native device API (biometric, camera, BLE, NFC, location, sensors)
+        - Crosses multiple services or data layers (local DB + remote API + UI)
+        - Involves auth, encryption, payments, or security boundaries
+        - Requires new database tables OR new server-side endpoints
+        - UI pattern that doesn't already exist in the app
+        - Involves background processes, lifecycle management, or platform-specific behavior
+        - Estimated ≥3 files changed with non-trivial logic
+
+      Tier mapping:
+        0-1 signals → Low (skip the block)
+        2-3 signals → Moderate (emit block, offer research)
+        4+ signals  → High (emit block, strongly recommend research)
+
+      CONFIDENCE SCORE GUIDANCE (1-10):
+        1-3:  Training data is sparse, outdated, or the technology is
+              niche/fast-moving. Research strongly recommended.
+        4-6:  Reasonable coverage but key details (current API versions,
+              breaking changes, platform-specific behavior) may have shifted.
+              Research recommended for Moderate+ complexity.
+        7-9:  Strong, recent coverage. Research useful only for edge cases
+              or very new APIs.
+        10:   Extremely well-documented, stable, rarely-changing pattern.
+              Research unlikely to change the approach.
+
+      The rationale sentence must NAME the specific reason for the score —
+      not "general knowledge" but "well-documented widget pattern, stable
+      since framework 3.0" or "biometric auth APIs changed materially in
+      Android 14 / iOS 17 — verify current package APIs."
+
+# ============================================================================
+# Deduplication — don't refire within this many seconds
+# ============================================================================
+
+dedup_window_seconds:
+  default: 120
+  feature_complexity_check: 120
+
+# ============================================================================
+# Severity actions
+# ============================================================================
+
+severity_actions:
+  low: log_only
+  medium: log_and_inject
+  high: log_and_inject
+  critical: log_and_inject
