@@ -7,6 +7,64 @@ PACT uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.14.0] — 2026-05-03
+
+### Added
+
+- **Worktree pile-up fix — auto-prune SessionStart hook + manual deep-clean script** — Two new files that solve the long-running operational problem of session worktrees accumulating without bound. Origin: a single PACT-using project hit 37 stale worktrees by 2026-05-03 because SessionEnd / Stop hooks don't fire reliably (force-quit, crash, terminal close, IDE reload, context-compaction reboots). PACT's git-worktree-per-session model is great for isolation but had no cleanup hygiene.
+
+  - **`templates/hooks/session-start-worktree-prune.sh`** — runs at SessionStart, removes ONLY worktrees that satisfy ALL three conditions: (a) NOT the currently-starting session, (b) at-or-behind the main branch (no unique commits), (c) clean (no uncommitted changes). Worktrees with unique commits OR dirty state are preserved. Cheap (~50ms per worktree). Logs to stderr only — never to model context. Auto-detects main branch (master, falling back to main).
+
+  - **`templates/scripts/worktree_cleanup.sh`** — manual deep-clean for the harder cases. Dry-run by default; `--apply` removes clean stale worktrees; `--apply --force` also removes dirty stale ones (after the user audits the diffs aren't unique work). Worktrees ahead of the main branch are NEVER removed regardless of flags. Important warning baked into the summary output: "sometimes 'dirty' state is actually a regression of changes already merged into main, not unique work" — saw this exact failure mode in the 2026-05-03 cleanup where 6 worktrees had values that the main branch had since scrubbed.
+
+### Why this matters
+
+Session worktrees are how multiple Claude (or Gemini) sessions coexist on the same project without stepping on each other. They work great while the session is alive. The problem has always been graceful exit — agents don't reliably get a chance to clean up after themselves. Without auto-prune, a heavily-used project accumulates 30+ orphan worktrees over weeks, each ~100MB, each with a dangling `session/<uuid>` branch. The SessionStart hook closes the loop: every new session quietly removes the empty residue of completed sessions. Users with no stale worktrees pay nothing; users with dozens see them disappear over normal session activity.
+
+The two-tier design (auto-prune for the safe 90% + manual script for the risky 10%) is deliberate. Auto-removing dirty worktrees would be unsafe — sometimes those changes ARE valuable in-flight work. The manual script forces a human-in-the-loop audit step before destroying anything that has uncommitted changes.
+
+### Migration
+
+Existing PACT installations need to do two things to opt in:
+
+1. Copy `templates/hooks/session-start-worktree-prune.sh` into `<project>/.claude/hooks/`
+2. Add a new entry to the `SessionStart` array in `.claude/settings.json`:
+
+```json
+{
+  "type": "command",
+  "command": "bash $CLAUDE_PROJECT_DIR/.claude/hooks/session-start-worktree-prune.sh",
+  "timeout": 10,
+  "statusMessage": "Auto-pruning stale clean worktrees..."
+}
+```
+
+The manual deep-clean script (`templates/scripts/worktree_cleanup.sh`) is optional but recommended — copy it to `<project>/scripts/` and use `--apply --force` after one-time bulk cleanup of any pre-existing pile-up.
+
+---
+
+## [0.13.0] — 2026-05-03
+
+### Added
+
+- **Skill discovery + enforcement hook pair** — Two new hooks that close the gap between "skill exists in `_SKILL_INDEX.yaml`" and "agent actually follows it." Origin: a downstream-project session burned a paid image-gen iteration and the user's eye time because the agent forgot a `MANDATORY` step in a skill file (a Pixel critique loop). The skill was correct; nothing in PACT enforced it. The pair below ensures both *awareness* (before work starts) and *enforcement* (mid-procedure).
+
+  - **`plugins/pact/scripts/skill-injector.sh`** — UserPromptSubmit hook. Scans the user's incoming message against every skill's `triggers:` list in `skills/_SKILL_INDEX.yaml`. On match, injects an `additionalContext` block listing the matched skill(s), the trigger phrase that fired, the skill's `one_liner`, and a directive to read the full skill file BEFORE starting work. Multiple skills can match a single prompt — all are surfaced. Per-session 30-min dedup per skill so reminders don't repeat once acknowledged. Substring matching (case-insensitive) — same matching strategy as `feature-complexity-check.sh`. Telemetry to `.claude/memory/skill_injector_log.jsonl`. Self-contained Python heredoc with PyYAML + manual-parser fallback (no extra deps required).
+
+  - **`plugins/pact/scripts/skill-followup.sh`** — PostToolUse Bash hook. Scans the executed command against `skills/_FOLLOWUP_TRIGGERS.yaml`, a project-maintained mapping of `command_regex → mandatory_followup_block`. When the agent runs a script that has a known mandatory next step (e.g. image gen → vision critique, schema migration → schema export), the followup block is injected as `additionalContext` on the next turn. Per-session, per-followup 10-min dedup window — short enough that iteration loops still fire, long enough to avoid spam. Telemetry to `.claude/memory/skill_followup_log.jsonl`. Multiple matching followups all fire (composable). Template at `plugins/pact/templates/skills/_FOLLOWUP_TRIGGERS.yaml` ships empty with documented examples.
+
+### Why this matters
+
+Skills are PACT's mechanism for cross-session procedural memory. They work IF the agent remembers to consult them. Until v0.13, that "if" was a load-bearing assumption — `_SKILL_INDEX.yaml` was indexed by trigger phrases but nothing scanned for matches. The skill-injector hook makes skill discovery automatic at the moment a trigger phrase appears in user input. The skill-followup hook handles the harder case: an agent who started executing a skill correctly but skipped a mandatory mid-procedure step. Both hooks are silent on no-match (`echo {}`), so they cost nothing on routine prompts and only speak up when a real trigger fires.
+
+This generalizes a pattern that has been re-implemented ad-hoc in several PACT-using projects: "make the agent run X after Y." Instead of one-off hooks per X/Y pair, projects now declare X/Y mappings in a single config file. Adding a new mandatory followup is a YAML edit, not a hook PR.
+
+### Migration
+
+Existing PACT installations: nothing breaks. The new hooks are added to `hooks.json` (UserPromptSubmit category was empty before — now populated; PostToolUse Bash matcher gains one entry). Projects that don't have `skills/_SKILL_INDEX.yaml` or `skills/_FOLLOWUP_TRIGGERS.yaml` see the hooks exit silently. To opt in, copy the template `_FOLLOWUP_TRIGGERS.yaml` into `skills/`, populate with project-specific mappings, and the hook starts firing.
+
+---
+
 ## [0.12.0] — 2026-05-03
 
 ### Added

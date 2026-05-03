@@ -1,0 +1,61 @@
+# PACT Skill Followup Triggers
+# ============================================================================
+# Maps Bash command patterns to MANDATORY follow-up steps that the matching
+# skill requires. Used by `scripts/skill-followup.sh` (PostToolUse Bash hook).
+#
+# WHY THIS FILE EXISTS:
+# Skills can have steps marked MANDATORY (e.g. "run a critique step after
+# every generation") but nothing in PACT enforces them. The agent reads the
+# skill, runs step N, then forgets to run step N+1 because no mechanical
+# signal fires. This file + its hook are that signal.
+#
+# COMPANION HOOK: `scripts/skill-injector.sh` (UserPromptSubmit) handles the
+# BEFORE layer — surfacing matched skills at turn start. This file handles
+# the AFTER layer — reminding when the trigger command runs. Together they
+# cover both moments in the skill execution loop.
+#
+# WHEN TO ADD AN ENTRY:
+# - A skill has a step marked MANDATORY/critical that comes after an
+#   automatable trigger command
+# - You've watched the agent (or a teammate) skip that step at least once
+# - The follow-up command can be expressed as a single shell line
+#
+# ENTRY FORMAT:
+#   - skill: <skill_name>           # matches a name in _SKILL_INDEX.yaml
+#     name: <unique_followup_name>  # for telemetry / dedup
+#     when_command_matches: <regex> # Python re.search against bash command
+#     require: |                    # multi-line additionalContext to inject
+#       Free-form instruction the agent will see on the next turn.
+#     severity: critical | high | warn  # informational only, all fire
+#
+# All entries with matching command_regex fire (no mutual exclusion).
+# Per-session, per-followup dedup window: 10 min — short enough that
+# iteration loops still fire, long enough to avoid spam.
+# ============================================================================
+
+followups: []
+
+# ---------------------------------------------------------------------------
+# Example entries (uncomment + adapt to your project):
+# ---------------------------------------------------------------------------
+#
+# - skill: image_generation_workflow
+#   name: vision_critique_after_image_gen
+#   when_command_matches: 'image_gen\.py|stable_diffusion|midjourney|dalle'
+#   severity: critical
+#   require: |
+#     MANDATORY FOLLOWUP — vision critique before user review.
+#     You just generated an image. Per skills/image_generation_workflow.yaml,
+#     run a vision-model critique BEFORE showing the user. The user's eye
+#     time is the scarcest resource — model critique is ~$0.001/call vs the
+#     attention cost of one bad iteration.
+#
+# - skill: schema_change_workflow
+#   name: schema_export_after_migration
+#   when_command_matches: 'apply_migration|psql.*ALTER\s+TABLE|psql.*CREATE\s+TABLE'
+#   severity: high
+#   require: |
+#     MANDATORY FOLLOWUP — schema export refresh.
+#     You just changed the live DB schema. Refresh schema_export.sql and
+#     update knowledge/schema.yaml in this turn while the change is fresh.
+#     Schema drift compounds across sessions.

@@ -70,6 +70,25 @@
           "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/post-sentry-bug-reminder.sh"
         }
       ]
+    },
+    {
+      "matcher": "Bash",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/skill-followup.sh"
+        }
+      ]
+    }
+  ],
+  "UserPromptSubmit": [
+    {
+      "hooks": [
+        {
+          "type": "command",
+          "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/skill-injector.sh"
+        }
+      ]
     }
   ],
   "SessionStart": [
