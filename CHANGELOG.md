@@ -7,21 +7,21 @@ PACT uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-## [0.14.0] — 2026-05-03
+## [0.12.2] — 2026-05-03
 
 ### Added
 
-- **Worktree pile-up fix — auto-prune SessionStart hook + manual deep-clean script** — Two new files that solve the long-running operational problem of session worktrees accumulating without bound. Origin: a single PACT-using project hit 37 stale worktrees by 2026-05-03 because SessionEnd / Stop hooks don't fire reliably (force-quit, crash, terminal close, IDE reload, context-compaction reboots). PACT's git-worktree-per-session model is great for isolation but had no cleanup hygiene.
+- **Worktree pile-up — detect-and-report SessionStart hook + manual deep-clean script** — Two new files that solve the long-running operational problem of session worktrees accumulating without bound. Origin: a single PACT-using project hit 37 stale worktrees by 2026-05-03 because SessionEnd / Stop hooks don't fire reliably (force-quit, crash, terminal close, IDE reload, context-compaction reboots). PACT's git-worktree-per-session model is great for isolation but had no cleanup hygiene.
 
-  - **`templates/hooks/session-start-worktree-prune.sh`** — runs at SessionStart, removes ONLY worktrees that satisfy ALL three conditions: (a) NOT the currently-starting session, (b) at-or-behind the main branch (no unique commits), (c) clean (no uncommitted changes). Worktrees with unique commits OR dirty state are preserved. Cheap (~50ms per worktree). Logs to stderr only — never to model context. Auto-detects main branch (master, falling back to main).
+  - **`templates/hooks/session-start-worktree-prune.sh`** — runs at SessionStart, **DETECTS and REPORTS** stale worktrees but does NOT remove anything. Counts clean+behind, dirty+behind, ahead-of-main, and active categories. If any stale worktrees exist, emits an `additionalContext` SystemReminder telling Claude to surface the count, propose a specific cleanup plan, and **wait for explicit user approval** before destroying anything. Removal is a deliberate user choice, never a silent SessionStart side effect — even "clean and behind master" worktrees may represent something the user is intentionally keeping for reference.
 
-  - **`templates/scripts/worktree_cleanup.sh`** — manual deep-clean for the harder cases. Dry-run by default; `--apply` removes clean stale worktrees; `--apply --force` also removes dirty stale ones (after the user audits the diffs aren't unique work). Worktrees ahead of the main branch are NEVER removed regardless of flags. Important warning baked into the summary output: "sometimes 'dirty' state is actually a regression of changes already merged into main, not unique work" — saw this exact failure mode in the 2026-05-03 cleanup where 6 worktrees had values that the main branch had since scrubbed.
+  - **`templates/scripts/worktree_cleanup.sh`** — the actual cleanup tool, run only after user approval. Dry-run by default; `--apply` removes clean stale worktrees; `--apply --force` also removes dirty stale ones (after the user audits the diffs aren't unique work). Worktrees ahead of the main branch are NEVER removed regardless of flags. Important warning baked into the summary output: "sometimes 'dirty' state is actually a regression of changes already merged into main, not unique work" — observed real failure mode in the 2026-05-03 cleanup where 6 worktrees had values that the main branch had since scrubbed.
 
 ### Why this matters
 
-Session worktrees are how multiple Claude (or Gemini) sessions coexist on the same project without stepping on each other. They work great while the session is alive. The problem has always been graceful exit — agents don't reliably get a chance to clean up after themselves. Without auto-prune, a heavily-used project accumulates 30+ orphan worktrees over weeks, each ~100MB, each with a dangling `session/<uuid>` branch. The SessionStart hook closes the loop: every new session quietly removes the empty residue of completed sessions. Users with no stale worktrees pay nothing; users with dozens see them disappear over normal session activity.
+Session worktrees are how multiple Claude (or Gemini) sessions coexist on the same project without stepping on each other. They work great while the session is alive. The problem has always been graceful exit — agents don't reliably get a chance to clean up after themselves. Without detection, a heavily-used project accumulates 30+ orphan worktrees over weeks, each ~100MB, each with a dangling `session/<uuid>` branch.
 
-The two-tier design (auto-prune for the safe 90% + manual script for the risky 10%) is deliberate. Auto-removing dirty worktrees would be unsafe — sometimes those changes ARE valuable in-flight work. The manual script forces a human-in-the-loop audit step before destroying anything that has uncommitted changes.
+The detect-only design is deliberate: an earlier draft auto-removed clean+behind-master worktrees on every session start, which is too aggressive — even "clean and behind master" worktrees may be something a user is intentionally keeping. Removal must be a deliberate user choice. The hook surfaces the situation to Claude, Claude proposes a plan, the user approves, then `scripts/worktree_cleanup.sh --apply` runs. Same effect, with consent.
 
 ### Migration
 
@@ -35,15 +35,15 @@ Existing PACT installations need to do two things to opt in:
   "type": "command",
   "command": "bash $CLAUDE_PROJECT_DIR/.claude/hooks/session-start-worktree-prune.sh",
   "timeout": 10,
-  "statusMessage": "Auto-pruning stale clean worktrees..."
+  "statusMessage": "Detecting stale worktrees..."
 }
 ```
 
-The manual deep-clean script (`templates/scripts/worktree_cleanup.sh`) is optional but recommended — copy it to `<project>/scripts/` and use `--apply --force` after one-time bulk cleanup of any pre-existing pile-up.
+The manual deep-clean script (`templates/scripts/worktree_cleanup.sh`) is required for actual cleanup — copy it to `<project>/scripts/` and the agent will run it (with appropriate flags) after the user approves a proposed plan.
 
 ---
 
-## [0.13.0] — 2026-05-03
+## [0.12.1] — 2026-05-03
 
 ### Added
 
@@ -55,7 +55,7 @@ The manual deep-clean script (`templates/scripts/worktree_cleanup.sh`) is option
 
 ### Why this matters
 
-Skills are PACT's mechanism for cross-session procedural memory. They work IF the agent remembers to consult them. Until v0.13, that "if" was a load-bearing assumption — `_SKILL_INDEX.yaml` was indexed by trigger phrases but nothing scanned for matches. The skill-injector hook makes skill discovery automatic at the moment a trigger phrase appears in user input. The skill-followup hook handles the harder case: an agent who started executing a skill correctly but skipped a mandatory mid-procedure step. Both hooks are silent on no-match (`echo {}`), so they cost nothing on routine prompts and only speak up when a real trigger fires.
+Skills are PACT's mechanism for cross-session procedural memory. They work IF the agent remembers to consult them. Until this release, that "if" was a load-bearing assumption — `_SKILL_INDEX.yaml` was indexed by trigger phrases but nothing scanned for matches. The skill-injector hook makes skill discovery automatic at the moment a trigger phrase appears in user input. The skill-followup hook handles the harder case: an agent who started executing a skill correctly but skipped a mandatory mid-procedure step. Both hooks are silent on no-match (`echo {}`), so they cost nothing on routine prompts and only speak up when a real trigger fires.
 
 This generalizes a pattern that has been re-implemented ad-hoc in several PACT-using projects: "make the agent run X after Y." Instead of one-off hooks per X/Y pair, projects now declare X/Y mappings in a single config file. Adding a new mandatory followup is a YAML edit, not a hook PR.
 
