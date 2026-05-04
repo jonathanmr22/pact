@@ -11,11 +11,11 @@ PACT uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
-- **Worktree pile-up — detect-and-report SessionStart hook + manual deep-clean script** — Two new files that solve the long-running operational problem of session worktrees accumulating without bound. Origin: a single PACT-using project hit 37 stale worktrees by 2026-05-03 because SessionEnd / Stop hooks don't fire reliably (force-quit, crash, terminal close, IDE reload, context-compaction reboots). PACT's git-worktree-per-session model is great for isolation but had no cleanup hygiene.
+- **Worktree pile-up — detect-and-report SessionStart hook + manual deep-clean script** — Two new files that solve the long-running operational problem of session worktrees accumulating without bound. PACT's git-worktree-per-session model is great for isolation but had no cleanup hygiene.
 
   - **`templates/hooks/session-start-worktree-prune.sh`** — runs at SessionStart, **DETECTS and REPORTS** stale worktrees but does NOT remove anything. Counts clean+behind, dirty+behind, ahead-of-main, and active categories. If any stale worktrees exist, emits an `additionalContext` SystemReminder telling Claude to surface the count, propose a specific cleanup plan, and **wait for explicit user approval** before destroying anything. Removal is a deliberate user choice, never a silent SessionStart side effect — even "clean and behind master" worktrees may represent something the user is intentionally keeping for reference.
 
-  - **`templates/scripts/worktree_cleanup.sh`** — the actual cleanup tool, run only after user approval. Dry-run by default; `--apply` removes clean stale worktrees; `--apply --force` also removes dirty stale ones (after the user audits the diffs aren't unique work). Worktrees ahead of the main branch are NEVER removed regardless of flags. Important warning baked into the summary output: "sometimes 'dirty' state is actually a regression of changes already merged into main, not unique work" — observed real failure mode in the 2026-05-03 cleanup where 6 worktrees had values that the main branch had since scrubbed.
+  - **`templates/scripts/worktree_cleanup.sh`** — the actual cleanup tool, run only after user approval. Dry-run by default; `--apply` removes clean stale worktrees; `--apply --force` also removes dirty stale ones (after the user audits the diffs aren't unique work). Worktrees ahead of the main branch are NEVER removed regardless of flags. Important warning baked into the summary output: "sometimes 'dirty' state is actually a regression of changes already merged into main, not unique work".
 
 ### Why this matters
 
