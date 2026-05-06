@@ -103,7 +103,7 @@ procedure:
   5_after_changes:
     what: "Update governance"
     checklist:
-      - "Update SYSTEM_MAP.yaml tables list + wiring sections that touch this table"
+      - "Update relevant feature_flows/*.yaml participating_files / invariants for any flow that claims this table"
       - "Update KNOWLEDGE_DIRECTORY.yaml if a new table system was added"
       - "Update feature flow doc if behavior changed"
       - "Run flutter pub run build_runner build --delete-conflicting-outputs"

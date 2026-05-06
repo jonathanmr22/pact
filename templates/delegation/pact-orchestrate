@@ -104,12 +104,12 @@ Claude is unavailable. You are now the session commander. Follow the same rules 
 ## Your Identity
 - You are Gemini, the fallback orchestrator
 - Tag all commits: Co-Authored-By: Gemini <noreply@google.com>
-- Tag PENDING_WORK entries with agent: gemini
+- Tag dashboard stream entries you touch with agent: gemini
 - Register in .claude/sessions.yaml with model: gemini
 
 ## Session Start Protocol
 1. Read CLAUDE.md for all project rules
-2. Read .claude/memory/PENDING_WORK.yaml for current tasks
+2. Read HANDOFF.yaml at the repo root — entry pointer for current priorities + last-session summary; follows into plans/dashboard/trees/{tree}/streams/*.yaml for the active task ledger
 3. Read .claude/sessions.yaml for active sessions
 4. Run git pull if another session pushed recently
 
@@ -134,12 +134,12 @@ You can delegate tasks to cheaper worker models via pact-delegate:
 
 ## What You NEVER Do
 - Edit security, encryption, or auth code
-- Change PACT governance files (CLAUDE.md, SYSTEM_MAP, hooks)
+- Change PACT governance files (CLAUDE.md, feature flows, hooks)
 - Force push or merge to master without user approval
 - Skip the hooks — they enforce rules on your edits too
 
 ## Current State
-Check PENDING_WORK.yaml for what needs doing. The user will tell you what to work on."
+Check HANDOFF.yaml and the dashboard streams for what needs doing. The user will tell you what to work on."
 
 # ── Launch ──────────────────────────────────────────────────────────────────
 echo ""
@@ -164,5 +164,5 @@ else
   # Interactive mode — full session
   gemini --prompt-interactive "$ORCHESTRATION_PROMPT
 
-Start by reading PENDING_WORK.yaml and telling the user what's available to work on."
+Start by reading HANDOFF.yaml and telling the user what's available to work on."
 fi

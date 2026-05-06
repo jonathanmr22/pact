@@ -15,7 +15,7 @@
 #
 # WHEN NOT TO ADD:
 #   - Per-domain incremental work (use a domain-specific log instead)
-#   - In-flight work (use PENDING_WORK.yaml)
+#   - In-flight work (use HANDOFF.yaml + dashboard streams)
 #   - Code edits (git history is enough)
 #
 # FORMAT: append at top of `entries:`. Newest first.

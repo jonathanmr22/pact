@@ -20,7 +20,7 @@
 #   Set in your shell rc or in .claude/settings.json env section:
 #     export PACT_TIMEZONE_LABEL="CST"          # appended to time
 #     export PACT_TIME_FORMAT="yyyy-MM-dd h:mm tt"  # Windows format
-#     export PACT_TIME_LOCATION_HINT="Minneapolis local"  # parenthetical
+#     export PACT_TIME_LOCATION_HINT="local"  # parenthetical hint
 #
 # Why a label override (not just `date +%Z`)? Some users want a stable label
 # year-round even when the wall clock crosses DST boundaries (e.g. a "CST"

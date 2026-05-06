@@ -3,7 +3,7 @@
 #
 # PURPOSE: Get a new machine ready for development. This is a CHECKLIST,
 # not architecture docs. For architecture, read CLAUDE.md. For wiring,
-# read SYSTEM_MAP.yaml. This file answers one question:
+# read the relevant feature_flows/*.yaml. This file answers one question:
 # "What do I install and configure so everything works?"
 #
 # AUDIENCE: AI sessions on a fresh machine, or developers setting up a new PC.

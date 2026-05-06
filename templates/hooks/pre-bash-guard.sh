@@ -298,12 +298,12 @@ if echo "$COMMAND" | grep -qE '^git commit'; then
   PROJECT_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
   EDIT_LOG="${PROJECT_ROOT}/.claude/memory/file_edit_log.yaml"
 
-  # Check: is PENDING_WORK.yaml stale?
-  PENDING_WORK="${PROJECT_ROOT}/.claude/memory/PENDING_WORK.yaml"
-  if [ -f "$PENDING_WORK" ]; then
-    PW_AGE=$(( ($(date +%s) - $(stat -c %Y "$PENDING_WORK" 2>/dev/null || stat -f %m "$PENDING_WORK" 2>/dev/null || echo 0)) / 3600 ))
-    if [ "$PW_AGE" -gt 1 ]; then
-      WARNINGS="${WARNINGS}  - PENDING_WORK.yaml last updated ${PW_AGE}h ago — update with this session's progress\n"
+  # Check: is HANDOFF.yaml stale?
+  HANDOFF_FILE="${PROJECT_ROOT}/HANDOFF.yaml"
+  if [ -f "$HANDOFF_FILE" ]; then
+    PW_AGE=$(( ($(date +%s) - $(stat -c %Y "$HANDOFF_FILE" 2>/dev/null || stat -f %m "$HANDOFF_FILE" 2>/dev/null || echo 0)) / 3600 ))
+    if [ "$PW_AGE" -gt 6 ]; then
+      WARNINGS="${WARNINGS}  - HANDOFF.yaml last updated ${PW_AGE}h ago — update last_session_summary if this commit shipped non-trivial work\n"
     fi
   fi
 
@@ -311,13 +311,13 @@ if echo "$COMMAND" | grep -qE '^git commit'; then
     TODAY=$(date +%Y-%m-%d)
 
     if grep -qE "services?/.*$TODAY" "$EDIT_LOG" 2>/dev/null; then
-      WARNINGS="${WARNINGS}  - Service file edited → is SYSTEM_MAP.yaml wiring current?\n"
+      WARNINGS="${WARNINGS}  - Service file edited → if it participates in a feature_flows/*.yaml, check participating_files is current\n"
     fi
     if grep -qE "screens?/.*$TODAY" "$EDIT_LOG" 2>/dev/null; then
-      WARNINGS="${WARNINGS}  - Screen file edited → is SYSTEM_MAP.yaml screens list current?\n"
+      WARNINGS="${WARNINGS}  - Screen file edited → if it participates in a feature_flows/*.yaml, check participating_files is current\n"
     fi
     if grep -qE "(tables?|models?|schema)/.*$TODAY" "$EDIT_LOG" 2>/dev/null; then
-      WARNINGS="${WARNINGS}  - Database/model file edited → is SYSTEM_MAP.yaml tables list current?\n"
+      WARNINGS="${WARNINGS}  - Database/model file edited → check if any feature_flows/*.yaml claims this table and needs invariants update\n"
       # Schema-touching edit + stale schema-verify check
       # If a schema-drift detector exists (scripts/check_schema_drift.py or
       # similar), check its last-run marker. If >7 days old, recommend running
@@ -342,18 +342,6 @@ if echo "$COMMAND" | grep -qE '^git commit'; then
     # Knowledge system files edited?
     if grep -qE "(research/|bugs/|packages/).*$TODAY" "$EDIT_LOG" 2>/dev/null; then
       WARNINGS="${WARNINGS}  - Knowledge system file edited → is KNOWLEDGE_DIRECTORY.yaml current?\n"
-    fi
-  fi
-
-  # SYSTEM_MAP freshness
-  SMAP="${PROJECT_ROOT}/SYSTEM_MAP.yaml"
-  if [ -f "$SMAP" ]; then
-    SMAP_DATE=$(grep "Last verified:" "$SMAP" | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}')
-    if [ -n "$SMAP_DATE" ]; then
-      SMAP_AGE=$(( ($(date +%s) - $(date -d "$SMAP_DATE" +%s 2>/dev/null || echo 0)) / 86400 ))
-      if [ "$SMAP_AGE" -gt 3 ]; then
-        WARNINGS="${WARNINGS}  - SYSTEM_MAP.yaml last verified ${SMAP_AGE} days ago\n"
-      fi
     fi
   fi
 
@@ -444,13 +432,14 @@ if echo "$COMMAND" | grep -qE '^git commit'; then
     fi
   fi
 
-  # ── Governance pairing: schema files → SYSTEM_MAP.yaml (BLOCKING) ──
+  # ── Governance pairing: schema files → relevant feature_flows/*.yaml (BLOCKING) ──
   # Uncomment and customize the file patterns for your project.
   # STAGED=$(git diff --cached --name-only 2>/dev/null)
   # if echo "$STAGED" | grep -qE "(schema|migration|model).*\.(dart|ts|py|rs)"; then
-  #   if ! echo "$STAGED" | grep -q "SYSTEM_MAP.yaml"; then
-  #     echo "BLOCKED: Schema/model file staged but SYSTEM_MAP.yaml is NOT staged." >&2
-  #     echo "  Update the architecture map, then: git add SYSTEM_MAP.yaml" >&2
+  #   if ! echo "$STAGED" | grep -qE "feature_flows/.*\.yaml"; then
+  #     echo "BLOCKED: Schema/model file staged but no feature_flows/*.yaml updated." >&2
+  #     echo "  If this file participates in a feature flow, update that flow's" >&2
+  #     echo "  participating_files / invariants, then: git add feature_flows/<flow>.yaml" >&2
   #     exit 1
   #   fi
   # fi

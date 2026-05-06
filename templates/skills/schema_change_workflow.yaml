@@ -19,7 +19,7 @@ triggers:
 
 prerequisites:
   read_first:
-    - "SYSTEM_MAP.yaml — find all wiring affected by the table you're changing"
+    - "feature_flows/*.yaml — find every flow whose participating_files lists this table"
     - "knowledge/supabase_schema.yaml (or your project's schema doc) — current state"
 
 procedure:
@@ -59,7 +59,7 @@ procedure:
   6_update_governance:
     what: "Update all affected governance docs"
     checklist:
-      - "SYSTEM_MAP.yaml — tables list, wiring sections that touch this table"
+      - "Relevant feature_flows/*.yaml — invariants and participating_files that mention this table"
       - "knowledge/supabase_schema.yaml — regenerate (or run /check-drift if you have the drift detector)"
       - "Feature flow doc — if behavior changed, not just structure"
       - "knowledge/KNOWLEDGE_DIRECTORY.yaml — if a new system was added"
@@ -74,7 +74,7 @@ quality_gates:
   - "Live schema verified (not assumed from migration files)"
   - "Local ORM migration is idempotent (runs twice without error)"
   - "Codegen step rebuilt clean"
-  - "SYSTEM_MAP.yaml updated"
+  - "Relevant feature_flows/*.yaml updated (if applicable)"
   - "Schema doc regenerated (if you have an automated regenerator) or manually edited"
 
 gotchas:

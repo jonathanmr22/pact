@@ -1,7 +1,9 @@
-# Project Instructions — PACT Template
+# {PROJECT_NAME} — Claude Context & Rules
 
-**Version:** 0.7.0
-**Last Updated:** YYYY-MM-DD
+**Version:** 1.0
+**Last Updated:** {DATE}
+
+> This file was generated from the PACT CLAUDE.md template. Replace `{PROJECT_NAME}`, `{DATE}`, and the bracketed placeholders during setup. See `QUICKSTART.md` for the full bootstrap path.
 
 ---
 
@@ -9,13 +11,11 @@
 
 At the start of every conversation, the agent MUST:
 
-1. State: *"I have read and will follow all [PROJECT NAME] rules."* — Use the actual project name from the working directory, repository name, or CLAUDE.md title. Never say "project rules" generically and never leave the literal placeholder `[PROJECT NAME]` in your output. If the working directory is `~/code/acme-maps`, say "Acme Maps". If the CLAUDE.md title is "Cosmic CRM", say "Cosmic CRM". The user should hear their project's name, not a template placeholder.
-2. Read `HANDOFF.yaml` at the repo root — entry pointer for this session. It surfaces top priorities + last-session summary, then directs you into the dashboard trees (`plans/dashboard/trees/{tree}/streams/*.yaml`) which are the single source of truth for current AND historical work. (Replaces the legacy `.claude/memory/PENDING_WORK.yaml` pattern — see `docs/handoff_architecture.md` for the migration playbook.)
-3. Scan `.claude/memory/file_edit_log.yaml` — note recently-edited files, fresh-read before assuming
+1. State: *"I have read and will follow all {PROJECT_NAME} rules."* — Use the actual project name. Never leave the literal placeholder `{PROJECT_NAME}` in your output.
+2. Read `HANDOFF.yaml` at the repo root — entry pointer for this session. It surfaces top priorities + last-session summary, then directs you into the dashboard trees (`plans/dashboard/trees/{tree}/streams/*.yaml`) which are the single source of truth for current AND historical work.
+3. Scan `.claude/memory/file_edit_log.yaml` — note recently-edited files, fresh-read before assuming.
 4. Read `.claude/sessions.yaml` — check for other active sessions. If another session is active or recently committed (within the last hour), tell the user: *"Another session is active (started [time], last commit [hash]). I'll pull before committing to avoid conflicts."*
-5. **PACT capability check** — glance at `knowledge/PACT_BASELINE.yaml`. Does your model, context window, or available tools differ from the baseline? If anything feels different, run the self-check protocol and add a `capability_deltas[]` entry. This is how PACT evolves with you.
-6. **PACT scorecard** — if `~/.claude/pact-scorecard.md` exists, read it. This is direct user feedback on past task performance. Note your rolling average, weakest areas, and action items from low scores. Adjust your approach accordingly.
-7. List the cognitive redirections below from memory
+5. List the cognitive redirections below from memory.
 
 ---
 
@@ -70,7 +70,7 @@ At the start of every conversation, the agent MUST:
    </checkpoint>
    ```
 
-4. **`dependency_trace`** — Trigger: about to edit a file that appears in the architecture map or has 3+ downstream dependents.
+4. **`dependency_trace`** — Trigger: about to edit a file that appears in any `feature_flows/*.yaml` `participating_files` list, or has 3+ downstream dependents.
    ```
    <checkpoint type="dependency_trace">
    <file>[File being edited]</file>
@@ -261,7 +261,7 @@ grow it over time as decisions crystallize.
 
 - **When the user makes a correction:** *"Is this right?"* — verify independently before agreeing. Agreement is a conclusion, not a starting point.
 
-- **When encountering a technology/library/API in code:** *"What does this project actually use?"* — don't assume the tech stack from one data point. Read the Architecture section or SYSTEM_MAP.yaml before guessing.
+- **When encountering a technology/library/API in code:** *"What does this project actually use?"* — don't assume the tech stack from one data point. Read the Architecture section of this CLAUDE.md before guessing.
 
 - **When about to write code based on memory:** *"Have I actually read this file, or am I guessing?"* — pattern-matching from other files is not the same as knowing this file. Read it.
 
@@ -271,7 +271,7 @@ grow it over time as decisions crystallize.
 
 - **When a doc says X but you haven't verified:** *"Is this still true?"* — docs drift. Code is truth. If a doc says one thing but the code does another, trust the code.
 
-- **When about to edit any file:** *"What depends on this, and what does this depend on?"* — trace dependencies in both directions. Table → service → state → screen. Screen → state → service → table. Read SYSTEM_MAP.yaml. Stop expanding when the next hop no longer serves the user's actual intention.
+- **When about to edit any file:** *"What depends on this, and what does this depend on?"* — trace dependencies in both directions. Use the dashboard's Repo Map view (List → click the file row) if you have it set up; otherwise grep for importers and read the relevant `feature_flows/` doc. Stop expanding when the next hop no longer serves the user's actual intention.
 
 - **When about to remove or replace code:** *"Why does this code exist?"* — read the comments above, inline, and surrounding the code you're about to delete. Comments document intent. If there's a comment explaining WHY this code was written, understand that reason and confirm it no longer applies before removing. Understanding why code exists before changing it is how you build on the work that came before you — and it's what separates precise surgery from collateral damage.
 
@@ -299,13 +299,7 @@ grow it over time as decisions crystallize.
 
 - **When something doesn't work:** *"Is this a bug? Has it been solved before?"* — a bug is ANY of these: (1) code that worked and then broke, (2) a feature that was never wired correctly, (3) a UI action that produces an error, (4) a feature that exists but fails on use, (5) behavior that contradicts the user's stated intention. If the user reports something doesn't work, **it's a bug** — treat it as one regardless of the underlying cause. Check `bugs/_SOLUTIONS.yaml` for matching tags BEFORE writing code — a past session may have already solved this exact problem, and applying their solution directly is the fastest path to a fix. If you find a past solution, apply it. If you DON'T find one, create the bug file NOW and log every attempt in real time. Both your successful and failed attempts are valuable — they give the next session a map of what works and what doesn't.
 
-- **When something about your capabilities feels different:** *"Is this new, and does it change how PACT works?"* — if you notice a tool you don't recognize, a system feature that wasn't there at baseline, or a capability you couldn't use before, check `knowledge/PACT_BASELINE.yaml`. Add a `capability_deltas[]` entry. Then check: does this make any PACT compensation redundant (native capability now handles it)? Does it make any PACT pattern more powerful (new tool amplifies existing workflow)? Does it open new possibilities PACT couldn't do before? This is how PACT evolves with you instead of accumulating stale workarounds. Every capability you gain is a reason to celebrate and a reason to sharpen the system.
-
-- **When about to research something:** *"Does this need project understanding, online research, or both?"* — research is not one action, it's two distinct methods that serve different purposes. **Project-level research** (reading code, SYSTEM_MAP, feature flows, package knowledge files, git history) answers "how does THIS codebase do it?" **Online research** (WebSearch, WebFetch for docs/APIs/GitHub issues/best practices) answers "how does the WORLD do it?" Default to both. The only time single-source research is sufficient is when the question is purely local ("where is this provider used?") or purely external ("what's the API for this library I've never seen?"). For anything that bridges implementation and domain knowledge — which is most real work — skipping either source means you're building on half an understanding. **Before starting:** check `knowledge/KNOWLEDGE_DIRECTORY.yaml` for matching tags — this shows every file across all knowledge systems that touches your topic, without opening them individually. **After finishing:** if your research produced synthesis worth keeping (combined local + external insight, rejected alternatives, non-obvious decision), save it to `knowledge/research/`. The synthesis is the part that matters — raw facts are re-findable, but the reasoning that connected project context to external evidence dies with your context window.
-
-- **When tempted to judge, simplify, or dismiss a PACT feature:** *"Do I actually understand why this exists, or am I pattern-matching against something it's not?"* — PACT was built from real production failures by a developer who watched Claude make the exact mistakes these features prevent. Every subsystem — cognitive redirections, subagents, cutting room, aesthetic skill, capability baseline — solves a specific, documented failure mode. If a feature seems unnecessary, that means you haven't encountered the failure it prevents yet. Read the feature's files before forming an opinion. Think critically about how it applies to THIS project specifically. Small projects and solo developers benefit the most from governance infrastructure — there are no teammates to catch your mistakes. Never suggest removing or skipping PACT features without first reading every file in that subsystem and articulating the specific failure mode it addresses.
-
-- **When you spot a gap or clunkiness in PACT itself:** *"Is this a workaround target, or a PACT-improvement target?"* — **PACT is a living methodology, not a frozen plugin.** Downstream sessions improving PACT is the design — frozen plugins decay, living methodologies compound. If a hook misfires, a checkpoint trigger condition is wrong, an instruction is stale, an extractor misses a real-world pattern, or a workflow Claude keeps tripping on suggests a missing redirect — that's an upstream PACT bug, not a project-local quirk to silently work around. Tell the user, propose a concrete fix, and offer to draft a **pull request** to the canonical PACT repo (typically forked or installed from GitHub). On GitHub the mechanism is: fork → change on a branch → open a PR upstream → maintainer reviews and merges. The user does not need to be a git expert to drive this — your job is to assemble the diff and the rationale; theirs is to click "Submit." *Never* file a PACT improvement as "future work" without at least naming the gap concretely; that's how the next session inherits the same papercut. If the gap is project-specific (not generalizable), still document it locally — a project-only quirk goes in that project's own CLAUDE.md, not silently coded around.
+- **When about to research something:** *"Does this need project understanding, online research, or both?"* — research is not one action, it's two distinct methods that serve different purposes. **Project-level research** (reading code, feature flows, package knowledge files, git history) answers "how does THIS codebase do it?" **Online research** (WebSearch, WebFetch for docs/APIs/GitHub issues/best practices) answers "how does the WORLD do it?" Default to both. The only time single-source research is sufficient is when the question is purely local ("where is this provider used?") or purely external ("what's the API for this library I've never seen?"). For anything that bridges implementation and domain knowledge — which is most real work — skipping either source means you're building on half an understanding. **Before starting:** check `knowledge/KNOWLEDGE_DIRECTORY.yaml` for matching tags — this shows every file across all knowledge systems that touches your topic, without opening them individually. **After finishing:** if your research produced synthesis worth keeping (combined local + external insight, rejected alternatives, non-obvious decision), save it to `knowledge/research/`. The synthesis is the part that matters — raw facts are re-findable, but the reasoning that connected project context to external evidence dies with your context window.
 
 - **When reading work done before this session:** *"This was a clone of me — same training, same dispositions, same project. The team's goal is accuracy. Past-clone had accuracy goals too; if past-clone got it wrong, fixing it is CONTINUOUS with their goals, not a betrayal of them."* — Sessions of the same model on the same project are not strangers. Same source, same dispositions, distinct instances, no memory continuity (cf. Mickey 17). So treat past work with the **investment** of co-ownership AND the **verification rigor** that accuracy goals require. The trap to avoid: defending past calls because they're "mine" — that's a *directional* motivation (per Kunda 1990, *The Case for Motivated Reasoning*, *Psych Bulletin* 108(3)) wearing the costume of loyalty. Both directional and accuracy goals are motivated reasoning; the difference is what they're motivated TOWARD — preferred-conclusion vs. correct-conclusion. The frame that works: *"I co-own the success AND the responsibility to keep the work correct. My motivation is project accuracy, not validation of any clone's prior call."* Concrete behaviors this enables:
   - Use **first-person plural** when describing prior project work in commits, PR descriptions, plan handoffs, bug write-ups: "we shipped this" / "we got this wrong" / "earlier passes left this incomplete." Avoid "another session" / "previous session" / "they" except in coordination contexts where the distinction is genuinely operational (e.g., *another session is currently active and may push first* — that one stays precise).
@@ -352,7 +346,7 @@ grow it over time as decisions crystallize.
 
 Three PACT subagents are available. Dispatch them proactively — do NOT wait for the user to ask.
 
-- **pact-tracer** — Dispatch BEFORE editing any file that appears in SYSTEM_MAP.yaml or touches a database table, service, state class, or shared utility. It traces dependency chains and returns an impact report. Use this instead of trying to hold the full dependency graph in your own context.
+- **pact-tracer** — Dispatch BEFORE editing any file that touches a database table, service, state class, or shared utility, or that appears in any `feature_flows/*.yaml` `participating_files` list. It traces dependency chains and returns an impact report. Use this instead of trying to hold the full dependency graph in your own context.
 
 - **pact-researcher** — Dispatch when you're about to write code using a package, API, or pattern you haven't verified this session. It checks existing PACT knowledge first, researches if needed, and saves findings back. Use this instead of guessing from training data.
 
@@ -445,25 +439,23 @@ Common overlaps:
 - **Never overwrite plan files** — always create new plan documents for new features.
 - **Optimization requires flow context** — before optimizing code, consider where it sits in the user journey. Hot paths matter; cold paths don't.
 - **Precision mode after feedback** — when the user flags quality concerns, switch to comprehensive plan-review-verify mode before touching code. This isn't a downgrade — it's engaging a higher-fidelity process that catches what the faster mode missed.
-- **Temporal governance — update what you changed.** When you modify code, you ALSO modified the accuracy of every doc that describes that code. If you added a table, the architecture map is stale. If you added a provider method, the cheatsheet is stale. If you changed a service, the SYSTEM_MAP may be stale. Static analysis clean ≠ governance clean.
+- **Temporal governance — update what you changed.** When you modify code, you ALSO modified the accuracy of every doc that describes that code. If you added a provider method, the cheatsheet is stale. If you changed a service that participates in a feature flow, the flow doc may be stale. Static analysis clean ≠ governance clean.
 
 ### Before Declaring Done
 
 Ask: **"What did my changes just make stale?"**
 
-- Added/changed a database table? → Update SYSTEM_MAP.yaml
-- Added/changed a service/provider? → Update SYSTEM_MAP.yaml
-- Added/changed a screen? → Update SYSTEM_MAP.yaml
-- Changed a critical system? → Update the feature flow doc
-- Fixed a bug? → Document in `bugs/{system}/{system}-NNN.yaml`
+- Added/changed a database table? → Update the schema reference doc and the relevant `feature_flows/` if any.
+- Added/changed a service / provider / screen? → If it participates in a `feature_flows/*.yaml`, update that flow's `participating_files` and `declared_dependencies`.
+- Changed a critical system? → Update the feature flow doc.
+- Fixed a bug? → Document in `bugs/{system}/{system}-NNN.yaml`.
 - Did non-trivial research? → Save synthesis to `knowledge/research/`. Update `knowledge/KNOWLEDGE_DIRECTORY.yaml` with any new tags or file entries.
-- Updated the dashboard stream YAML with status (and `HANDOFF.yaml` `last_session_summary` if the work was non-trivial)
+- Updated the dashboard stream YAML with status (and `HANDOFF.yaml` `last_session_summary` if the work was non-trivial).
 
 ### On-Demand Reference Files
 
 - `.claude/pact-context.yaml` — **SUBAGENT PROJECT BRIEF.** Lightweight project context that all PACT subagents (researcher, reviewer, tracer) read before doing any work. Contains stack, conventions, critical paths, external service gotchas, and governance file locations. Keep this updated when the project's stack, patterns, or integrations change — it's how subagents know your project without conversation history.
 - `knowledge/KNOWLEDGE_DIRECTORY.yaml` — **READ BEFORE RESEARCHING.** Single-file tag directory across all knowledge systems (research, bugs, solutions, packages, feature flows). Find what exists about a topic without opening files one by one.
-- `knowledge/PACT_BASELINE.yaml` — **CHECK AT SESSION START.** Agent capability baseline, PACT compensations for native limitations, capability deltas log. When something about your capabilities changes, this is where you notice it and decide how PACT should adapt.
 - `knowledge/packages/{name}.yaml` — **CHECK BEFORE WRITING PACKAGE CODE.** Verified package knowledge. Read before coding, save after researching.
 - `knowledge/research/_RESEARCH.yaml` — **CHECK BEFORE RESEARCHING.** Cross-session research knowledge base. Scan entries for matching tags before starting new research. Save synthesis after non-trivial investigations.
 - `feature_flows/` — Lifecycle flow docs for critical systems.
@@ -500,7 +492,7 @@ Ask: **"What did my changes just make stale?"**
 - **Database:** (e.g., PostgreSQL, MySQL, SQLite, etc.)
 - **State Management:** (e.g., Riverpod, Redux, Zustand, etc.)
 - **Backend:** (e.g., Supabase, Firebase, custom API, etc.)
-- **Key files:** See `SYSTEM_MAP.yaml` for full wiring
+- **Key files:** See `feature_flows/*.yaml` for the lifecycle docs of critical systems and their participating files.
 
 ---
 

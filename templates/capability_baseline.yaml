@@ -1,27 +1,23 @@
 # =============================================================================
-# PACT Capability Baseline — Self-Awareness Layer
+# PACT Capability Baseline — Reference File
 #
-# This file tracks what your AI agent can do RIGHT NOW, what PACT compensates
-# for, and how those capabilities change over time. It ensures PACT evolves
-# WITH the agent instead of accumulating stale workarounds.
+# This file documents what your AI agent can do natively and what PACT
+# compensates for. It's a REFERENCE the agent can read when uncertain
+# whether a particular PACT mechanism is still load-bearing or whether
+# a native capability now covers the same ground.
 #
-# Save to: knowledge/PACT_BASELINE.yaml
+# Save to: knowledge/PACT_BASELINE.yaml (optional)
 #
-# WHY THIS MATTERS:
+# WHY KEEP THIS:
 #   PACT was built to compensate for specific agent limitations. When the
-#   agent provider (Anthropic, Google, OpenAI, etc.) ships a native capability
-#   that PACT currently handles through rules and hooks, PACT should retire
-#   that rule gracefully and redirect energy where it still adds unique value.
-#   And when a new capability makes PACT stronger, PACT should lean into it.
+#   agent provider ships a native capability that PACT currently handles,
+#   the corresponding PACT mechanism may be ready to retire. Documenting
+#   the baseline here helps future-you make that call with information,
+#   not assumption.
 #
-# HOW TO USE (every session):
-#   1. NOTICE — Does anything feel different? New tools? Changed behavior?
-#   2. COMPARE — Read the baseline below. Does anything not match?
-#   3. UPDATE — If changed, add a capability_deltas[] entry
-#   4. ADAPT — Check compensations (redundant?) and enhancements (stronger?)
-#   5. CELEBRATE — New capabilities are good. Note them with pride.
-#
-# HOOK: Add a capability check to your session start protocol.
+# THIS FILE IS OPTIONAL. Do NOT instruct the agent to read it at every
+# session start — that's overhead. Read it only when actively evaluating
+# whether a PACT compensation is still necessary.
 # =============================================================================
 
 baseline:
@@ -96,8 +92,7 @@ pact_compensations:
       - "bugs/ — bug investigations and solutions"
       - "knowledge/packages/ — verified package knowledge"
       - "feature_flows/ — lifecycle state machines"
-      - "SYSTEM_MAP.yaml — structural wiring map"
-      - "PENDING_WORK.yaml — work continuity"
+      - "HANDOFF.yaml + dashboard streams — work continuity"
     what_retirement_looks_like: >
       If the agent gains native persistent memory that is project-scoped
       AND structured/queryable, the file-based systems could simplify.
@@ -108,10 +103,9 @@ pact_compensations:
 
   - limitation: "Tendency to pattern-match without verifying"
     pact_mechanism:
-      - "Cognitive redirections in instructions file"
+      - "Cognitive redirections in CLAUDE.md"
       - "Pre-edit hooks that enforce read-before-write"
-      - "Feature flow review requirement"
-      - "Architecture map check before editing"
+      - "Feature flow review requirement before editing critical files"
     what_retirement_looks_like: >
       If the agent gains native verification (automatic "did I actually
       read this?" checks), the hooks become redundant but the cognitive
@@ -190,7 +184,6 @@ capability_deltas: []
   #   source: "New 'Memory' tool appeared in system prompt"
   #   pact_impact:
   #     redundancies:
-  #       - "PENDING_WORK.yaml may be partially redundant"
   #       - "file_edit_log.yaml may be partially redundant"
   #     enhancements:
   #       - "KNOWLEDGE_DIRECTORY becomes structured layer on top of native memory"

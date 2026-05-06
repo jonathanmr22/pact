@@ -20,7 +20,7 @@ skills:
 
   - file: skills/feature_flow_authoring.yaml
     triggers: [feature flow, lifecycle flow, modifying critical system]
-    summary: "When to write a feature flow doc and how to structure it. SYSTEM_MAP owns structure; flow docs own behavior."
+    summary: "When to write a feature flow doc and how to structure it. Flow docs own behavior + the declarative file/dependency contract."
 
   - file: skills/research_workflow.yaml
     triggers: [research, investigate, look into, find out how]

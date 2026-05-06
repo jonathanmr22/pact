@@ -2,8 +2,8 @@
 # {Feature Name} — Lifecycle Flow
 #
 # PACT Context Replacement: Describes BEHAVIOR across time and app states.
-# The architecture map (SYSTEM_MAP.yaml) describes STRUCTURE (what files exist).
-# This file describes what HAPPENS (what breaks if you touch them wrong).
+# Code in your repo describes STRUCTURE (what files exist). This file
+# describes what HAPPENS (what breaks if you touch them wrong).
 #
 # MANDATORY before rewriting or significantly modifying any feature.
 # Save to: feature_flows/{feature_name}_flow.yaml
@@ -12,7 +12,6 @@
 # =============================================================================
 
 purpose: "{One sentence: what this feature does and why it exists}"
-system_map_section: "{key from SYSTEM_MAP.yaml — e.g., 'users', 'messaging'}"
 
 # Things that must ALWAYS be true. If violated, the feature breaks.
 invariants:

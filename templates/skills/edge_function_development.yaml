@@ -74,7 +74,7 @@ procedure:
   5_update_governance:
     what: "Update governance artifacts"
     checklist:
-      - "SYSTEM_MAP.yaml — add the function to the relevant wiring section"
+      - "Relevant feature_flows/*.yaml — add the function to participating_files for the flow it serves"
       - "knowledge/tech_stack.yaml — add to the edge_functions inventory (if you maintain one)"
       - "Feature flow doc — if this function is part of a critical-system flow"
 
@@ -83,7 +83,7 @@ quality_gates:
   - "No body.userId used in queries (only verified JWT userId)"
   - "Generic error messages returned to client; details logged server-side"
   - "Added to deploy-functions.sh"
-  - "SYSTEM_MAP.yaml updated"
+  - "Relevant feature_flows/*.yaml updated (if applicable)"
   - "Smoke-tested with valid + missing + invalid JWT"
 
 gotchas:

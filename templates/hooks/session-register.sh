@@ -195,11 +195,6 @@ else
   echo "[PACT] Dashboard is not running. User preference is 'ask'. Ask the user if they'd like to activate it. To start: python .claude/hooks/pact-server.py &"
 fi
 
-SCORECARD="$HOME/.claude/pact-scorecard.md"
-if [ -f "$SCORECARD" ]; then
-  echo "[PACT] Task scorecard available — read ~/.claude/pact-scorecard.md for user feedback on past tasks."
-fi
-
 # ── PACT Memory (vector recall) ──
 MEMORY_DB="$HOME/.claude/pact-memory.db"
 if [ -f "$MEMORY_DB" ]; then

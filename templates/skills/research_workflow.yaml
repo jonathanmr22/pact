@@ -31,7 +31,7 @@ procedure:
   2_determine_source_type:
     project_level:
       when: "How does THIS codebase do it?"
-      sources: "Code, SYSTEM_MAP, feature flows, package knowledge, git history"
+      sources: "Code, feature flows, package knowledge, git history"
     online:
       when: "How does the WORLD do it?"
       sources: "WebSearch, WebFetch for docs/APIs/GitHub issues/best practices"

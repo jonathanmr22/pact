@@ -95,8 +95,8 @@ external_services:
   services: []
 
 governance:
-  # Path to SYSTEM_MAP (tracer needs this)
-  system_map: "SYSTEM_MAP.yaml"
+  # Path to feature flows directory (tracer + reviewer use this for dependency tracing)
+  feature_flows_dir: "feature_flows/"
   # Path to knowledge directory (researcher needs this)
   knowledge_directory: "knowledge/KNOWLEDGE_DIRECTORY.yaml"
   # Path to solutions file (all agents can reference)

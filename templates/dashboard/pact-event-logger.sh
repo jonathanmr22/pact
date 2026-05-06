@@ -13,9 +13,8 @@
 #   bash .claude/hooks/pact-event-logger.sh edit '{"file":"main.dart","lines":15}'
 #   bash .claude/hooks/pact-event-logger.sh hook_block '{"hook":"pre-edit-rules","reason":"no print()"}'
 #   bash .claude/hooks/pact-event-logger.sh session_start '{"model":"opus-4-6","redirections_recited":true}'
-#   bash .claude/hooks/pact-event-logger.sh flow_read '{"flow":"tile_cache_flow.yaml"}'
-#   bash .claude/hooks/pact-event-logger.sh system_map '{"section":"tile_cache"}'
-#   bash .claude/hooks/pact-event-logger.sh governance '{"action":"updated","file":"SYSTEM_MAP.yaml"}'
+#   bash .claude/hooks/pact-event-logger.sh flow_read '{"flow":"auth_flow.yaml"}'
+#   bash .claude/hooks/pact-event-logger.sh governance '{"action":"updated","file":"feature_flows/auth_flow.yaml"}'
 # ============================================================================
 
 EVENT_TYPE="${1:-unknown}"

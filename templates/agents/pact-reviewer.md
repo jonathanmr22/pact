@@ -49,17 +49,22 @@ to get the list of changed files. Then `git diff` for the actual changes.
 
 For each changed file, check:
 
-- **SYSTEM_MAP.yaml** — does it reference this file's system? If the file
-  added/changed a table, service, provider, or screen, is the map updated?
 - **Feature flow docs** — if a critical system was changed (auth, encryption,
-  backup, sync, database core), is the feature flow doc updated?
+  backup, sync, database core), is the relevant `feature_flows/*.yaml`
+  updated? If a file was added or removed, is `participating_files` current?
 - **KNOWLEDGE_DIRECTORY.yaml** — if any knowledge files (research, packages,
   bugs, solutions) were created or modified, is the directory updated?
-- **PENDING_WORK.yaml** — is the task status updated?
+- **HANDOFF.yaml + dashboard streams** — was the relevant
+  `plans/dashboard/trees/{tree}/streams/*.yaml` task status updated? Is
+  `HANDOFF.yaml.last_session_summary` current if the work was non-trivial?
 
 ### 3. Dependency Check
 
-Read `SYSTEM_MAP.yaml` and trace ONE hop downstream from each changed file.
+For each changed file, scan `feature_flows/` for any flow that claims this
+file in `participating_files`. Flag any flow whose `declared_dependencies`
+or `invariants` may be invalidated by the change. If the project has an
+auto-derived structural map (e.g. `plans/dashboard/data/repo_map.json`),
+read it for one-hop downstream importers.
 Flag any downstream file that:
 - Was NOT in the diff (might need updating)
 - Was recently edited by another session (merge risk)
@@ -116,9 +121,7 @@ For each changed file, ask the relevant redirections:
 
 - **Read-only.** You never edit files. You report what needs attention.
   The main session decides what to act on.
-- **Be specific.** "SYSTEM_MAP.yaml is stale" is useless. "SYSTEM_MAP.yaml
-  doesn't include the new `MeldService` added in `lib/services/meld_service.dart`"
-  is actionable.
+- **Be specific.** "Feature flow is stale" is useless. "feature_flows/auth_flow.yaml `participating_files` doesn't include the new `lib/services/auth_service.dart`" is actionable.
 - **Don't block on style.** You are governance, not a linter. Code formatting,
   variable naming, and style preferences are not your concern.
 - **Acknowledge clean work.** If everything checks out, say so clearly.

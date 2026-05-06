@@ -18,7 +18,7 @@ triggers:
 prerequisites:
   read_first:
     # Files that should be read BEFORE following the procedure. Usually
-    # SYSTEM_MAP.yaml, a related feature flow, or a package knowledge file.
+    # A relevant feature_flows/*.yaml or a package knowledge file.
     - "path/to/relevant/file.yaml"
   tools_needed:
     # Optional: required CLIs, env vars, MCP integrations

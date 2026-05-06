@@ -23,7 +23,7 @@ triggers:
 
 prerequisites:
   read_first:
-    - "SYSTEM_MAP.yaml — find the wiring section for the feature"
+    - "Relevant feature_flows/*.yaml — find the flow this feature participates in"
   search_first:
     - "lib/widgets/ — reusable widgets your project has accumulated"
     - "lib/theme/ or equivalent — spacing, text styles, input decoration helpers"

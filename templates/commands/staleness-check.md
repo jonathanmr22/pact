@@ -9,36 +9,33 @@ This is the TEMPORAL governance check — it answers: "What docs did my changes 
 2. For each edited file, check ripple effects against the project's governance layer:
 
    **If a file in `lib/database/`, `models/`, `tables/`, `schema/`, or `migrations/` was edited (database/schema-touching code):**
-   - Is the table/entity listed in `SYSTEM_MAP.yaml` under the correct wiring section?
    - Is the schema doc current? (`knowledge/schema.{yaml,md}` or whatever your project uses)
    - Was a new column added but FK targets/indexes/constraints not documented?
+   - If the table is claimed by any `feature_flows/*.yaml`, is that flow's `participating_files` and `invariants` still accurate?
 
    **If a service/handler/api/endpoint file was edited:**
-   - Is the service listed in `SYSTEM_MAP.yaml` under the relevant wiring section?
-   - If it's a critical-system service (auth, encryption, sync, payments, broadcast, or any flow tagged critical in your project's feature flow inventory), check the matching `feature_flows/{system}_flow.yaml` "last_updated" date — is it today?
+   - If it's a critical-system service (auth, encryption, sync, payments, broadcast, or any flow tagged critical in your project's feature flow inventory), check the matching `feature_flows/{system}_flow.yaml` "last_updated" date — is it today? Are `participating_files` and `declared_dependencies` current?
 
    **If a new screen / view / route was added:**
-   - Is it listed in `SYSTEM_MAP.yaml` screens / routes section?
-
-   **If `SYSTEM_MAP.yaml` itself was edited:**
-   - Is the "last_verified" or top-level date stamp today?
-   - Validate all `feature_flow` cross-references still resolve.
+   - Is it claimed by the relevant feature flow's `participating_files`?
+   - If the screen lives in a critical user journey, is there a flow doc for it at all?
 
    **If any feature flow was edited:**
    - Is the "last_updated" date today?
-   - Does the `system_map_section` reference still resolve?
+   - Do `declared_dependencies` between flows still resolve to existing flow files?
+   - If you removed a `participating_files` entry, did you confirm the file is genuinely no longer part of the flow (vs. just renamed)?
 
    **If a Postgres / Supabase function / Edge Function / API route source was edited:**
    - Is the function listed in `knowledge/tech_stack.yaml` (or your equivalent) under the relevant section?
-   - Is `SYSTEM_MAP.yaml` updated?
+   - Is the relevant feature flow's `participating_files` updated?
 
-3. Check `SYSTEM_MAP.yaml` overall freshness — flag if last verified >3 days ago.
+3. Check feature flow freshness overall — flag any flow whose `last_updated` is >7 days ago AND whose `participating_files` were touched this session.
 
 4. If your project has an automated schema-drift detector (e.g., `scripts/check_schema_drift.py`), check its last run from `scripts/RUN_LOG.yaml`. If >7 days old AND any schema-touching file was edited this session, recommend running `/check-drift` (or equivalent).
 
 5. Report:
-   - **Current** — files whose docs/maps are accurate
-   - **Stale** — docs that should be updated as a consequence of the changes
+   - **Current** — files whose docs/flows are accurate
+   - **Stale** — docs/flows that should be updated as a consequence of the changes
    - **Missing** — code paths edited that have no corresponding documentation
 
 ## Output format
@@ -49,24 +46,24 @@ This is the TEMPORAL governance check — it answers: "What docs did my changes 
 Edited this session: 7 files
 
 Current (3):
-  - lib/services/foo_service.dart       (SYSTEM_MAP.yaml updated, feature_flow current)
+  - lib/services/foo_service.dart       (feature_flows/foo_flow.yaml current, participating_files updated)
   - knowledge/tech_stack.yaml           (synced with edge_functions/foo)
   - bugs/auth/auth-002_login_loop.yaml  (newly resolved, commit hash recorded)
 
 Stale (3):
-  - lib/database/tables/orders.dart     -> SYSTEM_MAP.yaml NOT updated (cascade behavior changed)
-  - supabase/functions/checkout/index.ts -> tech_stack.yaml inventory NOT updated
-  - lib/screens/cart_screen.dart        -> SYSTEM_MAP.yaml screens list NOT updated
+  - lib/database/tables/orders.dart       -> feature_flows/checkout_flow.yaml NOT updated (cascade behavior changed)
+  - supabase/functions/checkout/index.ts  -> tech_stack.yaml inventory NOT updated
+  - lib/screens/cart_screen.dart          -> participating_files in checkout_flow.yaml does not include this file
 
 Missing (1):
-  - lib/services/payment_service.dart   -> NO feature flow exists; create one before declaring done
+  - lib/services/payment_service.dart     -> NO feature flow exists; create one before declaring done
 
 Schema drift check: last run 12 days ago. Recommend /check-drift before commit.
 ```
 
 ## Why this command exists
 
-`dart analyze` (or your linter) checking clean ≠ governance clean. Code correctness is necessary but not sufficient — the docs and maps that describe the code must also stay current. This command catches the gap between "I changed the code" and "I forgot to update the doc that explains the code."
+Static analysis clean ≠ governance clean. Code correctness is necessary but not sufficient — the docs and feature flow YAMLs that describe the code must also stay current. This command catches the gap between "I changed the code" and "I forgot to update the flow that explains the code."
 
 ## Related
 

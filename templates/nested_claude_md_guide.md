@@ -22,7 +22,8 @@ If your project is small enough that a single root `CLAUDE.md` stays comfortably
 
 ```
 /CLAUDE.md                 (always loaded; ~10-12k tokens; behavioral core)
-/SYSTEM_MAP.yaml
+/HANDOFF.yaml              (always loaded; entry pointer to dashboard streams)
+/feature_flows/*.yaml      (read on demand for dependency / lifecycle questions)
 
 /lib/CLAUDE.md             (loaded when working under lib/)
 /scripts/CLAUDE.md         (loaded when working under scripts/)

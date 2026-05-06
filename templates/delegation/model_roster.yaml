@@ -41,7 +41,7 @@ orchestrators:
     never_delegates:
       - "Security, encryption, or auth code"
       - "Architecture decisions or schema changes"
-      - "PACT governance (CLAUDE.md, SYSTEM_MAP, hooks)"
+      - "PACT governance (CLAUDE.md, feature flows, hooks)"
       - "Bug fixes (causal chain tracing)"
       - "Final code review before commit"
     card_image: "delegation/roster/claude.png"

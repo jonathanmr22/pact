@@ -3,8 +3,9 @@ version: 1
 created_by: PACT template
 purpose: |
   When to write a feature flow document and how to structure it. Flow docs
-  describe BEHAVIOR (lifecycle, state transitions, error paths) — they are
-  the dynamic counterpart to SYSTEM_MAP.yaml's static wiring view.
+  describe BEHAVIOR (lifecycle, state transitions, error paths) and ground
+  truth about which files participate in a feature — both for cross-flow
+  dependency resolution and for staleness detection at edit time.
 
 triggers:
   - feature flow
@@ -17,8 +18,8 @@ triggers:
 
 prerequisites:
   read_first:
-    - "SYSTEM_MAP.yaml — find the wiring section for the feature you're changing"
     - "feature_flows/ — check if a flow already exists for this feature"
+    - "templates/feature_flow.yaml — the canonical structure for new flows"
 
 procedure:
   1_check_if_required:
@@ -38,11 +39,12 @@ procedure:
     template_location: "templates/feature_flow.yaml has the canonical structure"
     key_sections:
       - "purpose: one sentence"
-      - "system_map_section: pointer to SYSTEM_MAP.yaml (NEVER duplicate wiring)"
-      - "invariants: things that must ALWAYS be true"
+      - "participating_files: every file that participates in this flow's behavior — services, providers, screens, edge functions, tables. This list is what the dependency tracer reads to answer 'what depends on this?'"
+      - "declared_dependencies: outbound (depends_on) + inbound (auto-computed from other flows). Specify the symbol or contract via 'via:' so a renamed function breaks the contract loudly."
+      - "invariants: things that must ALWAYS be true. Each invariant is a testable claim."
       - "states: cold start, warm start, background, force-close-reopen, restore-from-backup, auth boundaries, error paths"
       - "gotchas: non-obvious interactions"
-    critical_rule: "SYSTEM_MAP owns STRUCTURE. Flow docs own BEHAVIOR. Never duplicate tables/services/screens in flow docs."
+    critical_rule: "Flow docs own BEHAVIOR + the declarative contract between files. Don't duplicate code — reference files by path so the auto-derived structural map (e.g. repo_map.json) and the declarative flow can be cross-validated."
 
   3_present_to_user:
     what: "Describe the flow conversationally before any code is written"
@@ -53,21 +55,27 @@ procedure:
 
   5_update_after_implementation:
     what: "Update the flow doc with any discoveries or changes"
-    also: "Link the flow doc in SYSTEM_MAP.yaml feature_flows section"
+    also: "Verify participating_files is current — every new/removed file in this flow's behavior must be reflected. The schema validator (verify_feature_flow_schema.py) will catch a missing path against repo_map.json if you skip this."
 
 quality_gates:
   - "Flow doc covers ALL lifecycle states the feature participates in"
-  - "system_map_section pointer is set (no duplicated wiring)"
+  - "participating_files lists every file in this flow (no gaps; no stale entries)"
+  - "declared_dependencies use 'via:' to name the symbol/contract"
   - "User confirmed understanding before code was written"
   - "Flow doc updated after implementation with discoveries"
+  - "Schema validator (if installed) passes with zero errors on this flow"
 
 gotchas:
-  - pattern: "Duplicate wiring (table/service/screen lists) in the flow doc"
-    problem: "Two sources of truth that drift apart"
-    fix: "Only reference SYSTEM_MAP via system_map_section pointer"
+  - pattern: "Stale participating_files (file renamed or removed but flow not updated)"
+    problem: "Dependency tracer returns wrong dependents; staleness checks miss real ripples"
+    fix: "On every code edit that touches a file in any flow, update that flow's participating_files in the same commit"
 
   - pattern: "Skip the conversational walkthrough"
     problem: "User can't catch misunderstandings before implementation"
     fix: "Always present verbally first, then code"
+
+  - pattern: "Vague declared_dependencies (just naming the target flow with no via:)"
+    problem: "When the called symbol is renamed, neither flow notices — the contract drifts silently"
+    fix: "Always name the symbol or RPC the dependency uses in the via: field"
 
 history: []
