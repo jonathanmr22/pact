@@ -7,6 +7,115 @@ PACT uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.13.0] — 2026-05-06
+
+### Added — Bootstrap Pack
+
+The day-one install experience was broken. PACT compounded value over time
+but didn't bootstrap value: a new install got all the code (hooks, skills,
+knowledge directories, dashboards) but the agent had no reason to look at
+any of it unless something told it to. The CLAUDE.md template was buried
+under an obsolete name (`instructions.md`), full of references to retired
+mechanisms (SYSTEM_MAP, PENDING_WORK), and laced with a "PACT-governing-
+PACT" meta layer that confused fresh users about what they were actually
+supposed to do.
+
+This release fixes that with three new files plus a comprehensive scrub of
+the existing templates:
+
+  - **`QUICKSTART.md`** (top-level) — 15-minute clone-to-working path.
+    Replaces the README's feature wall with "do these three things in
+    this order": (1) get PACT onto your machine, (2) run `pact_init.sh`
+    in your project, (3) open Claude Code. Plus: file inventory of what
+    you have after init, what to do in your first PACT session, common
+    mistakes, and a versioning note explaining the same-day-patch rule.
+
+  - **`templates/scripts/pact_init.sh`** — interactive scaffolder. Run
+    from your project root; asks ~5 questions (project name, primary
+    languages, backend type, mobile y/n, worktree isolation y/n), then
+    generates a customized CLAUDE.md from the template, scaffolds the
+    full directory structure, copies starter index files, copies the
+    default hook set into `.claude/hooks/`, and writes a working
+    `.claude/settings.json` with sensible default hook wiring.
+    Idempotent: re-running skips existing files. Friendly output with
+    progress indicators and a clear next-steps summary at the end.
+
+  - **`templates/hooks/session-start-pact-orientation.sh`** — SessionStart
+    hook that detects "fresh install" state (CLAUDE.md exists but the
+    knowledge/feature-flow/bug directories are empty) and injects an
+    `additionalContext` SystemReminder teaching the agent what PACT is,
+    where the key files live, the core cognitive redirections, and the
+    session-start protocol. Self-suppresses after 5 sessions OR once any
+    of `feature_flows/`, `knowledge/research/`, `knowledge/packages/`,
+    `bugs/<system>/` has real content. Users with no orientation need
+    pay nothing; users whose project is genuinely fresh get the on-ramp.
+
+### Changed — Scrubbed obsolete and confusing references
+
+Three categories of cruft removed across `templates/`:
+
+  - **SYSTEM_MAP residue** (the hand-curated structural map that was
+    retired in favor of feature flows + auto-derived `repo_map.json`):
+    deleted `templates/architecture_map.yaml` (which was titled
+    `SYSTEM_MAP.yaml`); deleted `templates/dashboard/trees/governance/
+    streams/system_map_decomposition.yaml` (downstream-internal historical
+    record); rewrote `templates/agents/pact-tracer.md` and
+    `pact-reviewer.md` to read `feature_flows/` + grep instead;
+    rewrote `templates/commands/staleness-check.md`; updated 10+ skill
+    files, hook scripts, and config files to reference feature flows
+    instead of SYSTEM_MAP.
+
+  - **PENDING_WORK residue** (replaced by HANDOFF.yaml + dashboard
+    streams in v0.12.0): deleted `templates/pending_work.yaml`; rewrote
+    `templates/hooks/post-edit-progress-check.sh` to track HANDOFF +
+    dashboard updates instead of PENDING_WORK; updated `pre-bash-guard.sh`
+    commit-time staleness check; updated the Gemini orchestrator's
+    session-start protocol; updated dashboard file map index.
+
+  - **PACT-within-PACT meta layer** (the part that confused fresh users
+    about whether they were supposed to use PACT or improve it): removed
+    the "PACT capability check" + "PACT scorecard" steps from session
+    start; removed the cognitive redirections about updating
+    `PACT_BASELINE.yaml`, judging PACT features, and spotting gaps in
+    PACT itself; rewrote `templates/capability_baseline.yaml` to be a
+    passive reference file instead of "check at every session start";
+    removed the scorecard message from `session-register.sh`.
+
+### Renamed
+
+  - `templates/instructions.md` → `templates/CLAUDE.md.template`. New
+    users now know what to copy and where to put it.
+
+### Why this matters
+
+The COMPARISON.md framing of *"PACT — multi-tree status board + Codebase
+Intent Map + mechanical enforcement"* has been true for the originating
+project for months. For a Day-1 user, none of it lit up because the
+infrastructure was inert without a properly-configured CLAUDE.md and an
+agent that knew what PACT was. The bootstrap pack closes that gap. Every
+new install now has a working setup in 5 minutes and a productively-
+oriented agent in 5 sessions.
+
+### Migration
+
+Existing PACT installations: nothing breaks. The new files are additive.
+The renamed `instructions.md` → `CLAUDE.md.template` only affects users
+who were referencing the old path; if you copied the file out of the PACT
+repo and into your own project's CLAUDE.md, your local copy is unchanged.
+
+To opt in to the bootstrap pack on an existing project (mostly relevant
+if you want to clean up the old SYSTEM_MAP/PENDING_WORK references in
+your own CLAUDE.md):
+  1. Re-run `bash <pact>/templates/scripts/pact_init.sh` from your project
+     root. It's idempotent — only writes files that don't exist, so your
+     customized CLAUDE.md stays.
+  2. To pick up the new orientation hook on existing setups, manually
+     copy `templates/hooks/session-start-pact-orientation.sh` into
+     `<project>/.claude/hooks/` and add it to your settings.json
+     SessionStart array.
+
+---
+
 ## [0.12.2] — 2026-05-03
 
 ### Added
