@@ -10,13 +10,17 @@
 
 <p align="center">
   <a href="https://buymeacoffee.com/jonathanmr22" target="_blank"><img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black" alt="Buy Me A Coffee"/></a>
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-0.11.0-blue?style=for-the-badge" alt="Version 0.11.0 — see CHANGELOG"/></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-0.13.0-blue?style=for-the-badge" alt="Version 0.13.0 — see CHANGELOG"/></a>
   <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/changelog-current-orange?style=for-the-badge" alt="Changelog"/></a>
   <img src="https://img.shields.io/badge/license-MIT-green?style=for-the-badge" alt="MIT License"/>
 </p>
 
 <p align="center">
-  📜 <a href="CHANGELOG.md"><b>What's new in 0.11.0</b></a> — Repo Map (Aider-style symbol index, real-time auto-rebuild, drift detection), cognitive-redirect hook system, SYSTEM_MAP retired in favor of auto-derived structural truth, clone-framing + Kunda accuracy-goals cognitive redirection.
+  📜 <a href="CHANGELOG.md"><b>What's new in 0.13.0</b></a> — Bootstrap pack: <code>pact_init.sh</code> interactive scaffolder, <code>session-start-pact-orientation.sh</code> hook that teaches the agent on fresh installs, <a href="QUICKSTART.md">QUICKSTART.md</a> 15-minute walkthrough. Retired the obsolete SYSTEM_MAP / PENDING_WORK references and the meta-layer that was confusing day-one users.
+</p>
+
+<p align="center">
+  <b>👉 First time installing PACT? <a href="QUICKSTART.md">Read QUICKSTART.md</a> — clone to working setup in 15 minutes.</b>
 </p>
 
 ---
@@ -118,7 +122,7 @@ Checkpoints solve the core failure mode of cognitive redirections: **rules encod
 
 7. **`delegation_check`** — Triggers before starting web research, doc reading, boilerplate code generation, test scaffolding, or content classification. Forces the agent to run the delegation decision tree and justify whether to delegate to a worker model or keep the task. Makes the cost trade-off visible: "This is a $75/M task that a $0.90/M model handles."
 
-8. **`progress_update`** — Triggers when a logical unit of work completes during a multi-step operation (agent returns, batch processed, phase finished). Forces the agent to document what just completed, the current state with concrete counts, and whether PENDING_WORK.yaml was updated. Prevents the universal failure mode where an agent works for hours without leaving breadcrumbs, and the next session starts from scratch.
+8. **`progress_update`** — Triggers when a logical unit of work completes during a multi-step operation (agent returns, batch processed, phase finished). Forces the agent to document what just completed, the current state with concrete counts, and whether `HANDOFF.yaml` and the relevant dashboard stream were updated. Prevents the universal failure mode where an agent works for hours without leaving breadcrumbs, and the next session starts from scratch.
 
 **Research basis:** Claude API docs on extended thinking confirm that system prompts don't reach into internal thinking blocks. Output-level format requirements are the proven mechanism for structured reasoning — they're visible, verifiable, and survive cognitive load. ([Extended thinking docs](https://platform.claude.com/docs/en/build-with-claude/extended-thinking), [Prompt engineering best practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices))
 
@@ -267,42 +271,53 @@ After installation, uncomment rules in the hook scripts for your project's speci
 
 ## Quick Start — Manual Setup (Any Agent)
 
-If you're not using Claude Code, copy the templates manually:
+If you're not using Claude Code (Gemini CLI, Cursor, custom orchestrator, etc.), the fastest path is the same scaffolder used by `/pact-init`:
+
+```bash
+# Clone PACT once, anywhere
+git clone https://github.com/jonathanmr22/pact.git ~/code/pact
+
+# Then from your project root:
+cd ~/code/your-project
+bash ~/code/pact/templates/scripts/pact_init.sh
+```
+
+The init script asks ~5 questions about your project, generates a customized CLAUDE.md from the template, scaffolds the directories, copies starter index files, and writes a working `.claude/settings.json` with default hook wiring. Idempotent — re-running skips existing files. Full walkthrough in [QUICKSTART.md](QUICKSTART.md).
+
+If you'd rather copy files by hand, here's the structure the scaffolder builds:
 
 ```
 your-project/
-├── CLAUDE.md                    # ← from templates/instructions.md
-├── SYSTEM_MAP.yaml              # ← from templates/architecture_map.yaml
-├── cutting_room/                # ← from templates/cutting_room/
+├── CLAUDE.md                    # ← from templates/CLAUDE.md.template (placeholders filled in)
+├── HANDOFF.yaml                 # ← from templates/HANDOFF.yaml (entry pointer for sessions)
+├── cutting_room/                # ← from templates/cutting_room/ (visual prototyping)
 │   ├── _INDEX.yaml
 │   └── _TRIAL_TEMPLATE.yaml
 ├── .claude/
-│   ├── hooks/
-│   │   ├── pre-edit-rules.sh
-│   │   ├── pre-bash-guard.sh
-│   │   ├── pre-edit-feature-flow.sh
-│   │   ├── post-edit-warnings.sh
-│   │   ├── post-read-tracker.sh
-│   │   ├── post-edit-progress-check.sh
-│   │   ├── post-edit-timestamp.sh
-│   │   ├── post-sentry-bug-reminder.sh
-│   │   └── session-register.sh
-│   ├── bugs/
-│   │   ├── _INDEX.yaml
-│   │   └── _SOLUTIONS.yaml
+│   ├── settings.json            # default hook wiring
+│   ├── hooks/                   # ← from templates/hooks/ (mechanical enforcement)
+│   ├── pact-context.yaml        # ← from templates/pact-context.yaml (subagent project brief)
 │   ├── sessions.yaml            # (auto-maintained by hooks)
 │   └── memory/
-│       ├── PENDING_WORK.yaml
 │       └── file_edit_log.yaml   # (auto-populated by hooks)
-├── docs/
-│   ├── feature_flows/           # ← lifecycle flow docs
-│   ├── plans/                   # ← implementation plans
-│   └── reference/
-│       ├── packages/            # ← per-package knowledge files
-│       ├── research/            # ← cross-session research synthesis
-│       │   └── _RESEARCH.yaml
-│       ├── KNOWLEDGE_DIRECTORY.yaml  # ← cross-system tag index
-│       └── PACT_BASELINE.yaml   # ← agent capability baseline
+├── feature_flows/               # ← lifecycle flow docs (participating_files + invariants + declared_dependencies)
+├── plans/
+│   └── dashboard/               # ← multi-tree status board + Repo Map view
+│       ├── trees/{tree}/streams/*.yaml   # active task ledger
+│       └── data/repo_map.json   # (auto-rebuilt by post-edit hooks)
+├── knowledge/
+│   ├── KNOWLEDGE_DIRECTORY.yaml # cross-system tag index
+│   ├── packages/                # per-package verified API knowledge
+│   └── research/                # cross-session research synthesis
+├── bugs/
+│   ├── _INDEX.yaml
+│   └── _SOLUTIONS.yaml
+├── skills/
+│   ├── _SKILL_INDEX.yaml
+│   └── _SKILL_TEMPLATE.yaml
+└── scripts/
+    ├── SCRIPT_CATALOG.yaml      # every project script with deps + lessons
+    └── RUN_LOG.yaml             # one-shot operations log
 ```
 
 Configure hooks in `.claude/settings.local.json` (or your agent's equivalent):
@@ -456,9 +471,9 @@ PACT generates some files that should be committed (hooks, architecture maps, kn
 - [ ] Create `post-read-tracker.sh` (read-before-write enforcement)
 - [ ] Create `pre-bash-guard.sh` (git safety + multi-session coordination + knowledge directory pairing)
 - [ ] Create `silent-linter.sh` for your project's analyzer
-- [ ] Write `SYSTEM_MAP.yaml` for your most-changed features
+- [ ] Write `feature_flows/{system}_flow.yaml` for your most-changed critical systems (participating_files + invariants + declared_dependencies)
 - [ ] Write cognitive redirections from your actual experience
-- [ ] Create `PENDING_WORK.yaml` for cross-session continuity
+- [ ] Customize `HANDOFF.yaml` with your top 3 priorities and last-session summary (replaces the legacy PENDING_WORK.yaml pattern)
 - [ ] Add session start protocol to instructions file
 - [ ] Create `knowledge/packages/` for package knowledge
 - [ ] Create `knowledge/research/_RESEARCH.yaml` for cross-session research synthesis
