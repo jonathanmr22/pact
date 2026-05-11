@@ -1,0 +1,20 @@
+# Lines matching ANY pattern below are EXEMPT from the forbidden_terms.txt
+# block list. Use this for legitimate structural mentions that happen to
+# overlap with a personal/project name (e.g., the GitHub username
+# "jonathanmr22" appearing in plugin.json's "name" field is structural
+# metadata, not a personal-detail leak).
+#
+# Format: one extended-regex per line. Lines matching any of these
+# patterns are passed through even if they otherwise trigger a forbidden
+# term. Lines starting with # or whitespace-only are ignored.
+#
+# Match scope: the GREP HIT LINE (the staged "+something" line as it
+# appears in `git diff --cached`). Include leading `+` in your regex if
+# you want to be strict; the helper strips the diff prefix before matching.
+
+# GitHub package-author handle (legitimate structural metadata in plugin.json,
+# marketplace.json, LICENSE copyright lines, README repo URL)
+jonathanmr22
+
+# Copyright lines — author name in MIT-style license headers is standard
+^[[:space:]]*Copyright[[:space:]]+\(c\)[[:space:]]+[0-9]+

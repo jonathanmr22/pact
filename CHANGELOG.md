@@ -7,6 +7,61 @@ PACT uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.13.1] — 2026-05-11
+
+### Added — Documentation Discipline Hooks
+
+Two new hooks address the most common PACT discipline failure: the
+"some sessions document, some don't" pattern. Sourced from a downstream
+downstream consumer-project session (2026-05-11) where the strongest predictor of whether
+a session maintained dashboard YAMLs vs ignored them was **whether the
+session anchored on HANDOFF + in-flight tasks at minute zero, or dove
+straight into reactive execution**.
+
+  - **`session-start-pact-anchor.sh`** (SessionStart) — surfaces the top
+    25 non-blank lines of `HANDOFF.yaml` plus a list of currently
+    `in_flight` dashboard tasks (walks `plans/dashboard/trees/**/streams/*.yaml`
+    recursively) as `additionalContext` on the first turn. Forces the
+    discipline anchor before any execution begins. Non-blocking, ~50ms.
+    Truncates to 15 in-flight tasks for context budget; falls back to
+    grep if PyYAML isn't installed.
+
+  - **`post-commit-dashboard-check.sh`** (PostToolUse, Bash matcher) —
+    detects `git commit` operations via regex on the bash command, then
+    inspects `git diff --name-only HEAD~1..HEAD` to see if the latest
+    commit touched any `plans/dashboard/trees/**/streams/*.yaml`. If
+    NOT — AND the commit included real work-file types (.dart, .py, .ts,
+    .sh, etc.) — emits a soft additionalContext reminder pointing at
+    the discipline gap. Silent on pure-doc commits and commits that DID
+    touch a stream YAML. Non-blocking, advisory-only.
+
+Both hooks registered in `plugins/pact/hooks/hooks.json` under the
+appropriate event slots. Plain bash + Python; no new dependencies.
+
+### Why these specific hooks
+
+PACT enforces some discipline via blocking hooks (file-edit logging,
+schema verify, Hive-write block). But there's been no forcing function
+for the dashboard YAML update flow: code lands, dashboard doesn't,
+future sessions inherit a worked-state without a tracked-state. These
+two hooks close that gap at the two highest-leverage moments —
+session-start (set the anchor) and post-commit (catch the drift).
+
+Universal pattern, project-agnostic. Both hooks read from `$CLAUDE_PROJECT_DIR`
++ project-relative paths; they assume the standard PACT directory layout
+(`HANDOFF.yaml` at root + `plans/dashboard/trees/**/streams/*.yaml`)
+but otherwise carry no project-specific assumptions.
+
+### Not included in this release
+
+Multi-model / local-cluster work from the source consumer-project session
+(OpenCode-on-shared-mount delegation skill, 5-phase loop skill, NATS
+cross-project helper, cluster-team dashboard stream) is **deliberately
+held back**. Those are still maturing and project-specific enough that
+they shouldn't ship to PACT consumers yet.
+
+---
+
 ## [0.13.0] — 2026-05-06
 
 ### Added — Bootstrap Pack

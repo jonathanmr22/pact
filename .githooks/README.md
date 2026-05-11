@@ -56,13 +56,19 @@ justified, so future audits can verify intent.
 ## Extending the term list
 
 Edit `forbidden_terms.txt`. One term per line, comments start with `#`.
-Match is case-insensitive substring (so `kensic`, `Kensic`, and `KENSIC`
+Match is case-insensitive substring (so `myproj`, `MyProj`, and `MYPROJ`
 all match the same entry).
+
+`skip_patterns.txt` accepts one extended-regex per line. Any staged line
+that matches the forbidden terms but ALSO matches a skip pattern is
+exempted — use this for legitimate structural mentions (e.g., a GitHub
+package-author handle that happens to overlap with a personal-name term).
 
 ## What gets blocked vs. what's fine
 
 **Blocked (will fire):**
-- Adding the line `Brings PACT into alignment with Kensic's restructure`
+- Adding the line `Brings PACT into alignment with Acme's restructure`
+  (replacing "Acme" with any term in `forbidden_terms.txt`)
 - Renaming a file path that contains a consumer project name
 - Adding code comments that reference a specific consumer
 

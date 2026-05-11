@@ -12,3 +12,15 @@
 Kensic
 Force Protection Services
 ForceProtectionServices
+
+# Personal name of the PACT author. The GitHub handle "jonathanmr22"
+# (in plugin.json / marketplace.json / LICENSE) is structural package
+# metadata and is exempted via .githooks/skip_patterns.txt.
+Jonathan
+
+# Personal-experiment / downstream project names that surface in the
+# author's conversational context but are NOT part of PACT itself.
+Couch Cushion
+Couch-Cushion
+couchcushion
+couch_cushion

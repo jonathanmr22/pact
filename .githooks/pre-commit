@@ -33,14 +33,29 @@ SKIP_PATHS_RE='^\.githooks/'
 STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep -vE "$SKIP_PATHS_RE" || true)
 
 HITS=""
+# Allow-list (regex per line) for legitimate structural mentions that
+# would otherwise trip a forbidden term — e.g. the GitHub package-author
+# handle "jonathanmr22" in plugin.json overlaps with the personal-name
+# term "Jonathan" but is correct package metadata.
+SKIP_PATTERNS_FILE="$REPO_ROOT/.githooks/skip_patterns.txt"
+SKIP_RE=""
+if [ -f "$SKIP_PATTERNS_FILE" ]; then
+  SKIP_RE=$(grep -vE '^\s*(#|$)' "$SKIP_PATTERNS_FILE" | paste -sd'|' -)
+fi
+
 if [ -n "$STAGED_FILES" ]; then
   HITS=$(echo "$STAGED_FILES" | while IFS= read -r f; do
     [ -z "$f" ] && continue
-    git diff --cached --no-color -U0 -- "$f" \
+    CANDIDATES=$(git diff --cached --no-color -U0 -- "$f" \
       | grep -E '^\+' \
       | grep -vE '^\+\+\+ ' \
-      | grep -inE "$TERMS" \
-      | sed "s|^|$f: |"
+      | grep -inE "$TERMS")
+    [ -z "$CANDIDATES" ] && continue
+    if [ -n "$SKIP_RE" ]; then
+      CANDIDATES=$(echo "$CANDIDATES" | grep -ivE "$SKIP_RE" || true)
+    fi
+    [ -z "$CANDIDATES" ] && continue
+    echo "$CANDIDATES" | sed "s|^|$f: |"
   done | head -10)
 fi
 
